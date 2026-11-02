@@ -286,11 +286,10 @@ func (a *App) rightSidebar(c *ui.Context, pal *palette, s *proto.Session) {
 	// The bar's tabs and button slide in from the window's edge with the
 	// sidebar, under the window controls, which stay in the window's
 	// corner (mainControls): they show up to the controls, not under them.
-	w := a.rightWidth() - 10
+	w := a.rightWidth()
 	shown := w
 	if ownControls && a.win != nil {
-		w -= controlsW + 8
-		shown = min(max(a.side.barW-a.side.edge-10-(controlsW+8), 0), w)
+		shown = min(max(a.side.barW-a.side.edge, 0), w)
 	}
 	ui.Row(c.Key("right-bar")).Height(topBar).Shrink(0).AlignItems(ui.Stretch).DragWindow().Children(func() {
 		ui.Row(c.Key("shown")).Width(shown).Shrink(0).AlignItems(ui.Stretch).ClipX().Children(func() {
