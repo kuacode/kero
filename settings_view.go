@@ -197,7 +197,8 @@ func (a *App) settingsView(c *ui.Context) {
 		// window controls are.
 		top := float32(topBar)
 		if ownControls {
-			top = barMid - (controlH+2)/2
+			// Keep the search field below the window controls.
+			top = topBar
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
 			a.settingsSearch(c, pal)
@@ -287,12 +288,12 @@ func (a *App) settingsView(c *ui.Context) {
 							})
 						}
 						ui.Spacer(c)
-						windowControls(c, pal, a.setWin)
 					})
 				})
 			})
 		})
 	})
+	windowControls(c, pal, a.setWin)
 	if a.ss.confirm != nil {
 		confirmDialog(c, pal, &a.ss.confirm)
 	}

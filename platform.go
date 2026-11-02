@@ -84,7 +84,7 @@ func windowControls(c *ui.Context, pal *palette, w *mygo.Window) {
 	if !ownControls || w == nil {
 		return
 	}
-	ui.Row(c.Key("window-controls")).Gap(2).AlignItems(ui.Center).Shrink(0).Margin(0, 0, 0, 6).Children(func() {
+	ui.Row(c.Key("window-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 		controlButtons(c, pal, w)
 	})
 }
@@ -99,7 +99,7 @@ func (a *App) mainControls(c *ui.Context, pal *palette, edge float32) {
 	if !ownControls || a.win == nil {
 		return
 	}
-	ui.Row(c.Key("main-controls")).Absolute().Right(edge + 10).Top(barMid - 13).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+	ui.Row(c.Key("main-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).DragWindow().Children(func() {
 		controlButtons(c, pal, a.win)
 	})
 }
@@ -108,56 +108,30 @@ func (a *App) mainControls(c *ui.Context, pal *palette, edge float32) {
 // right, whose gap is gap, for the window controls over it (mainControls),
 // as far as they come over the header: less as the right sidebar comes
 // in beside the card, and none once the sidebar is wider than they are.
-func (a *App) controlsRoom(c *ui.Context, gap float32) {
-	if !ownControls || a.win == nil {
-		return
-	}
-	// The gap before the room is in it: it narrows to nothing too.
-	w := max(controlsW+6+gap-a.side.barW, 0)
-	ui.Box(c.Key("controls-room")).Width(w).Shrink(0).Margin(0, 0, 0, -gap)
-}
+func (a *App) controlsRoom(c *ui.Context, gap float32) {}
 
 // underControls tells that the pointer is over the window controls, over
 // the header of card, w wide, at the window's top right: as they were the
 // header's own, they keep its pane hovered, its buttons shown.
 func underControls(card ui.Element, w float32) bool {
-	if !ownControls {
-		return false
-	}
-	x, y, in := card.PointerPosition()
-	return in && y < headerH && x >= w-(controlsW+10)
+	return false
 }
 
-// controlButtons are the window controls' buttons.
+// controlButtons are Mac-style red, yellow and green window controls.
 func controlButtons(c *ui.Context, pal *palette, w *mygo.Window) {
-	iconButton(c, "minimize", minimizeIcon, locales.WindowMinimize(), pal, w.Minimize)
-	// The system's maximize button for the pointer, which brings
-	// Windows 11's snap layouts as it rests there: no tooltip over them.
-	maximized := w.IsMaximized()
-	label, svg := locales.WindowMaximize(), maximizeIcon
-	if maximized {
-		label, svg = locales.WindowRestore(), restoreIcon
+	traffic := func(key, label string, color ui.Color, click func()) {
+		b := ui.ButtonBase(c.Key(key)).Size(14, 14).Radius(7).Center().Background(color).Label(label).Tooltip(label)
+		if b.Clicked() {
+			click()
+		}
 	}
-	m := ui.ButtonBase(c.Key("maximize")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(label).MaximizeButton()
-	if m.Pressed() {
-		m.Background(pal.rowHover.Alpha(0.12))
-	} else if m.Hovered() {
-		m.Background(pal.rowHover).TextColor(pal.text)
-	}
-	m.Children(func() { ui.Icon(c, svg).Size(16, 16) })
-	if m.Clicked() {
-		if maximized {
+	traffic("close-window", locales.CommonClose(), ui.RGB(255, 95, 86), w.Close)
+	traffic("minimize", locales.WindowMinimize(), ui.RGB(255, 189, 46), w.Minimize)
+	traffic("maximize", locales.WindowMaximize(), ui.RGB(39, 201, 63), func() {
+		if w.IsMaximized() {
 			w.Unmaximize()
 		} else {
 			w.Maximize()
 		}
-	}
-	b := ui.ButtonBase(c.Key("close-window")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
-	if b.Hovered() || b.Pressed() {
-		b.Background(pal.danger).TextColor(ui.RGB(255, 255, 255))
-	}
-	b.Children(func() { ui.Icon(c, closeIcon).Size(16, 16) })
-	if b.Clicked() {
-		w.Close()
-	}
+	})
 }
