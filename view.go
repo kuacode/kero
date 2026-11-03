@@ -182,7 +182,7 @@ func (a *App) view(c *ui.Context) {
 			a.rightHandle(c, right)
 		}
 	})
-	a.mainControls(c, pal, rightPad)
+	a.mainControlsAny(c, pal, rightPad)
 	// A page staged for a screenshot takes the window's size, under its
 	// content, which hides it: at no opacity, it paints no hole there.
 	for id, e := range a.webs {
@@ -920,7 +920,7 @@ func (a *App) card(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) 
 			}
 			ui.Text(c, "Kero").FontSize(14).FontWeight(600).TextColor(pal.text)
 			ui.Spacer(c)
-			a.controlsRoom(c, 0)
+			a.controlsRoomAny(c, 0)
 		})
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
 			switch {

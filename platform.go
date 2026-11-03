@@ -80,27 +80,13 @@ const controlsW = 3*28 + 2*2
 // windowControls are a window's minimize, maximize and close buttons, as
 // Kero draws them (ownControls), at the right of a header: the Settings
 // window's. The main window's are over its corner (mainControls).
-func (a *App) windowControls(c *ui.Context, pal *palette) {
-	w := a.setWin
+func windowControls(c *ui.Context, pal *palette, w *mygo.Window) {
 	if !ownControls || w == nil {
 		return
 	}
-	switch a.controlsMode() {
-	case "windows":
-		// The title bar's own row, centered on barMid as the sidebar's and
-		// the panes' rows are.
-		ui.Row(c.Key("window-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
-			controlButtons(c, pal, w, "windows")
-		})
-	case "builtin":
-		ui.Row(c.Key("window-controls")).Gap(2).AlignItems(ui.Center).Shrink(0).Margin(0, 0, 0, 6).Children(func() {
-			controlButtons(c, pal, w, "builtin")
-		})
-	default: // mac: traffic lights at the left, as macOS.
-		ui.Row(c.Key("window-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
-			controlButtons(c, pal, w, "mac")
-		})
-	}
+	ui.Row(c.Key("window-controls")).Gap(2).AlignItems(ui.Center).Shrink(0).Margin(0, 0, 0, 6).Children(func() {
+		controlButtons(c, pal, w)
+	})
 }
 
 // mainControls are the main window's controls, over its top right corner,
@@ -113,33 +99,9 @@ func (a *App) mainControls(c *ui.Context, pal *palette, edge float32) {
 	if !ownControls || a.win == nil {
 		return
 	}
-	switch a.controlsMode() {
-	case "windows":
-		// The title bar's own row: the sidebar's actions at the window's
-		// left and the controls at its right, centered on barMid.
-		ui.Row(c.Key("title-actions")).Absolute().Left(8).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
-			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
-		})
-		ui.Row(c.Key("main-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-			// The footer's buttons join the row, to the left of the window
-			// controls, which their place in the footer leaves to the row.
-			// They are the title row's own, and stay whether or not the
-			// sidebar hides: they no longer live in it.
-			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
-			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
-			controlButtons(c, pal, a.win, "windows")
-		})
-	case "builtin":
-		ui.Row(c.Key("main-controls")).Absolute().Right(edge + 10).Top(barMid - 13).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-			controlButtons(c, pal, a.win, "builtin")
-		})
-	default: // mac: traffic lights at the left, as macOS.
-		ui.Row(c.Key("main-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).DragWindow().Children(func() {
-			controlButtons(c, pal, a.win, "mac")
-		})
-	}
+	ui.Row(c.Key("main-controls")).Absolute().Right(edge + 10).Top(barMid - 13).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+		controlButtons(c, pal, a.win)
+	})
 }
 
 // controlsRoom keeps room at the right of the header at the window's top
@@ -147,7 +109,7 @@ func (a *App) mainControls(c *ui.Context, pal *palette, edge float32) {
 // as far as they come over the header: less as the right sidebar comes
 // in beside the card, and none once the sidebar is wider than they are.
 func (a *App) controlsRoom(c *ui.Context, gap float32) {
-	if !ownControls || a.win == nil || a.controlsMode() != "builtin" {
+	if !ownControls || a.win == nil {
 		return
 	}
 	// The gap before the room is in it: it narrows to nothing too.
@@ -158,48 +120,19 @@ func (a *App) controlsRoom(c *ui.Context, gap float32) {
 // underControls tells that the pointer is over the window controls, over
 // the header of card, w wide, at the window's top right: as they were the
 // header's own, they keep its pane hovered, its buttons shown.
-func (a *App) underControls(card ui.Element, w float32) bool {
-	if !ownControls || a.controlsMode() != "builtin" {
+func underControls(card ui.Element, w float32) bool {
+	if !ownControls {
 		return false
 	}
 	x, y, in := card.PointerPosition()
 	return in && y < headerH && x >= w-(controlsW+10)
 }
 
-// controlButtons draw a window's minimize, maximize and close, as Kero
-// draws them (ownControls), in the style the Settings chose: mac as red,
-// yellow and green traffic lights; windows and builtin as the app's
-// square buttons.
-func controlButtons(c *ui.Context, pal *palette, w *mygo.Window, style string) {
-	if style == "mac" {
-		macButtons(c, pal, w)
-		return
-	}
-	squareButtons(c, pal, w)
-}
-
-// macButtons are Mac-style red, yellow and green window controls.
-func macButtons(c *ui.Context, pal *palette, w *mygo.Window) {
-	traffic := func(key, label string, color ui.Color, click func()) {
-		b := ui.ButtonBase(c.Key(key)).Size(14, 14).Radius(7).Center().Background(color).Label(label).Tooltip(label)
-		if b.Clicked() {
-			click()
-		}
-	}
-	traffic("close-window", locales.CommonClose(), ui.RGB(255, 95, 86), w.Close)
-	traffic("minimize", locales.WindowMinimize(), ui.RGB(255, 189, 46), w.Minimize)
-	traffic("maximize", locales.WindowMaximize(), ui.RGB(39, 201, 63), func() {
-		if w.IsMaximized() {
-			w.Unmaximize()
-		} else {
-			w.Maximize()
-		}
-	})
-}
-
-// squareButtons are the app's square minimize, maximize and close buttons.
-func squareButtons(c *ui.Context, pal *palette, w *mygo.Window) {
+// controlButtons are the window controls' buttons.
+func controlButtons(c *ui.Context, pal *palette, w *mygo.Window) {
 	iconButton(c, "minimize", minimizeIcon, locales.WindowMinimize(), pal, w.Minimize)
+	// The system's maximize button for the pointer, which brings
+	// Windows 11's snap layouts as it rests there: no tooltip over them.
 	maximized := w.IsMaximized()
 	label, svg := locales.WindowMaximize(), maximizeIcon
 	if maximized {
@@ -229,10 +162,94 @@ func squareButtons(c *ui.Context, pal *palette, w *mygo.Window) {
 	}
 }
 
-// controlsMode is the style the Settings chose for the window controls.
+// controlsMode is the style the Settings chose for the window controls:
+// builtin in the card's corner, mac as traffic lights at the left, or
+// windows at the title bar's right.
 func (a *App) controlsMode() string {
 	if !ownControls {
 		return "mac"
 	}
 	return a.set.WindowControls
+}
+
+// settingsWindowControls draw the Settings window's controls, which in
+// mac and windows styles move to the window itself, not the page's header.
+func (a *App) settingsWindowControls(c *ui.Context, pal *palette) {
+	switch a.controlsMode() {
+	case "mac":
+		ui.Row(c.Key("window-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
+			macButtons(c, pal, a.setWin)
+		})
+	case "windows":
+		ui.Row(c.Key("window-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
+			controlButtons(c, pal, a.setWin)
+		})
+	}
+}
+
+// mainControlsAny draws the main window's controls, by the style the
+// Settings chose: main's own builtin controls over the card's corner, or
+// mac's traffic lights, or windows' title bar's row.
+func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
+	switch a.controlsMode() {
+	case "mac":
+		ui.Row(c.Key("main-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).DragWindow().Children(func() {
+			macButtons(c, pal, a.win)
+		})
+	case "windows":
+		// The title bar's own row: the sidebar's actions at the window's
+		// left and the controls at its right, centered on barMid.
+		ui.Row(c.Key("title-actions")).Absolute().Left(8).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
+			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
+		})
+		ui.Row(c.Key("main-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+			// The footer's buttons join the row, to the left of the window
+			// controls, which their place in the footer leaves to the row.
+			// They are the title row's own, and stay whether or not the
+			// sidebar hides: they no longer live in it.
+			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
+			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+			controlButtons(c, pal, a.win)
+		})
+	default: // builtin: main's own controls over the card's corner.
+		a.mainControls(c, pal, edge)
+	}
+}
+
+// controlsRoomAny keeps room at the header's right only in builtin style,
+// when the controls sit over it; mac and windows draw their own row.
+func (a *App) controlsRoomAny(c *ui.Context, gap float32) {
+	if a.controlsMode() == "builtin" {
+		a.controlsRoom(c, gap)
+	}
+}
+
+// underControlsAny tells that the pointer is over the window controls, in
+// builtin style only, when they sit over the card's header.
+func (a *App) underControlsAny(card ui.Element, w float32) bool {
+	if a.controlsMode() != "builtin" {
+		return false
+	}
+	return underControls(card, w)
+}
+
+// macButtons are Mac-style red, yellow and green window controls.
+func macButtons(c *ui.Context, pal *palette, w *mygo.Window) {
+	traffic := func(key, label string, color ui.Color, click func()) {
+		b := ui.ButtonBase(c.Key(key)).Size(14, 14).Radius(7).Center().Background(color).Label(label).Tooltip(label)
+		if b.Clicked() {
+			click()
+		}
+	}
+	traffic("close-window", locales.CommonClose(), ui.RGB(255, 95, 86), w.Close)
+	traffic("minimize", locales.WindowMinimize(), ui.RGB(255, 189, 46), w.Minimize)
+	traffic("maximize", locales.WindowMaximize(), ui.RGB(39, 201, 63), func() {
+		if w.IsMaximized() {
+			w.Unmaximize()
+		} else {
+			w.Maximize()
+		}
+	})
 }

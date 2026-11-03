@@ -299,7 +299,7 @@ func (a *App) settingsView(c *ui.Context) {
 						}
 						ui.Spacer(c)
 						if a.controlsMode() == "builtin" {
-							a.windowControls(c, pal)
+							windowControls(c, pal, a.setWin)
 						}
 					})
 				})
@@ -307,7 +307,7 @@ func (a *App) settingsView(c *ui.Context) {
 		})
 	})
 	if a.controlsMode() != "builtin" {
-		a.windowControls(c, pal)
+		a.settingsWindowControls(c, pal)
 	}
 	if a.ss.confirm != nil {
 		confirmDialog(c, pal, &a.ss.confirm)

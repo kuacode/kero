@@ -418,7 +418,7 @@ func (a *App) viewerHeader(c *ui.Context, pal *palette, s *proto.Session, svg *u
 		sid := s.ID
 		closeButton(c, pal, locales.SideClose(), dirty, func() { a.defer_(func() { a.closeView(a.session(sid)) }) })
 		a.showRightButton(c, pal)
-		a.controlsRoom(c, 8)
+		a.controlsRoomAny(c, 8)
 	})
 }
 

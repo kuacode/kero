@@ -210,7 +210,7 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 	}
 	// As the window controls over its header were its own (underControls).
 	if !hovered && top && right {
-		hovered = a.underControls(card, a.paneRef("card-"+p.ID).Bounds(c).W)
+		hovered = a.underControlsAny(card, a.paneRef("card-"+p.ID).Bounds(c).W)
 	}
 	// The card takes presses: one on its padding, beside the terminal,
 	// focuses the pane, rather than going on to what drags the window.
@@ -497,7 +497,7 @@ func (a *App) paneHeader(c *ui.Context, pal *palette, bar ui.TitleBar, shown flo
 			}
 		})
 		if top && right {
-			a.controlsRoom(c, 8)
+			a.controlsRoomAny(c, 8)
 		}
 	})
 	return dragging

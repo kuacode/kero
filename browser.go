@@ -341,7 +341,7 @@ func (a *App) browserBar(c *ui.Context, pal *palette, bar ui.TitleBar, shown flo
 			}
 		})
 		if top && right {
-			a.controlsRoom(c, 2)
+			a.controlsRoomAny(c, 2)
 		}
 	})
 	return h, dragging
