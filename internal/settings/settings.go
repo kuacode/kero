@@ -150,7 +150,7 @@ func Default() Settings {
 		Appearance:      "system",
 		Language:        "system",
 		Vibrancy:        true,
-		WindowControls:  "mac",
+		WindowControls:  "builtin",
 		DimUnfocused:    true,
 		FontSize:        13,
 		LineHeight:      1.22,
