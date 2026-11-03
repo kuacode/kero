@@ -2482,11 +2482,11 @@ func (msgs Messages) SetWindowControlsBuiltin() string {
 	return Catalog.Format(msgs.locale, "setWindowControlsBuiltin", nil)
 }
 
-// SetWindowControlsMac says "Mac"
+// SetWindowControlsMac says "Apple"
 // in the language the app shows.
 func SetWindowControlsMac() string { return In(i18n.Locale()).SetWindowControlsMac() }
 
-// SetWindowControlsMac says "Mac"
+// SetWindowControlsMac says "Apple"
 // in the language of msgs.
 func (msgs Messages) SetWindowControlsMac() string {
 	return Catalog.Format(msgs.locale, "setWindowControlsMac", nil)

@@ -295,7 +295,7 @@ func (a *App) rightSidebar(c *ui.Context, pal *palette, s *proto.Session) {
 			w -= controlsW + 8
 			shown = min(max(a.side.barW-a.side.edge-10-(controlsW+8), 0), w)
 		} else {
-			// mac and windows draw their own controls elsewhere, so the
+			// apple and windows draw their own controls elsewhere, so the
 			// bar's button sits at the sidebar's far right.
 			shown = min(max(a.side.barW-a.side.edge, 0), w)
 		}

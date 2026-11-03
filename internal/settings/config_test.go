@@ -308,9 +308,9 @@ func TestWindowControls(t *testing.T) {
 		t.Fatalf("WindowControls %q", s.WindowControls)
 	}
 	// Unknown value falls back to the default.
-	s, probs = parse("window-controls = mac\n")
-	if len(probs) != 0 || s.WindowControls != "mac" {
-		t.Fatalf("mac: %q %q", s.WindowControls, probs)
+	s, probs = parse("window-controls = apple\n")
+	if len(probs) != 0 || s.WindowControls != "apple" {
+		t.Fatalf("apple: %q %q", s.WindowControls, probs)
 	}
 	s, _ = parse("window-controls = bogus\n")
 	if s.WindowControls != Default().WindowControls {

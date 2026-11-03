@@ -163,11 +163,11 @@ func controlButtons(c *ui.Context, pal *palette, w *mygo.Window) {
 }
 
 // controlsMode is the style the Settings chose for the window controls:
-// builtin in the card's corner, mac as traffic lights at the left, or
+// builtin in the card's corner, apple as traffic lights at the left, or
 // windows at the title bar's right.
 func (a *App) controlsMode() string {
 	if !ownControls {
-		return "mac"
+		return "apple"
 	}
 	return a.set.WindowControls
 }
@@ -176,9 +176,9 @@ func (a *App) controlsMode() string {
 // mac and windows styles move to the window itself, not the page's header.
 func (a *App) settingsWindowControls(c *ui.Context, pal *palette) {
 	switch a.controlsMode() {
-	case "mac":
+	case "apple":
 		ui.Row(c.Key("window-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
-			macButtons(c, pal, a.setWin)
+			appleButtons(c, pal, a.setWin)
 		})
 	case "windows":
 		ui.Row(c.Key("window-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
@@ -189,12 +189,12 @@ func (a *App) settingsWindowControls(c *ui.Context, pal *palette) {
 
 // mainControlsAny draws the main window's controls, by the style the
 // Settings chose: main's own builtin controls over the card's corner, or
-// mac's traffic lights, or windows' title bar's row.
+// apple's traffic lights, or windows' title bar's row.
 func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 	switch a.controlsMode() {
-	case "mac":
+	case "apple":
 		ui.Row(c.Key("main-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).DragWindow().Children(func() {
-			macButtons(c, pal, a.win)
+			appleButtons(c, pal, a.win)
 		})
 	case "windows":
 		// The title bar's own row: the sidebar's actions at the window's
@@ -219,7 +219,7 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 }
 
 // controlsRoomAny keeps room at the header's right only in builtin style,
-// when the controls sit over it; mac and windows draw their own row.
+// when the controls sit over it; apple and windows draw their own row.
 func (a *App) controlsRoomAny(c *ui.Context, gap float32) {
 	if a.controlsMode() == "builtin" {
 		a.controlsRoom(c, gap)
@@ -235,8 +235,8 @@ func (a *App) underControlsAny(card ui.Element, w float32) bool {
 	return underControls(card, w)
 }
 
-// macButtons are Mac-style red, yellow and green window controls.
-func macButtons(c *ui.Context, pal *palette, w *mygo.Window) {
+// appleButtons are Mac-style red, yellow and green window controls.
+func appleButtons(c *ui.Context, pal *palette, w *mygo.Window) {
 	traffic := func(key, label string, color ui.Color, click func()) {
 		b := ui.ButtonBase(c.Key(key)).Size(14, 14).Radius(7).Center().Background(color).Label(label).Tooltip(label)
 		if b.Clicked() {

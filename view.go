@@ -313,7 +313,7 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 			// After the traffic lights on macOS, at the right; elsewhere the
 			// window controls are at the right, and the buttons at the left,
 			// where they stay as the sidebar hides (chrome.buttonsLeft).
-			if a.controlsMode() == "mac" {
+			if a.controlsMode() == "apple" {
 				ui.Spacer(c)
 			}
 			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)

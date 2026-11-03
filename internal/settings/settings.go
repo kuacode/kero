@@ -37,7 +37,7 @@ type Settings struct {
 	Appearance     string `json:"appearance"`     // "system", "light" or "dark"
 	Language       string `json:"language"`       // "system", or one of Languages
 	Vibrancy       bool   `json:"vibrancy"`       // the window's material under the wash
-	WindowControls string `json:"windowControls"` // "builtin", "mac" or "windows": how the window's controls draw
+	WindowControls string `json:"windowControls"` // "builtin", "apple" or "windows": how the window's controls draw
 
 	// Terminal
 	FontFamily   string  `json:"fontFamily"` // "" the font kero carries; "monospace" the system's
@@ -386,7 +386,7 @@ func (s *Settings) normalize() {
 	oneOf(&s.NewSessionDir, d.NewSessionDir, "current", "project", "home")
 	oneOf(&s.SidebarRows, d.SidebarRows, "detailed", "compact")
 	oneOf(&s.Appearance, d.Appearance, "system", "light", "dark")
-	oneOf(&s.WindowControls, d.WindowControls, "builtin", "mac", "windows")
+	oneOf(&s.WindowControls, d.WindowControls, "builtin", "apple", "windows")
 	oneOf(&s.Language, d.Language, append([]string{"system"}, Languages...)...)
 	oneOf(&s.Cursor, d.Cursor, "block", "bar", "underline")
 	oneOf(&s.Clipboard, d.Clipboard, "ask", "allow", "deny")

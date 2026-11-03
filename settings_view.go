@@ -206,8 +206,10 @@ func (a *App) settingsView(c *ui.Context) {
 			// The row already drops by the title band; the nav needs only a
 			// small gap below it.
 			top = 10
-		} else if ownControls {
-			// Keep the search field below the window controls.
+		} else if ownControls && a.controlsMode() != "apple" {
+			// Keep the search field below the builtin window controls.
+			// In apple mode they sit top left over the search field, which
+			// therefore starts below the title bar's row, as on macOS.
 			top = barMid - (controlH+2)/2
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
@@ -676,7 +678,7 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 			toggle(c.Key("vibrancy"), &s.Vibrancy, pal)
 		})
 		settingRow(c, pal, locales.SetWindowControls(), "", func() {
-			segmented(c, "window-controls", &s.WindowControls, []string{"builtin", "mac", "windows"}, []string{locales.SetWindowControlsBuiltin(), locales.SetWindowControlsMac(), locales.SetWindowControlsWindows()})
+			segmented(c, "window-controls", &s.WindowControls, []string{"builtin", "apple", "windows"}, []string{locales.SetWindowControlsBuiltin(), locales.SetWindowControlsMac(), locales.SetWindowControlsWindows()})
 		})
 	})
 	ui.Column(c).Gap(8).Children(func() {

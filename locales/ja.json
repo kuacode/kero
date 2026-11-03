@@ -242,7 +242,7 @@
   "setTranslucentDetail": "ウインドウの背景からデスクトップが透けて見えます。",
   "setWindowControls": "タイトルバーのスタイル",
   "setWindowControlsBuiltin": "内蔵",
-  "setWindowControlsMac": "Mac",
+  "setWindowControlsMac": "Apple",
   "setWindowControlsWindows": "Windows",
   "setDimUnfocused": "フォーカスのないターミナルを暗くする",
   "setDimUnfocusedDetail": "セッションに複数のペインがあるとき、使用中でないターミナルが薄くなります。",
