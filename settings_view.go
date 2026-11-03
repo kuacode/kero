@@ -208,7 +208,7 @@ func (a *App) settingsView(c *ui.Context) {
 			top = 10
 		} else if ownControls {
 			// Keep the search field below the window controls.
-			top = topBar
+			top = barMid - (controlH+2)/2
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
 			a.settingsSearch(c, pal)

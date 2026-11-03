@@ -20,7 +20,7 @@ const (
 	// lights, the sidebar's buttons, the panes' headers. topBar is the
 	// sidebar's title bar, centered on it, and headerH a header of a card,
 	// which starts cardGap down, centered on it too.
-	barMid  = 24
+	barMid  = 30
 	topBar  = 2 * barMid
 	headerH = 2 * (barMid - cardGap)
 	cardGap = 8 // around the card
@@ -310,9 +310,12 @@ func kbd(c *ui.Context, pal *palette, keys string) {
 func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	if a.controlsMode() != "windows" {
 		ui.Row(c).Height(topBar).Shrink(0).AlignItems(ui.Center).Padding(0, 12, 0, lead(bar)).Gap(2).DragWindow().Children(func() {
-			// Keep the sidebar actions on the right of the header, after the
-			// window controls at the left.
-			ui.Spacer(c)
+			// After the traffic lights on macOS, at the right; elsewhere the
+			// window controls are at the right, and the buttons at the left,
+			// where they stay as the sidebar hides (chrome.buttonsLeft).
+			if a.controlsMode() == "mac" {
+				ui.Spacer(c)
+			}
 			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
 			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 		})
