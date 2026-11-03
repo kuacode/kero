@@ -190,13 +190,23 @@ func (a *App) settingsView(c *ui.Context) {
 	found := a.searchSettings()
 	c.OnShortcut(ui.Cmd, ui.KeyF, func() { a.ss.searchRef.Focus(c) })
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
+	// In windows mode the title bar's row owns the window's top, so the
+	// whole content moves below it, as the main window's does.
+	if a.controlsMode() == "windows" {
+		row.Padding(barMid, 0, 0, 0)
+		row.DragWindow()
+	}
 	backdrop(c, row)
 	row.Children(func() {
 		// Under the traffic lights on macOS; elsewhere the search starts
 		// the sidebar, centered on barMid as the page's title and the
 		// window controls are.
 		top := float32(topBar)
-		if ownControls {
+		if a.controlsMode() == "windows" {
+			// The row already drops by the title band; the nav needs only a
+			// small gap below it.
+			top = 10
+		} else if ownControls {
 			// Keep the search field below the window controls.
 			top = topBar
 		}
