@@ -293,7 +293,7 @@ func (a *App) settingsView(c *ui.Context) {
 			})
 		})
 	})
-	windowControls(c, pal, a.setWin)
+	a.windowControls(c, pal)
 	if a.ss.confirm != nil {
 		confirmDialog(c, pal, &a.ss.confirm)
 	}
@@ -659,6 +659,9 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 		})
 		settingRow(c, pal, locales.SetTranslucent(), locales.SetTranslucentDetail(), func() {
 			toggle(c.Key("vibrancy"), &s.Vibrancy, pal)
+		})
+		settingRow(c, pal, locales.SetWindowControls(), "", func() {
+			segmented(c, "window-controls", &s.WindowControls, []string{"builtin", "mac", "windows"}, []string{locales.SetWindowControlsBuiltin(), locales.SetWindowControlsMac(), locales.SetWindowControlsWindows()})
 		})
 	})
 	ui.Column(c).Gap(8).Children(func() {
