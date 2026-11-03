@@ -210,7 +210,7 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 	}
 	// As the window controls over its header were its own (underControls).
 	if !hovered && top && right {
-		hovered = underControls(card, a.paneRef("card-"+p.ID).Bounds(c).W)
+		hovered = a.underControls(card, a.paneRef("card-"+p.ID).Bounds(c).W)
 	}
 	// The card takes presses: one on its padding, beside the terminal,
 	// focuses the pane, rather than going on to what drags the window.
@@ -506,7 +506,9 @@ func (a *App) paneHeader(c *ui.Context, pal *palette, bar ui.TitleBar, shown flo
 // sidebarButtons are the sidebar's buttons, which the header at the
 // window's top left holds while the sidebar hides.
 func (a *App) sidebarButtons(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) {
-	if shown >= 0.5 {
+	// In windows mode the title bar row holds these, and the sidebar
+	// hides behind the content, so nothing draws here.
+	if a.controlsMode() == "windows" || shown >= 0.5 {
 		return
 	}
 	ui.Row(c).Absolute().Left(a.chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {

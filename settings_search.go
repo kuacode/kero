@@ -41,6 +41,7 @@ func settingsIndex() []searchEntry {
 		{"appearance", locales.SetAppearance(), "window-theme dark light mode system"},
 		{"appearance", locales.SetLanguage(), "language locale translation chinese english 语言 中文"},
 		{"appearance", locales.SetTranslucent(), "window-translucent vibrancy blur material transparency"},
+		{"appearance", locales.SetWindowControls(), "window-controls titlebar title bar controls buttons minimize maximize close builtin mac windows"},
 		{"appearance", locales.SetBackground(), "theme background wash colors terminal petal mist meadow dusk tide apricot aurora dune paper plain gradient color"},
 
 		{"terminal", locales.SetFont(), "font-family typeface jetbrains mono nerd"},

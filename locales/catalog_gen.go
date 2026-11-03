@@ -2462,6 +2462,46 @@ func (msgs Messages) SetTranslucentDetail() string {
 	return Catalog.Format(msgs.locale, "setTranslucentDetail", nil)
 }
 
+// SetWindowControls says "Title bar style"
+// in the language the app shows.
+func SetWindowControls() string { return In(i18n.Locale()).SetWindowControls() }
+
+// SetWindowControls says "Title bar style"
+// in the language of msgs.
+func (msgs Messages) SetWindowControls() string {
+	return Catalog.Format(msgs.locale, "setWindowControls", nil)
+}
+
+// SetWindowControlsBuiltin says "Builtin"
+// in the language the app shows.
+func SetWindowControlsBuiltin() string { return In(i18n.Locale()).SetWindowControlsBuiltin() }
+
+// SetWindowControlsBuiltin says "Builtin"
+// in the language of msgs.
+func (msgs Messages) SetWindowControlsBuiltin() string {
+	return Catalog.Format(msgs.locale, "setWindowControlsBuiltin", nil)
+}
+
+// SetWindowControlsMac says "Mac"
+// in the language the app shows.
+func SetWindowControlsMac() string { return In(i18n.Locale()).SetWindowControlsMac() }
+
+// SetWindowControlsMac says "Mac"
+// in the language of msgs.
+func (msgs Messages) SetWindowControlsMac() string {
+	return Catalog.Format(msgs.locale, "setWindowControlsMac", nil)
+}
+
+// SetWindowControlsWindows says "Windows"
+// in the language the app shows.
+func SetWindowControlsWindows() string { return In(i18n.Locale()).SetWindowControlsWindows() }
+
+// SetWindowControlsWindows says "Windows"
+// in the language of msgs.
+func (msgs Messages) SetWindowControlsWindows() string {
+	return Catalog.Format(msgs.locale, "setWindowControlsWindows", nil)
+}
+
 // SetDimUnfocused says "Dim unfocused terminals"
 // in the language the app shows.
 func SetDimUnfocused() string { return In(i18n.Locale()).SetDimUnfocused() }

@@ -299,3 +299,21 @@ func TestMouseScrollMultiplier(t *testing.T) {
 		t.Errorf("a new file sets the default:\n%s", out)
 	}
 }
+func TestWindowControls(t *testing.T) {
+	s, probs := parse("window-controls = windows\n")
+	if len(probs) != 0 {
+		t.Fatalf("problems %q", probs)
+	}
+	if s.WindowControls != "windows" {
+		t.Fatalf("WindowControls %q", s.WindowControls)
+	}
+	// Unknown value falls back to the default.
+	s, probs = parse("window-controls = mac\n")
+	if len(probs) != 0 || s.WindowControls != "mac" {
+		t.Fatalf("mac: %q %q", s.WindowControls, probs)
+	}
+	s, _ = parse("window-controls = bogus\n")
+	if s.WindowControls != Default().WindowControls {
+		t.Fatalf("bogus %q", s.WindowControls)
+	}
+}
