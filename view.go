@@ -20,7 +20,7 @@ const (
 	// lights, the sidebar's buttons, the panes' headers. topBar is the
 	// sidebar's title bar, centered on it, and headerH a header of a card,
 	// which starts cardGap down, centered on it too.
-	barMid  = 30
+	barMid  = 24
 	topBar  = 2 * barMid
 	headerH = 2 * (barMid - cardGap)
 	cardGap = 8 // around the card
