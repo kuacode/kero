@@ -180,7 +180,10 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 			case in.Submitted() || c.Shortcut(0, ui.KeyEnter) || c.Shortcut(0, ui.KeyTab):
 				switch {
 				case isPathQuery(q, h.windows()):
-					goTo = q
+					// A path typed in opens its folder as the project, on
+					// any machine: the host expands and cleans it, and the
+					// user named where to open, not where to browse.
+					openDir = q
 				case len(items) > 0:
 					goTo = items[p.index].path
 				}
