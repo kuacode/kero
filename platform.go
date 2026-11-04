@@ -210,7 +210,7 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 			// sidebar hides: they no longer live in it.
 			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
 			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-			keepAwakeButton(c, "keep-awake", pal, a)
+			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 			controlButtons(c, pal, a.win)
 		})
