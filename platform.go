@@ -200,11 +200,7 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 		// The title bar's own row: the sidebar's actions at the window's
 		// left and the controls at its right, centered on barMid.
 		ui.Row(c.Key("title-actions")).Absolute().Left(8).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-			// Hide the left sidebar, unless the right sidebar shows, whose own
-			// actions close it: the button would ask for what is showing.
-			if !a.rightShown() {
-				iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
-			}
+			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
 			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 		})
 		ui.Row(c.Key("main-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
