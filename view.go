@@ -252,13 +252,13 @@ func iconButton(c *ui.Context, key string, svg *ui.SVG, label string, pal *palet
 	}
 }
 
-// keepAwakeButton toggles keeping the system awake with the display on.
+// keepAwakeButton toggles keeping the system awake.
 func keepAwakeButton(c *ui.Context, key string, pal *palette, a *App) {
 	awakeIcon := keepAwakeOffIcon
 	if a.keepAwakeRelease != nil {
 		awakeIcon = keepAwakeOnIcon
 	}
-	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Tooltip(locales.KeepAwakeDisplay())
+	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Tooltip(locales.AwakeTitle())
 	if b.Pressed() {
 		b.Background(pal.rowHover.Alpha(0.12))
 	} else if b.Hovered() {
