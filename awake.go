@@ -39,7 +39,7 @@ func (a *App) keepAwake() {
 		a.keepAwakeRelease = nil
 	}
 	if hold {
-		a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", false)
+		a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", true)
 	}
 }
 
