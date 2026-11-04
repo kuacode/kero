@@ -187,22 +187,6 @@ type confirmation struct {
 	altDestroy bool
 }
 
-func (a *App) setKeepAwake(display bool) {
-	if a.keepAwakeRelease != nil {
-		a.keepAwakeRelease()
-	}
-	a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", display)
-}
-
-func (a *App) toggleKeepAwake() {
-	if a.keepAwakeRelease != nil {
-		a.keepAwakeRelease()
-		a.keepAwakeRelease = nil
-		return
-	}
-	a.setKeepAwake(true)
-}
-
 func newApp() *App {
 	a := &App{terms: map[string]*termEntry{}, webs: map[string]*webEntry{}, statuses: map[string]proto.Status{}, active: true, focused: true,
 		refs: map[string]*ui.Handle{}, focus: map[string]string{}, arrived: map[string]bool{}}
