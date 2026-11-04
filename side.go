@@ -292,8 +292,8 @@ func (a *App) rightSidebar(c *ui.Context, pal *palette, s *proto.Session) {
 		if a.controlsMode() == "builtin" {
 			// As main draws them: the bar slides in under the window
 			// controls, which stay in the window's corner.
-			w -= controlsW + 8
-			shown = min(max(a.side.barW-a.side.edge-10-(controlsW+8), 0), w)
+			w -= controlsW
+			shown = min(max(a.side.barW-a.side.edge-10-controlsW, 0), w)
 		} else {
 			// apple and windows draw their own controls elsewhere, so the
 			// bar's button sits at the sidebar's far right.
