@@ -121,11 +121,11 @@ type App struct {
 	// idleTime tells how long the user has not used the machine's keyboard
 	// or mouse (mygo.Power.IdleTime), 0 when the system does not tell; nil
 	// in tests.
-	idleTime func() time.Duration
-
-	renaming        string
-	renamingProject string
-	renameBuf       string
+	idleTime         func() time.Duration
+	keepAwakeRelease func()
+	renaming         string
+	renamingProject  string
+	renameBuf        string
 
 	renameFrames int
 	chrome       chrome // where the sidebar's animation puts things
@@ -181,6 +181,22 @@ type confirmation struct {
 	alt        string
 	altRun     func()
 	altDestroy bool
+}
+
+func (a *App) setKeepAwake(display bool) {
+	if a.keepAwakeRelease != nil {
+		a.keepAwakeRelease()
+	}
+	a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", display)
+}
+
+func (a *App) toggleKeepAwake() {
+	if a.keepAwakeRelease != nil {
+		a.keepAwakeRelease()
+		a.keepAwakeRelease = nil
+		return
+	}
+	a.setKeepAwake(true)
 }
 
 func newApp() *App {

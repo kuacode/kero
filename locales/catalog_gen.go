@@ -6113,3 +6113,13 @@ func SetShortcutGlobal() string { return In(i18n.Locale()).SetShortcutGlobal() }
 func (msgs Messages) SetShortcutGlobal() string {
 	return Catalog.Format(msgs.locale, "setShortcutGlobal", nil)
 }
+
+// KeepAwakeDisplay says "Keep awake and screen on"
+// in the language the app shows.
+func KeepAwakeDisplay() string { return In(i18n.Locale()).KeepAwakeDisplay() }
+
+// KeepAwakeDisplay says "Keep awake and screen on"
+// in the language of msgs.
+func (msgs Messages) KeepAwakeDisplay() string {
+	return Catalog.Format(msgs.locale, "keepAwakeDisplay", nil)
+}

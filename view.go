@@ -252,6 +252,25 @@ func iconButton(c *ui.Context, key string, svg *ui.SVG, label string, pal *palet
 	}
 }
 
+// keepAwakeButton toggles keeping the system awake with the display on.
+func keepAwakeButton(c *ui.Context, key string, pal *palette, a *App) {
+	awakeIcon := keepAwakeOffIcon
+	if a.keepAwakeRelease != nil {
+		awakeIcon = keepAwakeOnIcon
+	}
+	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Tooltip(locales.KeepAwakeDisplay())
+	if b.Pressed() {
+		b.Background(pal.rowHover.Alpha(0.12))
+	} else if b.Hovered() {
+		b.Background(pal.rowHover)
+		b.TextColor(pal.text)
+	}
+	b.Children(func() { ui.Icon(c, awakeIcon).Size(18, 18) })
+	if b.Clicked() {
+		a.toggleKeepAwake()
+	}
+}
+
 // tipsAt are where pointerTooltip's tips show, by key: where the pointer
 // rested as each came, which they keep while they show.
 var tipsAt = map[string]ui.Point{}
@@ -676,6 +695,7 @@ func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 		if a.controlsMode() != "windows" {
 			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
 			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+			keepAwakeButton(c, "keep-awake", pal, a)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		}
 		ui.Spacer(c)

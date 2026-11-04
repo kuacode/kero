@@ -62,7 +62,9 @@ var (
 	copyIcon         = glyph("f7-doc-on-doc")
 	linkIcon         = glyph("f7-arrow-up-right")
 	editIcon         = glyph("f7-pencil")
-	archiveIcon      = icon(`<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3"/>`)
+	archiveIcon      = icon(`<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v6.5a1 1 0 0 1 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3"/>`)
+	keepAwakeOffIcon = icon(`<path d="M3 6h8v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6M11 7h1.5a1.5 1.5 0 0 1 0 3H11"/>`)
+	keepAwakeOnIcon  = icon(`<path d="M3 6h8v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6M11 7h1.5a1.5 1.5 0 0 1 0 3H11M5 4c-1-1 1-1 0-2M8 4c-1-1 1-1 0-2"/>`)
 )
 
 // programIcons are the logos of programs a pane may run, by the name kerod

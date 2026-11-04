@@ -114,6 +114,9 @@ func runApp() {
 	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) {
 		a.savePrefs()
 		a.backupOnQuit()
+		if a.keepAwakeRelease != nil {
+			a.keepAwakeRelease()
+		}
 	})
 	// Windows leaves an icon in the notification area after its app until
 	// the pointer passes over it.
