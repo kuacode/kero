@@ -258,17 +258,7 @@ func keepAwakeButton(c *ui.Context, key string, pal *palette, a *App) {
 	if a.keepAwakeRelease != nil {
 		awakeIcon = keepAwakeOnIcon
 	}
-	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Tooltip(locales.AwakeTitle())
-	if b.Pressed() {
-		b.Background(pal.rowHover.Alpha(0.12))
-	} else if b.Hovered() {
-		b.Background(pal.rowHover)
-		b.TextColor(pal.text)
-	}
-	b.Children(func() { ui.Icon(c, awakeIcon).Size(18, 18) })
-	if b.Clicked() {
-		a.toggleKeepAwake()
-	}
+	iconButton(c, key, awakeIcon, locales.AwakeTitle(), pal, a.toggleKeepAwake)
 }
 
 // tipsAt are where pointerTooltip's tips show, by key: where the pointer
