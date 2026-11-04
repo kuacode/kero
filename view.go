@@ -316,7 +316,12 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 			if a.controlsMode() == "apple" {
 				ui.Spacer(c)
 			}
-			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
+			// The toggle names what pressing it does, by the sidebar's state.
+			sidebarTip := locales.SidebarHide()
+			if a.prefs.SidebarHidden {
+				sidebarTip = locales.SidebarShow()
+			}
+			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(sidebarTip, "sidebar.toggle"), pal, a.toggleSidebar)
 			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 		})
 	}

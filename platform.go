@@ -200,7 +200,12 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 		// The title bar's own row: the sidebar's actions at the window's
 		// left and the controls at its right, centered on barMid.
 		ui.Row(c.Key("title-actions")).Absolute().Left(8).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
+			// The toggle names what pressing it does, by the sidebar's state.
+			sidebarTip := locales.SidebarHide()
+			if a.prefs.SidebarHidden {
+				sidebarTip = locales.SidebarShow()
+			}
+			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(sidebarTip, "sidebar.toggle"), pal, a.toggleSidebar)
 			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 		})
 		ui.Row(c.Key("main-controls")).Absolute().Right(10).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
@@ -212,7 +217,12 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
 			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
-			iconButton(c, "right-sidebar", sidebarRightIcon, a.tip(locales.ActionToggleRightSidebar(), "rightSidebar.toggle"), pal, a.toggleRight)
+			// The toggle names what pressing it does, by the sidebar's state.
+			rightTip := locales.RightSidebarHide()
+			if !a.rightShown() {
+				rightTip = locales.RightSidebarShow()
+			}
+			iconButton(c, "right-sidebar", sidebarRightIcon, a.tip(rightTip, "rightSidebar.toggle"), pal, a.toggleRight)
 			// A breath before the window controls, which read as a group
 			// apart from Kero's own buttons.
 			ui.Box(c.Key("controls-sep")).Width(8).Shrink(0)
