@@ -101,3 +101,12 @@ func (a *App) awakeTrayItem() *mygo.MenuItem {
 	}
 	return &mygo.MenuItem{Label: locales.AwakeTitle(), Submenu: modes}
 }
+
+// toggleKeepAwake switches the toolbar between the off and on modes.
+func (a *App) toggleKeepAwake() {
+	if a.set.KeepAwake == awakeOff {
+		a.setKeepAwake(awakeOn)
+	} else {
+		a.setKeepAwake(awakeOff)
+	}
+}
