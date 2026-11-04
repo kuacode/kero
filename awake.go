@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/i18n"
+	"github.com/egoist/mygo/ui"
 
 	"kero/internal/proto"
 	"kero/internal/settings"
@@ -40,6 +41,15 @@ func (a *App) keepAwake() {
 	if hold {
 		a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", false)
 	}
+}
+
+// keepAwakeIcon is the toolbar icon of Keep computer awake: the one on
+// while it is held from sleeping, off otherwise.
+func (a *App) keepAwakeIcon() *ui.SVG {
+	if a.keepAwakeRelease != nil {
+		return keepAwakeOnIcon
+	}
+	return keepAwakeOffIcon
 }
 
 // anyWorking tells whether a pane of the sessions local takes is Working.
