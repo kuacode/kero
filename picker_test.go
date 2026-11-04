@@ -1,12 +1,17 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
 	"kero/internal/proto"
+	"kero/locales"
 )
 
 // The wheel scrolls the picker's folders away from the one chosen.
@@ -37,4 +42,67 @@ func TestPickerScrolls(t *testing.T) {
 	if y := a.picker.scroll.Y; y <= 300 {
 		t.Errorf("choosing folder39 left the folders at %g", y)
 	}
+}
+
+// The picker's quick jumps sit above the folders, named to read: the home,
+// a drive by its letter, and any other root by its last name.
+func TestPickerRoots(t *testing.T) {
+	a := testApp(t)
+	tt := ui.NewTester(a.view, 1100, 900)
+	home := proto.Home()
+	l := &proto.FSList{Dir: home, Home: home, Roots: []proto.FSEntry{
+		{Name: home, Dir: true}, {Name: `C:\`, Dir: true}, {Name: "/var/lib", Dir: true},
+	}}
+	a.picker = folderPicker{open: true, host: a.local(), list: l}
+	tt.Frame()
+	for _, want := range []string{locales.PickerHome(), "C:", "lib"} {
+		if !slices.Contains(tt.Texts(), want) {
+			t.Errorf("quick jumps lack %q; texts %q", want, tt.Texts())
+		}
+	}
+}
+
+// A path typed in the picker opens its folder as the project, whether it is
+// this machine's or, from a Windows Kero, a drive's.
+func TestPickerPathQueryOpensProject(t *testing.T) {
+	a := testApp(t)
+	a.picker = folderPicker{open: true, host: a.local()}
+	tt := ui.NewTester(a.view, 1100, 900)
+	dir := t.TempDir()
+	opened := make(chan string, 1)
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		switch method {
+		case "project.create":
+			var p proto.ProjectParams
+			if err := json.Unmarshal(raw, &p); err != nil {
+				return nil, err
+			}
+			if p.Dir != dir {
+				t.Errorf("project.create received %q, want %q", p.Dir, dir)
+			}
+			opened <- p.Dir
+			return proto.Project{ID: "typed", Dir: p.Dir}, nil
+		case "create":
+			return proto.Session{ID: "typed-session", Project: "typed"}, nil
+		default:
+			return nil, errors.New("unexpected method " + method)
+		}
+	})
+	defer stop()
+	a.local().cl = cl
+	a.update(func() { a.picker.query = dir })
+	tt.Frame()
+	tt.Type(dir)
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	tt.Frame()
+	select {
+	case got := <-opened:
+		if got != dir {
+			t.Fatalf("a path typed in opened %q, want %q", got, dir)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("a path typed in opened no project")
+	}
+	tt.Frame()
 }

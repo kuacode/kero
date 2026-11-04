@@ -5496,6 +5496,16 @@ func (msgs Messages) PickerPlaceholder() string {
 	return Catalog.Format(msgs.locale, "pickerPlaceholder", nil)
 }
 
+// PickerHome says "Home"
+// in the language the app shows.
+func PickerHome() string { return In(i18n.Locale()).PickerHome() }
+
+// PickerHome says "Home"
+// in the language of msgs.
+func (msgs Messages) PickerHome() string {
+	return Catalog.Format(msgs.locale, "pickerHome", nil)
+}
+
 // PickerShowHidden says "Show Hidden"
 // in the language the app shows.
 func PickerShowHidden() string { return In(i18n.Locale()).PickerShowHidden() }

@@ -43,13 +43,32 @@ func hostPath(p, base string) string {
 	return filepath.Join(hostPath(base, ""), p)
 }
 
+// fsRootEntries are the quick jumps the picker shows, wherever it lists: the
+// user's home, the common folders of it that are there, then where the host's
+// paths start, its root, or its drives.
+func fsRootEntries() []proto.FSEntry {
+	home := proto.Home()
+	out := []proto.FSEntry{{Name: home, Dir: true}}
+	for _, name := range []string{"Projects", "Documents", "Downloads", "Desktop"} {
+		if p := filepath.Join(home, name); p != home {
+			if st, err := os.Stat(p); err == nil && st.IsDir() {
+				out = append(out, proto.FSEntry{Name: p, Dir: true})
+			}
+		}
+	}
+	for _, r := range fsRoots() {
+		out = append(out, proto.FSEntry{Name: r, Dir: true})
+	}
+	return out
+}
+
 func fsList(p proto.FSListParams) (proto.FSList, error) {
 	dir := hostPath(p.Dir, "")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return proto.FSList{}, err
 	}
-	out := proto.FSList{Dir: dir, Home: proto.Home(), Entries: []proto.FSEntry{}}
+	out := proto.FSList{Dir: dir, Home: proto.Home(), Entries: []proto.FSEntry{}, Roots: fsRootEntries()}
 	if parent := filepath.Dir(dir); parent != dir {
 		out.Parent = parent
 	}

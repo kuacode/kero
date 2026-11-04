@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path"
 	"slices"
 	"strings"
 
@@ -34,6 +35,29 @@ type folderPicker struct {
 type pickerItem struct {
 	name, path string
 	repo, up   bool
+}
+
+// pickerRoots are the quick jumps the host offers, the user's home and the
+// root, or the drives, of the host, named for the row of them the picker
+// keeps above the folders.
+func (a *App) pickerRoots() []pickerItem {
+	if a.picker.list == nil {
+		return nil
+	}
+	var out []pickerItem
+	for _, r := range a.picker.list.Roots {
+		name := r.Name
+		switch {
+		case name == a.picker.list.Home:
+			name = locales.PickerHome()
+		case len(name) == 3 && name[1] == ':':
+			name = name[:2] // C:\ → C:
+		default:
+			name = path.Base(name)
+		}
+		out = append(out, pickerItem{name: name, path: r.Name})
+	}
+	return out
 }
 
 // openProjectOn lists a host's folders, from its home, to open a project
@@ -160,6 +184,25 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 				goTo = p.list.Dir
 			}
 		})
+		// The quick jumps: the home, the common folders, and the root (or
+		// the drives, on Windows), wherever the listing is.
+		if roots := a.pickerRoots(); len(roots) > 0 {
+			ui.Row(c.Key("roots")).Height(40).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Wrap().Children(func() {
+				for _, r := range roots {
+					b := ui.ButtonBase(c.Key("root-"+r.path)).Height(28).Padding(0, 10).Radius(6).Gap(6).AlignItems(ui.Center)
+					if b.Hovered() {
+						b.Background(pal.rowHover)
+					}
+					if b.Clicked() {
+						goTo = r.path
+					}
+					b.Children(func() {
+						ui.Icon(c, folderIcon).Size(14, 14).TextColor(pal.textFaint)
+						ui.Text(c, r.name).FontSize(12.5).TextColor(pal.text).SingleLine()
+					})
+				}
+			})
+		}
 		ui.Row(c).Height(44).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, folderIcon).Size(16, 16).TextColor(pal.textMuted)
 			in := ui.TextInputBase(c.Key("q"), &p.query).Grow(1).FontSize(15).Placeholder(locales.PickerPlaceholder()).AutoFocus()
@@ -180,7 +223,10 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 			case in.Submitted() || c.Shortcut(0, ui.KeyEnter) || c.Shortcut(0, ui.KeyTab):
 				switch {
 				case isPathQuery(q, h.windows()):
-					goTo = q
+					// A path typed in opens its folder as the project, on
+					// any machine: the host expands and cleans it, and the
+					// user named where to open, not where to browse.
+					openDir = q
 				case len(items) > 0:
 					goTo = items[p.index].path
 				}
