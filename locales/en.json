@@ -1003,6 +1003,7 @@
   },
   "pickerPlaceholder": "Filter folders, or type a path: ~/code",
   "pickerHome": "Home",
+  "pickerRoot": "Root",
   "pickerShowHidden": "Show Hidden",
   "pickerHideHidden": "Hide Hidden",
   "pickerNoFolders": "No folders",

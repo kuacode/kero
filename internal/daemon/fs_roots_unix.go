@@ -2,7 +2,7 @@
 
 package daemon
 
-// fsRoots lists the root directory, where a Unix host's paths start.
-func fsRoots() []string {
-	return []string{"/"}
+// fsRootJump is the quick jump of where the host's paths start: its root.
+func fsRootJump() string {
+	return "/"
 }

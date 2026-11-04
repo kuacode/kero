@@ -43,26 +43,20 @@ func hostPath(p, base string) string {
 	return filepath.Join(hostPath(base, ""), p)
 }
 
-// fsRootEntries are the quick jumps the picker shows, wherever it lists: the
-// user's home, the common folders of it that are there, then where the host's
-// paths start, its root, or its drives.
+// fsRootEntries are the quick jumps the picker shows, wherever it lists:
+// the user's home, then where the host's paths start — This PC on Windows,
+// its root elsewhere. The drives are one jump, This PC, not one per drive.
 func fsRootEntries() []proto.FSEntry {
-	home := proto.Home()
-	out := []proto.FSEntry{{Name: home, Dir: true}}
-	for _, name := range []string{"Projects", "Documents", "Downloads", "Desktop"} {
-		if p := filepath.Join(home, name); p != home {
-			if st, err := os.Stat(p); err == nil && st.IsDir() {
-				out = append(out, proto.FSEntry{Name: p, Dir: true})
-			}
-		}
+	return []proto.FSEntry{
+		{Name: proto.Home(), Dir: true},
+		{Name: fsRootJump(), Dir: true},
 	}
-	for _, r := range fsRoots() {
-		out = append(out, proto.FSEntry{Name: r, Dir: true})
-	}
-	return out
 }
 
 func fsList(p proto.FSListParams) (proto.FSList, error) {
+	if p.ThisPC {
+		return fsThisPC(), nil
+	}
 	dir := hostPath(p.Dir, "")
 	entries, err := os.ReadDir(dir)
 	if err != nil {

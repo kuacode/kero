@@ -44,21 +44,43 @@ func TestPickerScrolls(t *testing.T) {
 	}
 }
 
-// The picker's quick jumps sit above the folders, named to read: the home,
-// a drive by its letter, and any other root by its last name.
+// The picker's quick jumps are its icons, no words: the home by the house,
+// the root by the machine — This PC and its drives on Windows, the root
+// elsewhere — each naming where it points on hover.
 func TestPickerRoots(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 900)
 	home := proto.Home()
 	l := &proto.FSList{Dir: home, Home: home, Roots: []proto.FSEntry{
-		{Name: home, Dir: true}, {Name: `C:\`, Dir: true}, {Name: "/var/lib", Dir: true},
+		{Name: home, Dir: true}, {Name: proto.ThisPC, Dir: true},
 	}}
 	a.picker = folderPicker{open: true, host: a.local(), list: l}
 	tt.Frame()
-	for _, want := range []string{locales.PickerHome(), "C:", "lib"} {
-		if !slices.Contains(tt.Texts(), want) {
-			t.Errorf("quick jumps lack %q; texts %q", want, tt.Texts())
+	for _, gone := range []string{locales.PickerHome(), locales.PickerRoot()} {
+		if slices.Contains(tt.Texts(), gone) {
+			t.Errorf("quick jumps still name %q; texts %q", gone, tt.Texts())
 		}
+	}
+}
+
+// The quick jumps are the home and the root, and no more, wherever the
+// listing is: the home where the user's folders are, the root (This PC on
+// Windows) where the host's paths start.
+func TestPickerRootsList(t *testing.T) {
+	a := testApp(t)
+	home := proto.Home()
+	a.picker = folderPicker{open: true, host: a.local(), list: &proto.FSList{
+		Dir: home, Home: home, Roots: []proto.FSEntry{{Name: home, Dir: true}, {Name: proto.ThisPC, Dir: true}},
+	}}
+	roots := a.pickerRoots()
+	if len(roots) != 2 {
+		t.Fatalf("quick jumps = %d, want 2 (%+v)", len(roots), roots)
+	}
+	if roots[0].name != locales.PickerHome() || roots[0].path != home || roots[0].thisPC {
+		t.Errorf("home jump = %+v", roots[0])
+	}
+	if roots[1].name != locales.PickerRoot() || roots[1].path != proto.ThisPC || !roots[1].thisPC {
+		t.Errorf("root jump = %+v", roots[1])
 	}
 }
 

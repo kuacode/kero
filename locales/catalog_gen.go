@@ -5506,6 +5506,16 @@ func (msgs Messages) PickerHome() string {
 	return Catalog.Format(msgs.locale, "pickerHome", nil)
 }
 
+// PickerRoot says "Root"
+// in the language the app shows.
+func PickerRoot() string { return In(i18n.Locale()).PickerRoot() }
+
+// PickerRoot says "Root"
+// in the language of msgs.
+func (msgs Messages) PickerRoot() string {
+	return Catalog.Format(msgs.locale, "pickerRoot", nil)
+}
+
 // PickerShowHidden says "Show Hidden"
 // in the language the app shows.
 func PickerShowHidden() string { return In(i18n.Locale()).PickerShowHidden() }

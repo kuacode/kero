@@ -541,6 +541,7 @@
   "pickerTitle": "{host} でプロジェクトを開く",
   "pickerPlaceholder": "フォルダを絞り込むか、パスを入力: ~/code",
   "pickerHome": "ホーム",
+  "pickerRoot": "ルート",
   "pickerShowHidden": "隠しフォルダを表示",
   "pickerHideHidden": "隠しフォルダを隠す",
   "pickerNoFolders": "フォルダなし",

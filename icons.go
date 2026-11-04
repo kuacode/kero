@@ -40,6 +40,7 @@ var (
 	chevronDownIcon  = glyph("f7-chevron-down")
 	folderIcon       = glyph("f7-folder")
 	searchIcon       = glyph("f7-search")
+	homeIcon         = icon(`<path d="M3 7.5 8 3l5 4.5V13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7.5Z"/><path d="M6.5 14V9.5h3V14"/>`)
 	terminalIcon     = glyph("meteor-terminal")
 	returnIcon       = glyph("f7-return")
 	gearIcon         = glyph("f7-gear-alt")

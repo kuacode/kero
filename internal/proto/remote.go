@@ -102,26 +102,38 @@ type ClientInfo struct {
 	Session string `json:"session,omitempty"`
 }
 
+// ThisPC is the picker's This PC on Windows: not a directory, but the
+// host's drives, which the Root quick jump asks (FSListParams.ThisPC) and
+// fs.list lists as the drives, one per entry.
+const ThisPC = `\this-pc`
+
 // Params and results of the methods for remote clients, which see the
 // host's files through kerod.
 type (
 	// FSListParams list a directory of the host: Dir, absolute, or ~ and
-	// ~/… for the home, "" for the home.
+	// ~/… for the home, "" for the home. ThisPC asks for the drives, as
+	// the picker's "This PC" on Windows, instead of a directory.
 	FSListParams struct {
 		Dir    string `json:"dir"`
 		Hidden bool   `json:"hidden,omitempty"` // dotfiles too
+		// ThisPC lists the host's drives (fsRoots), as This PC, instead of
+		// a directory's folders. The picker's Root quick jump asks it.
+		ThisPC bool `json:"thisPC,omitempty"`
 		// Ignored marks the entries git ignores (FSEntry.Ignored).
 		Ignored bool `json:"ignored,omitempty"`
 	}
-	// Roots are the quick jumps of the host, its drive roots on Windows and
-	// its root and home on another machine: the picker lists them as where
-	// to start browsing, whichever folder it lists.
+	// Roots are the quick jumps of the host: its home, and where its paths
+	// start — This PC, its drives, on Windows, the root elsewhere. The
+	// picker lists them as where to start browsing, whichever folder it
+	// lists.
 	FSList struct {
 		Dir     string    `json:"dir"` // absolute, cleaned
 		Parent  string    `json:"parent,omitempty"`
 		Home    string    `json:"home"`
 		Entries []FSEntry `json:"entries"`
 		Roots   []FSEntry `json:"roots,omitempty"`
+		// ThisPC tells a listing of This PC: the drives, one per entry.
+		ThisPC bool `json:"thisPC,omitempty"`
 	}
 	FSEntry struct {
 		Name string `json:"name"`

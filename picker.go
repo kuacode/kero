@@ -1,7 +1,6 @@
 package main
 
 import (
-	"path"
 	"slices"
 	"strings"
 
@@ -35,27 +34,28 @@ type folderPicker struct {
 type pickerItem struct {
 	name, path string
 	repo, up   bool
+	thisPC     bool // This PC's drive, listed where the host's paths start
 }
 
-// pickerRoots are the quick jumps the host offers, the user's home and the
-// root, or the drives, of the host, named for the row of them the picker
-// keeps above the folders.
+// pickerRoots are the quick jumps the host offers: its home, and where its
+// paths start — This PC on Windows, the root elsewhere. They are their
+// icons: the picker shows the home by the house, the other by the machine,
+// each naming where it points where the pointer rests.
 func (a *App) pickerRoots() []pickerItem {
 	if a.picker.list == nil {
 		return nil
 	}
+	home := a.picker.list.Home
 	var out []pickerItem
 	for _, r := range a.picker.list.Roots {
-		name := r.Name
 		switch {
-		case name == a.picker.list.Home:
-			name = locales.PickerHome()
-		case len(name) == 3 && name[1] == ':':
-			name = name[:2] // C:\ → C:
+		case r.Name == home:
+			out = append(out, pickerItem{name: locales.PickerHome(), path: home})
+		case r.Name == proto.ThisPC:
+			out = append(out, pickerItem{name: locales.PickerRoot(), path: proto.ThisPC, thisPC: true})
 		default:
-			name = path.Base(name)
+			out = append(out, pickerItem{name: locales.PickerRoot(), path: r.Name})
 		}
-		out = append(out, pickerItem{name: name, path: r.Name})
 	}
 	return out
 }
@@ -71,7 +71,8 @@ func (a *App) openProjectOn(h *host) {
 	a.pickerGo("~")
 }
 
-// pickerGo lists a folder of the picker's host.
+// pickerGo lists a folder of the picker's host, or, for This PC on
+// Windows, the host's drives.
 func (a *App) pickerGo(dir string) {
 	p := &a.picker
 	p.gen++
@@ -84,7 +85,7 @@ func (a *App) pickerGo(dir string) {
 	}
 	go func() {
 		var l proto.FSList
-		err := cl.Call("fs.list", proto.FSListParams{Dir: dir, Hidden: hidden}, &l)
+		err := cl.Call("fs.list", proto.FSListParams{Dir: dir, Hidden: hidden, ThisPC: dir == proto.ThisPC}, &l)
 		a.update(func() {
 			if a.picker.gen != gen {
 				return
@@ -120,11 +121,19 @@ func (a *App) pickerItems() []pickerItem {
 		if !e.Dir {
 			continue
 		}
-		sc := fuzzy(q, e.Name)
+		// A drive of This PC is its own path: the drive, not a folder in it,
+		// and shown by its letter, C:\ as C:.
+		name, path := e.Name, p.host.joinPath(p.list.Dir, e.Name)
+		thisPC := p.list.ThisPC
+		if thisPC {
+			name = strings.TrimRight(e.Name, `\/`)
+			path = e.Name
+		}
+		sc := fuzzy(q, name)
 		if sc < 0 {
 			continue
 		}
-		found = append(found, scored{pickerItem{name: e.Name, path: p.host.joinPath(p.list.Dir, e.Name), repo: e.Repo}, sc})
+		found = append(found, scored{pickerItem{name: name, path: path, repo: e.Repo, thisPC: thisPC}, sc})
 	}
 	if q != "" {
 		slices.SortStableFunc(found, func(x, y scored) int { return y.score - x.score })
@@ -167,7 +176,12 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 				ui.Text(c, locales.PickerTitle(h.label())).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Shrink(0)
 			}
 			if p.list != nil {
-				ui.Text(c, h.shortDir(p.list.Dir)).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+				dir := h.shortDir(p.list.Dir)
+				if p.list.ThisPC {
+					// This PC is not a folder: its name is the jump's.
+					dir = locales.PickerRoot()
+				}
+				ui.Text(c, dir).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 			}
 			ui.Spacer(c)
 			label := locales.PickerShowHidden()
@@ -184,21 +198,26 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 				goTo = p.list.Dir
 			}
 		})
-		// The quick jumps: the home, the common folders, and the root (or
-		// the drives, on Windows), wherever the listing is.
+		// The quick jumps: the home and the root, wherever the listing is.
+		// They are their icons, the home by the house, the root by the
+		// machine, each naming where it points on hover.
 		if roots := a.pickerRoots(); len(roots) > 0 {
 			ui.Row(c.Key("roots")).Height(40).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Wrap().Children(func() {
 				for _, r := range roots {
-					b := ui.ButtonBase(c.Key("root-"+r.path)).Height(28).Padding(0, 10).Radius(6).Gap(6).AlignItems(ui.Center)
+					b := ui.ButtonBase(c.Key("root-"+r.path)).Size(28, 28).Padding(0).Radius(6).Center().TextColor(pal.textFaint).Tooltip(r.name)
 					if b.Hovered() {
 						b.Background(pal.rowHover)
+						b.TextColor(pal.text)
 					}
 					if b.Clicked() {
 						goTo = r.path
 					}
 					b.Children(func() {
-						ui.Icon(c, folderIcon).Size(14, 14).TextColor(pal.textFaint)
-						ui.Text(c, r.name).FontSize(12.5).TextColor(pal.text).SingleLine()
+						svg := hostIcon
+						if !r.thisPC {
+							svg = homeIcon
+						}
+						ui.Icon(c, svg).Size(16, 16)
 					})
 				}
 			})
