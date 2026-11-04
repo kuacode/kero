@@ -230,4 +230,4 @@ func resumeCommand(a *proto.AgentSession) []string {
 	return nil
 }
 
-var agentSessionRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
+var agentSessionRe = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,126}[A-Za-z0-9])?$`)

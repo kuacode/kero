@@ -4,7 +4,6 @@
 // to resume it after Kero's background service restarts. Outside Kero it
 // does nothing.
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
 
 const KERO = __KERO__;
 const AGENT = __AGENT__;
@@ -13,7 +12,7 @@ const AGENT = __AGENT__;
 // what Kero tells the agent.
 function hook(sessionID: string | undefined): Promise<string> {
   return new Promise((resolve) => {
-    const child = execFile(KERO, ["hook", AGENT], { timeout: 5000 }, (err, stdout) => {
+    const child = execFile(KERO, ["hook", AGENT], { timeout: 5000 }, (_, stdout) => {
       try {
         resolve(JSON.parse(stdout).hookSpecificOutput.additionalContext ?? "");
       } catch {
@@ -34,15 +33,12 @@ export default function (pi: any) {
     if (ctx?.mode !== "tui" && ctx?.mode !== "print") return;
     let sessionID: string | undefined;
     try {
-      // OMP allocates a session id at start but writes the transcript only
-      // with the first message. Kero would resume an id that has no file, so
-      // report one only once it exists; the turn events report it as soon as
-      // the first turn writes it.
-      const file = ctx.sessionManager.getSessionFile();
-      if (ctx.mode === "tui" && file && existsSync(file)) {
+      if (ctx.mode === "tui") {
         sessionID = ctx.sessionManager.getSessionId();
       }
-    } catch {}
+    } catch {
+      sessionID = undefined;
+    }
     // Nothing new to tell, and a context already fetched: keep it.
     if (sessionID === undefined && context) return;
     // An in-app /resume switches the conversation under the same pane:
