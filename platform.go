@@ -213,6 +213,9 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 			iconButton(c, "right-sidebar", sidebarRightIcon, a.tip(locales.ActionToggleRightSidebar(), "rightSidebar.toggle"), pal, a.toggleRight)
+			// A breath before the window controls, which read as a group
+			// apart from Kero's own buttons.
+			ui.Box(c.Key("controls-sep")).Width(8).Shrink(0)
 			controlButtons(c, pal, a.win)
 		})
 	default: // builtin: main's own controls over the card's corner.
