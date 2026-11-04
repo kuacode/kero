@@ -1555,16 +1555,19 @@ func (a *App) quitAndEnd() {
 		detail:  quitAllDetail(n, len(a.hosts) > 1),
 		action:  locales.ConfirmQuitAllAction(),
 		destroy: true,
-		run: func() {
-			cl := a.local().cl
-			go func() {
-				if cl != nil {
-					cl.Call("shutdown", nil, nil)
-				}
-				mygo.App.Quit()
-			}()
-		},
+		run: a.endDaemonAndQuit,
 	}
+}
+
+// endDaemonAndQuit shuts this machine's kerod down and quits the client.
+func (a *App) endDaemonAndQuit() {
+	cl := a.local().cl
+	go func() {
+		if cl != nil {
+			cl.Call("shutdown", nil, nil)
+		}
+		mygo.App.Quit()
+	}()
 }
 
 // daemonStale reports whether kerod runs another version of Kero than
