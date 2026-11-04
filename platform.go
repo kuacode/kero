@@ -212,6 +212,7 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
 			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+			iconButton(c, "right-sidebar", sidebarRightIcon, a.tip(locales.ActionToggleRightSidebar(), "rightSidebar.toggle"), pal, a.toggleRight)
 			controlButtons(c, pal, a.win)
 		})
 	default: // builtin: main's own controls over the card's corner.
