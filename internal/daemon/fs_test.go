@@ -59,6 +59,20 @@ func TestFSListAndStat(t *testing.T) {
 	if l, _ := fsList(proto.FSListParams{Dir: dir, Hidden: true}); len(l.Entries) != 5 {
 		t.Errorf("with hidden: %d entries", len(l.Entries))
 	}
+	// The quick jumps are the home first, then the common folders of it that
+	// are there, then the root, or the drives. Every one is absolute and
+	// distinct, and the home comes first.
+	roots := fsRootEntries()
+	if len(roots) < 2 || roots[0].Name != proto.Home() || !roots[0].Dir {
+		t.Errorf("quick jumps %v", roots)
+	}
+	seen := map[string]bool{}
+	for i, r := range roots {
+		if !r.Dir || !filepath.IsAbs(r.Name) || seen[r.Name] {
+			t.Errorf("quick jump %d %q dir=%v", i, r.Name, r.Dir)
+		}
+		seen[r.Name] = true
+	}
 	if _, err := fsList(proto.FSListParams{Dir: filepath.Join(dir, "none")}); err == nil {
 		t.Error("listed a directory that is none")
 	}

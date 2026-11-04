@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 
 	"kero/internal/proto"
+	"kero/locales"
 )
 
 // The wheel scrolls the picker's folders away from the one chosen.
@@ -39,6 +41,24 @@ func TestPickerScrolls(t *testing.T) {
 	}
 	if y := a.picker.scroll.Y; y <= 300 {
 		t.Errorf("choosing folder39 left the folders at %g", y)
+	}
+}
+
+// The picker's quick jumps sit above the folders, named to read: the home,
+// a drive by its letter, and any other root by its last name.
+func TestPickerRoots(t *testing.T) {
+	a := testApp(t)
+	tt := ui.NewTester(a.view, 1100, 900)
+	home := proto.Home()
+	l := &proto.FSList{Dir: home, Home: home, Roots: []proto.FSEntry{
+		{Name: home, Dir: true}, {Name: `C:\`, Dir: true}, {Name: "/var/lib", Dir: true},
+	}}
+	a.picker = folderPicker{open: true, host: a.local(), list: l}
+	tt.Frame()
+	for _, want := range []string{locales.PickerHome(), "C:", "lib"} {
+		if !slices.Contains(tt.Texts(), want) {
+			t.Errorf("quick jumps lack %q; texts %q", want, tt.Texts())
+		}
 	}
 }
 

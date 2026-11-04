@@ -998,6 +998,7 @@
     }
   },
   "pickerPlaceholder": "Filter folders, or type a path: ~/code",
+  "pickerHome": "Home",
   "pickerShowHidden": "Show Hidden",
   "pickerHideHidden": "Hide Hidden",
   "pickerNoFolders": "No folders",

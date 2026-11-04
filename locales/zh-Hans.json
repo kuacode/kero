@@ -536,6 +536,7 @@
   "pasteUploading": "正在复制到 {host}…",
   "pickerTitle": "在 {host} 上打开项目",
   "pickerPlaceholder": "筛选文件夹，或输入路径：~/code",
+  "pickerHome": "主目录",
   "pickerShowHidden": "显示隐藏项",
   "pickerHideHidden": "隐藏隐藏项",
   "pickerNoFolders": "没有文件夹",
