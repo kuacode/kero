@@ -29,7 +29,17 @@ func (a *App) keepAwake() {
 	case awakeAgents:
 		hold = anyWorking(a.st.Sessions, func(id string) bool { return !a.hostOf(id).remote() })
 	}
-	a.awake.hold(hold)
+
+	if hold == (a.keepAwakeRelease != nil) {
+		return
+	}
+	if a.keepAwakeRelease != nil {
+		a.keepAwakeRelease()
+		a.keepAwakeRelease = nil
+	}
+	if hold {
+		a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", false)
+	}
 }
 
 // anyWorking tells whether a pane of the sessions local takes is Working.
