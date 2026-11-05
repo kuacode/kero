@@ -154,7 +154,8 @@ func (a *App) openWindow() {
 		Height:    760,
 		MinWidth:  560,
 		MinHeight: 360,
-		StateKey:  "main",
+		// 不记录窗口状态
+		// StateKey:  "main",
 		Vibrancy:  vibrancyFor(a.set),
 		Content:   ui.View(a.view),
 	}))
