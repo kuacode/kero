@@ -35,6 +35,7 @@ type pickerItem struct {
 	name, path string
 	repo, up   bool
 	thisPC     bool // This PC's drive, listed where the host's paths start
+	root       bool // the host's paths' start jump: the root, or This PC
 }
 
 // pickerRoots are the quick jumps the host offers: its home, and where its
@@ -52,9 +53,10 @@ func (a *App) pickerRoots() []pickerItem {
 		case r.Name == home:
 			out = append(out, pickerItem{name: locales.PickerHome(), path: home})
 		case r.Name == proto.ThisPC:
-			out = append(out, pickerItem{name: locales.PickerRoot(), path: proto.ThisPC, thisPC: true})
+			out = append(out, pickerItem{name: locales.PickerRoot(), path: proto.ThisPC, thisPC: true, root: true})
 		default:
-			out = append(out, pickerItem{name: locales.PickerRoot(), path: r.Name})
+			// The host's root, /, is where its paths start elsewhere.
+			out = append(out, pickerItem{name: locales.PickerRoot(), path: r.Name, root: true})
 		}
 	}
 	return out
@@ -213,9 +215,9 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 						goTo = r.path
 					}
 					b.Children(func() {
-						svg := hostIcon
-						if !r.thisPC {
-							svg = homeIcon
+						svg := homeIcon
+						if r.root {
+							svg = hostIcon
 						}
 						ui.Icon(c, svg).Size(16, 16)
 					})
