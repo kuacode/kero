@@ -147,3 +147,38 @@ func TestPickerPathQueryOpensProject(t *testing.T) {
 	}
 	tt.Frame()
 }
+
+// A drive path typed in the picker of a Windows host opens its folder as the
+// project, nested folders and all, on that host.
+func TestPickerDrivePathOpensProjectOnWindowsHost(t *testing.T) {
+	a := testApp(t)
+	const dir = `D:\A\B\C`
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		switch method {
+		case "project.create":
+			var p proto.ProjectParams
+			if err := json.Unmarshal(raw, &p); err != nil {
+				return nil, err
+			}
+			if p.Dir != dir {
+				t.Errorf("project.create received %q, want %q", p.Dir, dir)
+			}
+			return proto.Project{ID: "typed", Dir: p.Dir}, nil
+		case "create":
+			return proto.Session{ID: "typed-session", Project: "typed"}, nil
+		default:
+			return nil, errors.New("unexpected method " + method)
+		}
+	})
+	defer stop()
+	w := &host{name: "w", info: proto.HostInfo{OS: "windows", Home: `C:\Users\me`}, cl: cl, conn: connReady}
+	a.hosts = append(a.hosts, w)
+	a.picker = folderPicker{open: true, host: w}
+	tt := ui.NewTester(a.view, 1100, 900)
+	tt.Frame()
+	tt.Type(dir)
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	tt.Frame()
+	tt.Frame()
+}

@@ -143,14 +143,18 @@ func (a *App) pickerItems() []pickerItem {
 	return items
 }
 
-// isPathQuery tells a query that names a folder rather than filters: on
-// Windows, ~\…, a share's \\server\… and a drive's C:\… too.
+// isPathQuery tells a query that names a folder rather than filters: a Unix
+// absolute, a home, a drive's C:\… on any client and, on Windows, ~\… and a
+// share's \\server\… too.
 func isPathQuery(q string, windows bool) bool {
 	if strings.HasPrefix(q, "/") || q == "~" || strings.HasPrefix(q, "~/") {
 		return true
 	}
+	// A drive path, D:\… or D:/…, names a folder on any client: a letter, a
+	// colon, then a separator. The rest of the Windows forms, ~\… and a share
+	// \\server\…, are paths only where the host runs Windows.
 	drive := len(q) >= 3 && q[1] == ':' && (q[2] == '\\' || q[2] == '/') && ('A' <= q[0] && q[0] <= 'Z' || 'a' <= q[0] && q[0] <= 'z')
-	return windows && (strings.HasPrefix(q, `~\`) || strings.HasPrefix(q, `\\`) || drive)
+	return drive || windows && (strings.HasPrefix(q, `~\`) || strings.HasPrefix(q, `\\`))
 }
 
 func (a *App) pickerView(c *ui.Context, pal *palette) {

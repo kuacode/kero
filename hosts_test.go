@@ -309,7 +309,14 @@ func TestPickerItems(t *testing.T) {
 			t.Errorf("isPathQuery(%q)", q)
 		}
 	}
-	for q, want := range map[string]bool{`C:\src`: true, "d:": false, `d:/x`: true, `~\x`: true, `\\nas\share`: true, "src": false, "1:": false} {
+	// A drive path names a folder on any client, so it is a path whether the
+	// host runs Windows or not; the rest of the Windows forms stay Windows-only.
+	for q, want := range map[string]bool{`C:\src`: true, `D:\A\B\C`: true, `D:/A/B/C`: true, "d:": false, `d:/x`: true, "src": false, "1:": false} {
+		if isPathQuery(q, false) != want {
+			t.Errorf("isPathQuery(%q)", q)
+		}
+	}
+	for q, want := range map[string]bool{`C:\src`: true, `D:\A\B\C`: true, "d:": false, `d:/x`: true, `~\x`: true, `\\nas\share`: true, "src": false, "1:": false} {
 		if isPathQuery(q, true) != want {
 			t.Errorf("Windows: isPathQuery(%q)", q)
 		}
