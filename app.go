@@ -1555,7 +1555,7 @@ func (a *App) quitAndEnd() {
 		detail:  quitAllDetail(n, len(a.hosts) > 1),
 		action:  locales.ConfirmQuitAllAction(),
 		destroy: true,
-		run: a.endDaemonAndQuit,
+		run:     a.endDaemonAndQuit,
 	}
 }
 
