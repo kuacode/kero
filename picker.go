@@ -38,28 +38,25 @@ type pickerItem struct {
 	root       bool // the host's paths' start jump: the root, or This PC
 }
 
-// pickerRoots are the quick jumps the host offers: its home, and where its
-// paths start — This PC on Windows, the root elsewhere. They are their
-// icons: the picker shows the home by the house, the other by the machine,
-// each naming where it points where the pointer rests.
+// pickerRoots are the quick jumps the host offers: where its paths start —
+// This PC on Windows, the root elsewhere — then its home. The client builds
+// them from the host itself, not from the listing, so they are the same on
+// every view, including This PC, and on hosts whose daemon offers no jumps
+// of its own. They are their icons: the picker shows the home by the house,
+// the other by the machine, each naming where it points where the pointer
+// rests.
 func (a *App) pickerRoots() []pickerItem {
 	if a.picker.list == nil {
 		return nil
 	}
 	home := a.picker.list.Home
 	var out []pickerItem
-	for _, r := range a.picker.list.Roots {
-		switch {
-		case r.Name == home:
-			out = append(out, pickerItem{name: locales.PickerHome(), path: home})
-		case r.Name == proto.ThisPC:
-			out = append(out, pickerItem{name: locales.PickerRoot(), path: proto.ThisPC, thisPC: true, root: true})
-		default:
-			// The host's root, /, is where its paths start elsewhere.
-			out = append(out, pickerItem{name: locales.PickerRoot(), path: r.Name, root: true})
-		}
+	if a.picker.host.windows() {
+		out = append(out, pickerItem{name: locales.PickerRoot(), path: proto.ThisPC, thisPC: true, root: true})
+	} else {
+		out = append(out, pickerItem{name: locales.PickerRoot(), path: "/", root: true})
 	}
-	return out
+	return append(out, pickerItem{name: locales.PickerHome(), path: home})
 }
 
 // openProjectOn lists a host's folders, from its home, to open a project

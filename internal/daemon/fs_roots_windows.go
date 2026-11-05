@@ -23,12 +23,6 @@ func fsRoots() []string {
 	return out
 }
 
-// fsRootJump is the quick jump of where the host's paths start: This PC,
-// its drives, which the picker opens to list them.
-func fsRootJump() string {
-	return proto.ThisPC
-}
-
 // fsThisPC lists This PC: the drives, one per entry, each a folder of none:
 // the picker's Root quick jump shows them, to open a project on one.
 func fsThisPC() proto.FSList {

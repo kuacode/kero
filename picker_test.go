@@ -44,17 +44,14 @@ func TestPickerScrolls(t *testing.T) {
 	}
 }
 
-// The picker's quick jumps are its icons, no words: the home by the house,
-// the root by the machine — This PC and its drives on Windows, the root
-// elsewhere — each naming where it points on hover.
+// The picker's quick jumps are its icons, no words: the root by the machine
+// — This PC and its drives on Windows, the root elsewhere — then the home by
+// the house, each naming where it points on hover.
 func TestPickerRoots(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 900)
 	home := proto.Home()
-	l := &proto.FSList{Dir: home, Home: home, Roots: []proto.FSEntry{
-		{Name: home, Dir: true}, {Name: proto.ThisPC, Dir: true},
-	}}
-	a.picker = folderPicker{open: true, host: a.local(), list: l}
+	a.picker = folderPicker{open: true, host: a.local(), list: &proto.FSList{Dir: home, Home: home}}
 	tt.Frame()
 	for _, gone := range []string{locales.PickerHome(), locales.PickerRoot()} {
 		if slices.Contains(tt.Texts(), gone) {
@@ -63,44 +60,46 @@ func TestPickerRoots(t *testing.T) {
 	}
 }
 
-// The quick jumps are the home and the root, and no more, wherever the
-// listing is: the home where the user's folders are, the root (This PC on
-// Windows) where the host's paths start.
+// The quick jumps are the root, then the home, wherever the listing is: the
+// root (This PC on Windows) where the host's paths start, the home where the
+// user's folders are.
 func TestPickerRootsList(t *testing.T) {
 	a := testApp(t)
 	home := proto.Home()
-	a.picker = folderPicker{open: true, host: a.local(), list: &proto.FSList{
-		Dir: home, Home: home, Roots: []proto.FSEntry{{Name: home, Dir: true}, {Name: proto.ThisPC, Dir: true}},
+	b := &host{name: "b", info: proto.HostInfo{OS: "linux", Home: "/home/me"}}
+	a.picker = folderPicker{open: true, host: b, list: &proto.FSList{
+		Dir: home, Home: home,
 	}}
 	roots := a.pickerRoots()
 	if len(roots) != 2 {
 		t.Fatalf("quick jumps = %d, want 2 (%+v)", len(roots), roots)
 	}
-	if roots[0].name != locales.PickerHome() || roots[0].path != home || roots[0].thisPC || roots[0].root {
-		t.Errorf("home jump = %+v", roots[0])
+	if roots[0].name != locales.PickerRoot() || roots[0].path != "/" || !roots[0].root || roots[0].thisPC {
+		t.Errorf("root jump = %+v", roots[0])
 	}
-	if roots[1].name != locales.PickerRoot() || roots[1].path != proto.ThisPC || !roots[1].thisPC || !roots[1].root {
-		t.Errorf("root jump = %+v", roots[1])
+	if roots[1].name != locales.PickerHome() || roots[1].path != home || roots[1].root || roots[1].thisPC {
+		t.Errorf("home jump = %+v", roots[1])
 	}
 }
 
-// The root jump of a host whose paths start at / is its machine: the root,
-// not This PC, and its icon is the machine's, not the home's.
-func TestPickerRootsUnix(t *testing.T) {
+// A host of Windows starts at This PC, its drives, not /, and its root jump
+// carries that.
+func TestPickerRootsWindows(t *testing.T) {
 	a := testApp(t)
 	home := proto.Home()
-	a.picker = folderPicker{open: true, host: a.local(), list: &proto.FSList{
-		Dir: home, Home: home, Roots: []proto.FSEntry{{Name: home, Dir: true}, {Name: "/", Dir: true}},
+	w := &host{name: "w", info: proto.HostInfo{OS: "windows", Home: `C:\Users\me`}}
+	a.picker = folderPicker{open: true, host: w, list: &proto.FSList{
+		Dir: home, Home: home,
 	}}
 	roots := a.pickerRoots()
 	if len(roots) != 2 {
 		t.Fatalf("quick jumps = %d, want 2 (%+v)", len(roots), roots)
 	}
-	if roots[0].root || roots[0].thisPC {
-		t.Errorf("home jump = %+v", roots[0])
+	if roots[0].name != locales.PickerRoot() || roots[0].path != proto.ThisPC || !roots[0].root || !roots[0].thisPC {
+		t.Errorf("root jump = %+v", roots[0])
 	}
-	if roots[1].name != locales.PickerRoot() || roots[1].path != "/" || !roots[1].root || roots[1].thisPC {
-		t.Errorf("root jump = %+v", roots[1])
+	if roots[1].name != locales.PickerHome() || roots[1].path != home || roots[1].root || roots[1].thisPC {
+		t.Errorf("home jump = %+v", roots[1])
 	}
 }
 

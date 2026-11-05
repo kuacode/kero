@@ -122,16 +122,11 @@ type (
 		// Ignored marks the entries git ignores (FSEntry.Ignored).
 		Ignored bool `json:"ignored,omitempty"`
 	}
-	// Roots are the quick jumps of the host: its home, and where its paths
-	// start — This PC, its drives, on Windows, the root elsewhere. The
-	// picker lists them as where to start browsing, whichever folder it
-	// lists.
 	FSList struct {
 		Dir     string    `json:"dir"` // absolute, cleaned
 		Parent  string    `json:"parent,omitempty"`
 		Home    string    `json:"home"`
 		Entries []FSEntry `json:"entries"`
-		Roots   []FSEntry `json:"roots,omitempty"`
 		// ThisPC tells a listing of This PC: the drives, one per entry.
 		ThisPC bool `json:"thisPC,omitempty"`
 	}
