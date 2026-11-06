@@ -27,6 +27,7 @@ func settingsIndex() []searchEntry {
 		{"general", locales.SetSessionName(), "session-name title sidebar focused lead folder pane"},
 		{"general", locales.SetSidebarRows(), "sidebar-rows compact detailed status message branch two lines"},
 		{"general", locales.SetSidebarCount(), "sidebar-session-count project sessions number count header"},
+		{"general", locales.SetSidebarRail(), "sidebar-rail icon rail fold collapse narrow compact mark dot"},
 		{"general", locales.SetFocusFollowsMouse(), "focus-follows-mouse hover pointer niri hyprland sloppy"},
 		{"general", locales.SetAskBeforeClosing(), "confirm-close quit kill"},
 		{"general", locales.SetRestoreSessions(), "restore-sessions reboot persist"},

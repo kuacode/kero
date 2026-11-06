@@ -209,26 +209,24 @@ func (a *App) settingsView(c *ui.Context) {
 	found := a.searchSettings()
 	c.OnShortcut(ui.Cmd, ui.KeyF, func() { a.ss.searchRef.Focus(c) })
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
-	// In windows mode the title bar's row owns the window's top, so the
-	// whole content moves below it, as the main window's does.
-	if a.controlsMode() == "windows" {
+	// In the apple and windows styles the title bar's row owns the
+	// window's top, so the whole content moves below it, as the main
+	// window's does.
+	if a.titleBar() {
 		row.Padding(barMid, 0, 0, 0)
 		row.DragWindow()
 	}
 	backdrop(c, row)
 	row.Children(func() {
-		// Under the traffic lights on macOS; elsewhere the search starts
-		// the sidebar, centered on barMid as the page's title and the
-		// window controls are.
+		// In the apple and windows styles the row already drops by the
+		// title band, and the nav needs only a small gap below it; in the
+		// builtin style, which keeps the window controls over the header,
+		// the search field starts below them.
 		top := float32(topBar)
-		if a.controlsMode() == "windows" {
-			// The row already drops by the title band; the nav needs only a
-			// small gap below it.
+		switch {
+		case a.titleBar():
 			top = 10
-		} else if ownControls && a.controlsMode() != "apple" {
-			// Keep the search field below the builtin window controls.
-			// In apple mode they sit top left over the search field, which
-			// therefore starts below the title bar's row, as on macOS.
+		case ownControls:
 			top = barMid - (controlH+2)/2
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
@@ -541,6 +539,9 @@ func (a *App) generalPage(c *ui.Context, pal *palette) {
 		})
 		settingRow(c, pal, locales.SetSidebarCount(), locales.SetSidebarCountDetail(), func() {
 			toggle(c.Key("sidebar-count"), &s.SidebarCount, pal)
+		})
+		settingRow(c, pal, locales.SetSidebarRail(), locales.SetSidebarRailDetail(), func() {
+			toggle(c.Key("sidebar-rail"), &s.SidebarRail, pal)
 		})
 		settingRow(c, pal, locales.SetFocusFollowsMouse(), locales.SetFocusFollowsMouseDetail(), func() {
 			toggle(c.Key("focusmouse"), &s.FocusFollowsMouse, pal)

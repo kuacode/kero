@@ -506,9 +506,9 @@ func (a *App) paneHeader(c *ui.Context, pal *palette, bar ui.TitleBar, shown flo
 // sidebarButtons are the sidebar's buttons, which the header at the
 // window's top left holds while the sidebar hides.
 func (a *App) sidebarButtons(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) {
-	// In windows mode the title bar row holds these, and the sidebar
-	// hides behind the content, so nothing draws here.
-	if a.controlsMode() == "windows" || shown >= 0.5 {
+	// When the title bar row holds these, and the sidebar hides behind the
+	// content, nothing draws here.
+	if a.titleBar() || shown >= 0.5 {
 		return
 	}
 	ui.Row(c).Absolute().Left(a.chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {

@@ -976,3 +976,88 @@ func TestSidebarSplitPanes(t *testing.T) {
 		t.Error("the count of panes didn't collapse the session")
 	}
 }
+
+// TestSidebarRailFoldWidth is the rail's fold-target: off, folding leaves
+// the sidebar gone, as before the rail existed; on, folding rests it at the
+// rail's width, never below the room a terminal needs.
+func TestSidebarRailFoldWidth(t *testing.T) {
+	a := testApp(t)
+	a.set.SidebarRail = false
+	if w := a.foldWidth(1280); w != 0 {
+		t.Errorf("rail off: fold width %v, want none", w)
+	}
+	a.set.SidebarRail = true
+	if w := a.foldWidth(1280); w != railWidth {
+		t.Errorf("rail on in a wide window: fold width %v, want %v", w, railWidth)
+	}
+	if w := a.foldWidth(railWidth + 239); w != 0 {
+		t.Errorf("rail on in a narrow window: fold width %v, want none", w)
+	}
+}
+
+// TestSidebarRailChrome folds the sidebar's chrome between its full width
+// and the rail's, in whole pixels, resting the title clear of the rail.
+func TestSidebarRailChrome(t *testing.T) {
+	bar := ui.TitleBar{Left: 78, Height: 60}
+	const width = 268.0
+	if ch := chromeForFold(0, width, railWidth, bar); ch.sideW != railWidth {
+		t.Errorf("rail folded: sideW %v, want %v", ch.sideW, railWidth)
+	}
+	if ch := chromeForFold(1, width, railWidth, bar); ch.sideW != width {
+		t.Errorf("rail shown: sideW %v, want %v", ch.sideW, width)
+	}
+	prev := float32(-1)
+	for i := 0; i <= 20000; i++ {
+		ch := chromeForFold(float32(i)/20000, width, railWidth, bar)
+		for _, v := range []float32{ch.sideW, ch.mainPad, ch.headerPad} {
+			if v != float32(int(v)) {
+				t.Fatalf("rail, progress %v: %v is not a whole pixel", ch.shown, v)
+			}
+		}
+		if ch.sideW < prev {
+			t.Fatalf("rail, step %d: the sidebar moved back, %v to %v", i, prev, ch.sideW)
+		}
+		prev = ch.sideW
+	}
+}
+
+// TestSidebarRailFoldsToRail is the rail's on-screen regression: with the
+// rail on, folding rests the sidebar at the rail's width and shows a mark a
+// project and a status mark a session, each still to click. For a look, set
+// $KERO_SHOTS.
+func TestSidebarRailFoldsToRail(t *testing.T) {
+	a := testApp(t)
+	// A second project with two sessions, so the rail shows more than one
+	// mark, one of which needs the user.
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p2", Name: "website", Dir: "/tmp/web"})
+	a.owner = map[string]*host{"s1": a.local(), "p1": a.local(), "a": a.local(), "b": a.local(), "p2": a.local()}
+	for i, id := range []string{"s2", "s3"} {
+		st := proto.Idle
+		if i == 0 {
+			st = proto.Waiting
+		}
+		a.st.Sessions = append(a.st.Sessions, proto.Session{
+			ID: id, Project: "p2", Name: id, Status: st, Progress: -1,
+			Panes: []proto.Pane{{ID: id + "-a", Shell: "fish", Dir: "/tmp/web", Status: st, Progress: -1}},
+		})
+		a.owner[id] = a.local()
+	}
+	a.set.SidebarRail = true
+	a.prefs.SidebarHidden = true
+
+	tt := ui.NewTester(a.view, 1100, 640)
+	settle := func() { tt.Frame(); tt.Advance(time.Second); tt.Frame() }
+	settle()
+
+	if a.chrome.sideW != railWidth {
+		t.Errorf("rail on, folded: the sidebar is %v wide, want %v", a.chrome.sideW, railWidth)
+	}
+	// A project's mark is its name's initial; both are there beside each
+	// other. A mark's full name is its tooltip, which Texts does not carry.
+	for _, initial := range []string{"D", "W"} {
+		if _, ok := tt.Find(initial); !ok {
+			t.Errorf("no mark for a project in the rail (looked for its initial %q)", initial)
+		}
+	}
+	shot(t, tt, "rail-folded")
+}

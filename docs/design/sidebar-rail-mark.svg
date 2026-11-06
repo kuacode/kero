@@ -1,0 +1,21 @@
+<svg viewBox="0 0 320 150" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif" font-size="12">
+  <style>
+    .fg{fill:var(--fg)} .muted{fill:var(--muted)}
+    .border{stroke:var(--border);fill:none}
+    .accent{fill:var(--accent)}
+  </style>
+  <!-- project mark box: one width wrapping glyph, selected = only highlighted box -->
+  <rect x="20" y="30" width="56" height="34" rx="9" class="accent" opacity="0.14"/>
+  <rect x="20.5" y="30.5" width="55" height="33" rx="9" class="border" stroke="var(--accent)" opacity="0.5"/>
+  <rect x="31" y="38" width="16" height="16" rx="4" class="accent"/>
+  <text x="35" y="51" style="font-size:12px;fill:var(--fg);font-weight:700">K</text>
+  <text x="88" y="51" class="muted">项目标记盒（选中高亮=唯一盒）</text>
+
+  <!-- session status dots row -->
+  <circle cx="34" cy="92" r="5" fill="var(--success)"/>
+  <text x="88" y="96" class="muted">会话状态点：绿=运行 黄=需关注 灰=空闲</text>
+  <circle cx="52" cy="92" r="5" fill="var(--warning)"/>
+  <circle cx="70" cy="92" r="5" fill="var(--muted)"/>
+
+  <text x="20" y="128" class="muted">tooltip 补足窄栏放不下的会话名 / 分支 / 状态</text>
+</svg>

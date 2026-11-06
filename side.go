@@ -306,9 +306,9 @@ func (a *App) rightSidebar(c *ui.Context, pal *palette, s *proto.Session) {
 				a.tabButton(c, pal, sideChanges, locales.SideChanges(), tab)
 				a.tabButton(c, pal, sideFiles, locales.SideFiles(), tab)
 				ui.Spacer(c)
-				// Windows style puts the toggle in the title row: the bar's
-				// own button would ask for what its row already shows.
-				if a.controlsMode() != "windows" {
+				// The title bar styles put the toggle in the title row: the
+				// bar's own button would ask for what its row already shows.
+				if !a.titleBar() {
 					iconButton(c, "hide-right", sidebarRightIcon, a.tip(locales.RightSidebarHide(), "rightSidebar.toggle"), pal, a.toggleRight)
 				}
 			})
@@ -439,9 +439,9 @@ func (a *App) viewerHeader(c *ui.Context, pal *palette, s *proto.Session, svg *u
 // the window's top right while the sidebar hides, as the left sidebar's
 // shows it.
 func (a *App) showRightButton(c *ui.Context, pal *palette) {
-	// Windows style puts the toggle in the title row, which stays whether
-	// or not the sidebar shows: the header's own would repeat it.
-	if !a.rightShown() && a.controlsMode() != "windows" {
+	// The title bar styles put the toggle in the title row, which stays
+	// whether or not the sidebar shows: the header's own would repeat it.
+	if !a.rightShown() && !a.titleBar() {
 		iconButton(c, "show-right", sidebarRightIcon, a.tip(locales.RightSidebarShow(), "rightSidebar.toggle"), pal, a.toggleRight)
 	}
 }
