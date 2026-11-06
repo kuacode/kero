@@ -129,6 +129,7 @@ type App struct {
 	renaming         string
 	renamingProject  string
 	renameBuf        string
+	projMove         projectMove // the project dragged in the sidebar
 
 	renameFrames int
 	chrome       chrome // where the sidebar's animation puts things
@@ -730,7 +731,7 @@ func (a *App) watchReturn() {
 
 func (a *App) termFont() terminal.Font {
 	f := terminal.Font{Family: a.termFamily(), Size: a.set.FontSize, Weight: a.set.FontWeight,
-		LineHeight: a.set.LineHeight, Thicken: a.set.Thicken}
+		CellWidth: a.set.CellWidth, LineHeight: a.set.LineHeight, Thicken: a.set.Thicken}
 	f.Features = a.fontFeatures()
 	return f
 }
@@ -756,21 +757,6 @@ func featureTag(f string) string {
 	return tag
 }
 
-// uiFeatures converts features as terminal.Font takes them, as -calt,
-// into the list ui.Span.Features takes, as calt=0.
-func uiFeatures(fs []string) string {
-	out := make([]string, 0, len(fs))
-	for _, f := range fs {
-		if tag, ok := strings.CutPrefix(f, "-"); ok {
-			f = tag + "=0"
-		} else {
-			f = strings.TrimPrefix(f, "+")
-		}
-		out = append(out, f)
-	}
-	return strings.Join(out, ",")
-}
-
 // termThemes returns the terminal's colors in light and dark windows: the
 // themes', which the window's colors are of (looks).
 func (a *App) termThemes() (light, dark *terminal.Theme) {
@@ -784,6 +770,31 @@ var commandKeys = map[ui.Key]byte{
 	ui.KeyBackspace: 0x15, // Control+U, kill-line
 	ui.KeyLeft:      0x01, // Control+A, beginning-of-line
 	ui.KeyRight:     0x05, // Control+E, end-of-line
+}
+
+// optionKeys are the keys that, with Option alone on a Mac, send the
+// program Esc and a letter, as Ghostty's, Terminal's and iTerm's do:
+// shells take Esc b and Esc f as backward-word and forward-word, where
+// the Alt arrows' own sequences, unbound, would type a letter.
+var optionKeys = map[ui.Key]byte{
+	ui.KeyLeft:  'b', // backward-word
+	ui.KeyRight: 'f', // forward-word
+}
+
+// macKeySend is what a key with these modifiers sends the program on a
+// Mac in place of its own sequence, nil for the key's own.
+func macKeySend(mods ui.Modifiers, key ui.Key) []byte {
+	switch mods {
+	case ui.Super:
+		if b, ok := commandKeys[key]; ok {
+			return []byte{b}
+		}
+	case ui.Alt:
+		if b, ok := optionKeys[key]; ok {
+			return []byte{0x1b, b}
+		}
+	}
+	return nil
 }
 
 func (a *App) termOptions(id string, conn *gated) terminal.Options {
@@ -824,23 +835,22 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 			conn.Clear(proto.ClearScreen)
 			return true
 		},
-		// ⌘⌫ clears the line the shell is on, and ⌘← and ⌘→ go to its
-		// start and end, as in Ghostty: they send Control+U, Control+A and
-		// Control+E, which shells take as kill-line, beginning-of-line and
-		// end-of-line.
+		// ⌘⌫ clears the line the shell is on, ⌘← and ⌘→ go to its start
+		// and end, and ⌥← and ⌥→ move by a word, as in Ghostty
+		// (macKeySend).
 		OnKey: func(mods ui.Modifiers, key ui.Key) bool {
-			if runtime.GOOS != "darwin" || mods != ui.Super {
+			if runtime.GOOS != "darwin" {
 				return false
 			}
-			b, ok := commandKeys[key]
-			if !ok {
+			b := macKeySend(mods, key)
+			if b == nil {
 				return false
 			}
 			t := a.termFor(id)
 			if t == nil {
 				return false
 			}
-			t.Send([]byte{b})
+			t.Send(b)
 			return true
 		},
 		// The wheel, the user's even over a window not focused, tells they
@@ -904,7 +914,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 		}
 	}
 	font := old.FontFamily != s.FontFamily || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
-		old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
+		old.CellWidth != s.CellWidth || old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
 		!slices.Equal(old.FontFeatures, s.FontFeatures)
 	themes := old.LightTheme != s.LightTheme || old.DarkTheme != s.DarkTheme
 	anew := old.Cursor != s.Cursor || old.CursorBlink != s.CursorBlink || old.OptionAsAlt != s.OptionAsAlt ||

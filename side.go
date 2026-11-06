@@ -288,7 +288,7 @@ func (a *App) rightSidebar(c *ui.Context, pal *palette, s *proto.Session) {
 	// corner (mainControls): they show up to the controls, not under them.
 	w := a.rightWidth() - 10
 	shown := w
-	if ownControls && a.win != nil {
+	if showControls && a.win != nil {
 		if a.controlsMode() == "builtin" {
 			// As main draws them: the bar slides in under the window
 			// controls, which stay in the window's corner.

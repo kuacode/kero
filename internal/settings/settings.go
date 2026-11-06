@@ -26,6 +26,7 @@ type Settings struct {
 	NewSessionDir     string `json:"newSessionDir"`     // "current", "project" or "home"
 	SessionName       string `json:"sessionName"`       // what names an unnamed session: proto.NameFocused, NameLead or NameFolder
 	SidebarRows       string `json:"sidebarRows"`       // "detailed", two lines a session, or "compact", one
+	SidebarCount      bool   `json:"sidebarCount"`      // a project's header shows how many sessions it holds
 	FocusFollowsMouse bool   `json:"focusFollowsMouse"` // a pane the pointer enters takes the focus
 	ConfirmClose      bool   `json:"confirmClose"`      // before closing a pane a program runs in
 	RestoreSessions   bool   `json:"restoreSessions"`   // after kerod restarts, as after a reboot
@@ -45,6 +46,7 @@ type Settings struct {
 	FontFamily string  `json:"fontFamily"` // "" the font kero carries; "monospace" the system's
 	FontSize   float32 `json:"fontSize"`
 	LineHeight float32 `json:"lineHeight"`
+	CellWidth  float32 `json:"cellWidth"`
 	FontWeight int     `json:"fontWeight"`
 	Ligatures  bool    `json:"ligatures"`
 	// FontFeatures turn the font's OpenType features on and off, as
@@ -148,6 +150,7 @@ func Default() Settings {
 		NewSessionDir:   "current",
 		SessionName:     proto.NameFocused,
 		SidebarRows:     "detailed",
+		SidebarCount:    true,
 		ConfirmClose:    true,
 		RestoreSessions: true,
 		ResumeAgents:    true,
@@ -161,6 +164,7 @@ func Default() Settings {
 		DimUnfocused:    true,
 		FontSize:        13,
 		LineHeight:      1.22,
+		CellWidth:       1,
 		FontWeight:      400,
 		Ligatures:       true,
 		MinContrast:     3,
@@ -453,6 +457,9 @@ func (s *Settings) normalize() {
 	}
 	if s.LineHeight < 0.8 || s.LineHeight > 2.5 {
 		s.LineHeight = d.LineHeight
+	}
+	if !(s.CellWidth >= 0.8 && s.CellWidth <= 2) {
+		s.CellWidth = d.CellWidth
 	}
 	if s.FontWeight < 100 || s.FontWeight > 900 {
 		s.FontWeight = d.FontWeight

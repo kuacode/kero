@@ -34,6 +34,11 @@ func testApp(t *testing.T) *App {
 	// The configuration too: never the user's.
 	t.Setenv("KERO_CONFIG", filepath.Join(home, "config"))
 	a := newApp()
+	t.Cleanup(func() {
+		if a.ss.preview != nil {
+			a.ss.preview.Close()
+		}
+	})
 	var l *proto.Layout
 	a.st = proto.State{
 		Projects: []proto.Project{{ID: "p1", Name: "demo", Dir: "/tmp"}},
@@ -818,6 +823,28 @@ func TestSidebarRowKeepsTime(t *testing.T) {
 	t1, k1 := widths("Investigate why the session list truncates long generated titles")
 	if t1 < t0 || k1 < k0 {
 		t.Errorf("with a long name, the time is %g wide (want %g) and the shortcut %g (want %g)", t1, t0, k1, k0)
+	}
+}
+
+// A project's header shows how many sessions it holds, unless
+// sidebar-session-count is off.
+func TestSidebarSessionCount(t *testing.T) {
+	a := testApp(t)
+	a.local().conn = connReady
+	for _, id := range []string{"s2", "s3"} {
+		s := a.st.Sessions[0]
+		s.ID = id
+		a.st.Sessions = append(a.st.Sessions, s)
+	}
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if !slices.Contains(tt.Texts(), "3") {
+		t.Errorf("the project's header has no count; texts %q", tt.Texts())
+	}
+	a.set.SidebarCount = false
+	tt.Frame()
+	if slices.Contains(tt.Texts(), "3") {
+		t.Errorf("with sidebar-session-count off, the project's header still has its count")
 	}
 }
 
