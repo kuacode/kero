@@ -6,7 +6,7 @@ import (
 )
 
 func TestSplitHost(t *testing.T) {
-	t.Setenv("KERO_HOST", "")
+	t.Setenv("KERO_PANE", "") // outside a pane, so $KERO_HOST counts
 	for _, c := range []struct {
 		args []string
 		host string
