@@ -1336,26 +1336,6 @@ func (msgs Messages) FooterDone(count int) string {
 	return Catalog.Format(msgs.locale, "footerDone", map[string]any{"count": count})
 }
 
-// FooterFailed says "{count, plural, one {# session failed} other {# sessions failed}}"
-// in the language the app shows.
-func FooterFailed(count int) string { return In(i18n.Locale()).FooterFailed(count) }
-
-// FooterFailed says "{count, plural, one {# session failed} other {# sessions failed}}"
-// in the language of msgs.
-func (msgs Messages) FooterFailed(count int) string {
-	return Catalog.Format(msgs.locale, "footerFailed", map[string]any{"count": count})
-}
-
-// FooterExited says "{count, plural, one {# session exited} other {# sessions exited}}"
-// in the language the app shows.
-func FooterExited(count int) string { return In(i18n.Locale()).FooterExited(count) }
-
-// FooterExited says "{count, plural, one {# session exited} other {# sessions exited}}"
-// in the language of msgs.
-func (msgs Messages) FooterExited(count int) string {
-	return Catalog.Format(msgs.locale, "footerExited", map[string]any{"count": count})
-}
-
 // FooterGoToIt says "Go to it"
 // in the language the app shows.
 func FooterGoToIt() string { return In(i18n.Locale()).FooterGoToIt() }

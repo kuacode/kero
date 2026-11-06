@@ -128,8 +128,6 @@
   "footerNeedsYou": "{count} 個のセッションが対応待ち",
   "footerWorking": "{count} 個のセッションが作業中",
   "footerDone": "{count} 個のセッションが完了、未確認",
-  "footerFailed": "{count} 件のセッションが失敗",
-  "footerExited": "{count} 件のセッションが終了",
   "footerGoToIt": "移動",
   "footerServiceTip": "セッションはバックグラウンドの kerod で実行されます: kero を終了しても実行を続けます。",
   "statusConnecting": "接続中…",
