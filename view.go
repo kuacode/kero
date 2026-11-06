@@ -945,10 +945,11 @@ func (a *App) railGroup(c *ui.Context, pal *palette, g group) {
 	})
 }
 
-// railSession is a session's status as a small mark in the rail, which a
-// click picks.
+// railSession is a session's mark in the rail, which a click picks: its
+// agent's icon beside the same status mark the sidebar's row shows, so a
+// session folded into the rail still says who runs it and how it stands.
 func (a *App) railSession(c *ui.Context, pal *palette, s *proto.Session) {
-	d := ui.Row(c.Key("rail-s-"+s.ID)).Size(32, 22).Center().AlignItems(ui.Center).Radius(6)
+	d := ui.Row(c.Key("rail-s-"+s.ID)).Size(34, 22).Center().AlignItems(ui.Center).Gap(3).Radius(6)
 	if s.ID == a.selected {
 		d.Background(pal.rowSelected)
 	} else if d.Hovered() {
@@ -959,7 +960,11 @@ func (a *App) railSession(c *ui.Context, pal *palette, s *proto.Session) {
 		a.selectSession(s.ID)
 	}
 	d.Children(func() {
-		ui.Icon(c, programIcon(&s.Pane)).Size(16, 16).TextColor(programColor(pal, &s.Pane))
+		// The agent the session runs, at the mark's left.
+		ui.Icon(c, programIcon(&s.Pane)).Size(15, 15).TextColor(programColor(pal, &s.Pane)).Shrink(0)
+		// How it stands, as the sidebar's row shows it: an agent working
+		// turns, one needing you breathes, one done unseen ticks.
+		statusIconP(c, pal, s.Status, s.Unread, s.Progress, 12)
 	})
 }
 
