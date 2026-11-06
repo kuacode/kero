@@ -902,6 +902,60 @@ func (a *App) rail(c *ui.Context, pal *palette, bar ui.TitleBar) {
 			a.railGroup(c, pal, g)
 		}
 	})
+	a.railFooter(c, pal)
+}
+
+// railFooter is the rail's foot: a count of every status, the icon and
+// the number, a click going to the next session of it. Every status
+// shows, zero or not, so the rail says the whole room at a glance. It is
+// the sidebar's footer's counts, stood on end to fit the rail's width.
+func (a *App) railFooter(c *ui.Context, pal *palette) {
+	if a.local().conn != connReady {
+		return
+	}
+	ui.Row(c).Shrink(0).Padding(0, 4, 8, 4).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+		waiting := func(s *proto.Session) bool { return s.Status == proto.Waiting }
+		working := func(s *proto.Session) bool { return s.Status == proto.Working }
+		done := func(s *proto.Session) bool { return s.Status == proto.Idle && s.Unread }
+		failed := func(s *proto.Session) bool { return s.Status == proto.Failed }
+		exited := func(s *proto.Session) bool { return s.Status == proto.Exited && !s.Unread }
+		a.railChip(c, pal, proto.Waiting, false, waiting, pal.attention, locales.FooterNeedsYou, a.tip(locales.FooterGoToIt(), "session.attention"), a.jumpToAttention)
+		a.railChip(c, pal, proto.Working, false, working, pal.textMuted, locales.FooterWorking, locales.FooterGoToIt(), nil)
+		a.railChip(c, pal, proto.Idle, true, done, pal.textMuted, locales.FooterDone, locales.FooterGoToIt(), nil)
+		a.railChip(c, pal, proto.Failed, false, failed, pal.danger, locales.FooterFailed, locales.FooterGoToIt(), nil)
+		a.railChip(c, pal, proto.Exited, false, exited, pal.textFaint, locales.FooterExited, locales.FooterGoToIt(), nil)
+	})
+}
+
+// railChip is one of the rail footer's counts: the status icon over the
+// number, small enough to fit five across the rail's width. Every chip
+// shows, zero or not; a zero counts in a faint ink.
+func (a *App) railChip(c *ui.Context, pal *palette, st proto.Status, unread bool, is func(*proto.Session) bool, fg ui.Color, say func(int) string, hint string, jump func()) {
+	n := 0
+	for i := range a.st.Sessions {
+		if h := a.hostOf(a.st.Sessions[i].ID); h.remote() && h.conn != connReady {
+			continue
+		}
+		if is(&a.st.Sessions[i]) {
+			n++
+		}
+	}
+	words := say(n)
+	b := ui.Column(c.Key("railchip-"+string(st))).Width(22).Shrink(0).Padding(3, 0, 2, 0).Gap(0).AlignItems(ui.Center).Radius(6).
+		Tooltip(words + " · " + hint)
+	if b.Hovered() {
+		b.Background(pal.rowHover)
+	}
+	b.Children(func() {
+		statusIcon(c, pal, st, unread, 12)
+		ui.Textf(c, "%d", n).FontSize(10).FontWeight(500).TextColor(fg).FontFeatures("tnum")
+	})
+	if b.Clicked() && n > 0 {
+		if jump == nil {
+			jump = func() { a.jumpTo(is) }
+		}
+		jump()
+	}
 }
 
 // railGroup is one project's mark in the rail, its sessions' status marks

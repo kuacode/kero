@@ -128,6 +128,8 @@
   "footerNeedsYou": "{count} 个会话需要你",
   "footerWorking": "{count} 个会话正在运行",
   "footerDone": "{count} 个会话已完成，未查看",
+  "footerFailed": "{count} 个会话失败",
+  "footerExited": "{count} 个会话已退出",
   "footerGoToIt": "前往",
   "footerServiceTip": "会话在后台的 kerod 中运行：退出 kero 后它们仍会继续运行。",
   "statusConnecting": "正在连接…",

@@ -204,6 +204,22 @@
       }
     }
   },
+  "footerFailed": "{count, plural, one {# session failed} other {# sessions failed}}",
+  "@footerFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "footerExited": "{count, plural, one {# session exited} other {# sessions exited}}",
+  "@footerExited": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "footerGoToIt": "Go to it",
   "footerServiceTip": "Sessions run in kerod, in the background: they keep running when you quit kero.",
   "statusConnecting": "Connecting…",
