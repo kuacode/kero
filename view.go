@@ -917,7 +917,7 @@ func (a *App) railGroup(c *ui.Context, pal *palette, g group) {
 	ui.Column(c.Key("rail-"+g.key())).Shrink(0).AlignItems(ui.Center).Gap(2).Padding(4, 0).Children(func() {
 		// The project's mark: a box around its initial, the one box
 		// highlighted being the project with the session shown.
-		box := ui.Row(c.Key("mark")).Size(40, 30).Radius(8).Center().AlignItems(ui.Center)
+		box := ui.Row(c.Key("mark")).Size(56, 30).Radius(8).Center().AlignItems(ui.Center)
 		switch {
 		case selected:
 			box.Background(pal.rowSelected)
@@ -949,7 +949,7 @@ func (a *App) railGroup(c *ui.Context, pal *palette, g group) {
 // agent's icon beside the same status mark the sidebar's row shows, so a
 // session folded into the rail still says who runs it and how it stands.
 func (a *App) railSession(c *ui.Context, pal *palette, s *proto.Session) {
-	d := ui.Row(c.Key("rail-s-"+s.ID)).Size(34, 22).Center().AlignItems(ui.Center).Gap(3).Radius(6)
+	d := ui.Row(c.Key("rail-s-"+s.ID)).Size(56, 22).Padding(0, 6).AlignItems(ui.Center).Radius(6)
 	if s.ID == a.selected {
 		d.Background(pal.rowSelected)
 	} else if d.Hovered() {
@@ -961,10 +961,12 @@ func (a *App) railSession(c *ui.Context, pal *palette, s *proto.Session) {
 	}
 	d.Children(func() {
 		// The agent the session runs, at the mark's left.
-		ui.Icon(c, programIcon(&s.Pane)).Size(15, 15).TextColor(programColor(pal, &s.Pane)).Shrink(0)
+		ui.Icon(c, programIcon(&s.Pane)).Size(16, 16).TextColor(programColor(pal, &s.Pane)).Shrink(0)
+		ui.Spacer(c)
 		// How it stands, as the sidebar's row shows it: an agent working
-		// turns, one needing you breathes, one done unseen ticks.
-		statusIconP(c, pal, s.Status, s.Unread, s.Progress, 12)
+		// turns, one needing you breathes, one done unseen ticks. A little
+		// margin keeps the status off the mark's edge.
+		statusIconP(c, pal, s.Status, s.Unread, s.Progress, 14).Margin(0, 1, 1, 0)
 	})
 }
 
