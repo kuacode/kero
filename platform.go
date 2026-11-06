@@ -198,8 +198,9 @@ func controlButtons(c *ui.Context, pal *palette, w *mygo.Window) {
 }
 
 // controlsMode is the style the Settings chose for the window controls:
-// builtin in the card's corner, apple as traffic lights at the left, or
-// windows at the title bar's right.
+// builtin in the card's corner, apple as traffic lights at the left with
+// the title bar's row laid out as windows', or windows at the title bar's
+// right. macOS draws its own lights, so there it is always apple.
 func (a *App) controlsMode() string {
 	if !ownControls {
 		return "apple"
@@ -207,12 +208,28 @@ func (a *App) controlsMode() string {
 	return a.set.WindowControls
 }
 
+// titleBar tells that the window has a title bar of its own: the apple and
+// windows styles draw one, which holds the sidebar's actions and owns the
+// window's top, so the content moves below it and the sidebar, the footer
+// and the right sidebar keep none of the buttons the bar already holds.
+func (a *App) titleBar() bool {
+	switch a.controlsMode() {
+	case "apple", "windows":
+		return true
+	}
+	return false
+}
+
 // settingsWindowControls draw the Settings window's controls, which in
 // mac and windows styles move to the window itself, not the page's header.
 func (a *App) settingsWindowControls(c *ui.Context, pal *palette) {
 	switch a.controlsMode() {
 	case "apple":
-		ui.Row(c.Key("window-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
+		// At the window's left, as the main window's title bar row does,
+		// so both windows put the lights the same distance in. The row is
+		// as tall as the main window's title bar buttons, so the lights
+		// center on the same line rather than riding high.
+		ui.Row(c.Key("window-controls")).Absolute().Left(8).Top(2).Height(26).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 			appleButtons(c, pal, a.setWin)
 		})
 	case "windows":
@@ -224,17 +241,23 @@ func (a *App) settingsWindowControls(c *ui.Context, pal *palette) {
 
 // mainControlsAny draws the main window's controls, by the style the
 // Settings chose: main's own builtin controls over the card's corner, or
-// apple's traffic lights, or windows' title bar's row.
+// apple's and windows' shared title bar's row, apple's traffic lights at
+// the left and windows' controls at the right.
 func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 	switch a.controlsMode() {
-	case "apple":
-		ui.Row(c.Key("main-controls")).Absolute().Left(18).Top(barMid - 7).Gap(6).AlignItems(ui.Center).DragWindow().Children(func() {
-			appleButtons(c, pal, a.win)
-		})
-	case "windows":
-		// The title bar's own row: the sidebar's actions at the window's
-		// left and the controls at its right, centered on barMid.
+	case "apple", "windows":
+		// The title bar's own row, by both styles: the sidebar's actions at
+		// the window's left and the footer's buttons at its right, centered
+		// on barMid. Apple's traffic lights sit at the window's far left,
+		// before the actions, and apple's row ends at Kero's own buttons;
+		// windows' own controls close its row instead.
 		ui.Row(c.Key("title-actions")).Absolute().Left(8).Top(2).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+			if a.controlsMode() == "apple" {
+				ui.Row(c.Key("traffic")).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
+					appleButtons(c, pal, a.win)
+				})
+				ui.Box(c.Key("lights-sep")).Width(10).Shrink(0)
+			}
 			// The toggle names what pressing it does, by the sidebar's state.
 			sidebarTip := locales.SidebarHide()
 			if a.prefs.SidebarHidden {
@@ -250,7 +273,7 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 			// sidebar hides: they no longer live in it.
 			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
 			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
+			iconButton(c, "keep-awake", a.keepAwakeIcon(), a.keepAwakeTip(), pal, a.toggleKeepAwake)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 			// The toggle names what pressing it does, by the sidebar's state.
 			rightTip := locales.RightSidebarHide()
@@ -258,10 +281,12 @@ func (a *App) mainControlsAny(c *ui.Context, pal *palette, edge float32) {
 				rightTip = locales.RightSidebarShow()
 			}
 			iconButton(c, "right-sidebar", sidebarRightIcon, a.tip(rightTip, "rightSidebar.toggle"), pal, a.toggleRight)
-			// A breath before the window controls, which read as a group
-			// apart from Kero's own buttons.
-			ui.Box(c.Key("controls-sep")).Width(10).Shrink(0)
-			controlButtons(c, pal, a.win)
+			if a.controlsMode() == "windows" {
+				// A breath before the window controls, which read as a group
+				// apart from Kero's own buttons.
+				ui.Box(c.Key("controls-sep")).Width(10).Shrink(0)
+				controlButtons(c, pal, a.win)
+			}
 		})
 	default: // builtin: main's own controls over the card's corner.
 		a.mainControls(c, pal, edge)

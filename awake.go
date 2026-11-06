@@ -52,6 +52,16 @@ func (a *App) keepAwakeIcon() *ui.SVG {
 	return keepAwakeOffIcon
 }
 
+// keepAwakeTip is the toolbar button's tooltip: what clicking it does, as
+// the sidebar's toggle names its own. Off, clicking turns keep awake on;
+// on or while an agent works, clicking turns it off.
+func (a *App) keepAwakeTip() string {
+	if a.set.KeepAwake == awakeOff {
+		return locales.AwakeEnable()
+	}
+	return locales.AwakeDisable()
+}
+
 // anyWorking tells whether a pane of the sessions local takes is Working.
 // Every pane counts, not only the one the session's status comes from,
 // which a pane waiting for the user, or one with output unread, is ahead
