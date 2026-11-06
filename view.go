@@ -905,32 +905,63 @@ func (a *App) rail(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	a.railFooter(c, pal)
 }
 
-// railFooter is the rail's foot: a count of every status, the icon and
-// the number, a click going to the next session of it. Every status
-// shows, zero or not, so the rail says the whole room at a glance. It is
-// the sidebar's footer's counts, stood on end to fit the rail's width.
+// railFooter is the rail's foot: a drawer. Collapsed, a handle button
+// with the need-attention count as its badge; pulled open, the five
+// status counts stood in a column, a click on each going to the next
+// session of it. The drawer keeps the rail quiet by default and the
+// counts are there when wanted.
 func (a *App) railFooter(c *ui.Context, pal *palette) {
 	if a.local().conn != connReady {
 		return
 	}
-	ui.Row(c).Shrink(0).Padding(0, 4, 8, 4).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-		waiting := func(s *proto.Session) bool { return s.Status == proto.Waiting }
-		working := func(s *proto.Session) bool { return s.Status == proto.Working }
-		done := func(s *proto.Session) bool { return s.Status == proto.Idle && s.Unread }
-		failed := func(s *proto.Session) bool { return s.Status == proto.Failed }
-		exited := func(s *proto.Session) bool { return s.Status == proto.Exited && !s.Unread }
-		a.railChip(c, pal, proto.Waiting, false, waiting, pal.attention, locales.FooterNeedsYou, a.tip(locales.FooterGoToIt(), "session.attention"), a.jumpToAttention)
-		a.railChip(c, pal, proto.Working, false, working, pal.textMuted, locales.FooterWorking, locales.FooterGoToIt(), nil)
-		a.railChip(c, pal, proto.Idle, true, done, pal.textMuted, locales.FooterDone, locales.FooterGoToIt(), nil)
-		a.railChip(c, pal, proto.Failed, false, failed, pal.danger, locales.FooterFailed, locales.FooterGoToIt(), nil)
-		a.railChip(c, pal, proto.Exited, false, exited, pal.textFaint, locales.FooterExited, locales.FooterGoToIt(), nil)
+	waiting := func(s *proto.Session) bool { return s.Status == proto.Waiting }
+	working := func(s *proto.Session) bool { return s.Status == proto.Working }
+	done := func(s *proto.Session) bool { return s.Status == proto.Idle && s.Unread }
+	failed := func(s *proto.Session) bool { return s.Status == proto.Failed }
+	exited := func(s *proto.Session) bool { return s.Status == proto.Exited && !s.Unread }
+	needYou := a.countOf(waiting)
+	if a.railStats {
+		// The drawer open: the five counts, then the handle to close it.
+		ui.Column(c.Key("rail-drawer")).Shrink(0).Padding(0, 4, 2, 4).Gap(0).AlignItems(ui.Center).
+			Background(pal.sidebar).Children(func() {
+			a.railChip(c, pal, proto.Waiting, false, waiting, pal.attention, locales.FooterNeedsYou, a.tip(locales.FooterGoToIt(), "session.attention"), a.jumpToAttention)
+			a.railChip(c, pal, proto.Working, false, working, pal.textMuted, locales.FooterWorking, locales.FooterGoToIt(), nil)
+			a.railChip(c, pal, proto.Idle, true, done, pal.textMuted, locales.FooterDone, locales.FooterGoToIt(), nil)
+			a.railChip(c, pal, proto.Failed, false, failed, pal.danger, locales.FooterFailed, locales.FooterGoToIt(), nil)
+			a.railChip(c, pal, proto.Exited, false, exited, pal.textFaint, locales.FooterExited, locales.FooterGoToIt(), nil)
+			a.railDrawerHandle(c, pal, needYou, chevronDownIcon)
+		})
+		return
+	}
+	// Collapsed: just the handle.
+	ui.Row(c).Shrink(0).Padding(0, 4, 8, 4).AlignItems(ui.Center).Children(func() {
+		a.railDrawerHandle(c, pal, needYou, chevronUpIcon)
 	})
 }
 
-// railChip is one of the rail footer's counts: the status icon over the
-// number, small enough to fit five across the rail's width. Every chip
-// shows, zero or not; a zero counts in a faint ink.
-func (a *App) railChip(c *ui.Context, pal *palette, st proto.Status, unread bool, is func(*proto.Session) bool, fg ui.Color, say func(int) string, hint string, jump func()) {
+// railDrawerHandle is the drawer's handle: a full-width button with a
+// chevron and, while sessions need the user, the count beside it.
+func (a *App) railDrawerHandle(c *ui.Context, pal *palette, needYou int, chev *ui.SVG) {
+	b := ui.Row(c.Key("rail-drawer-handle")).Width(56).Height(28).Shrink(0).Center().AlignItems(ui.Center).Gap(4).Radius(6).
+		Tooltip(locales.FooterNeedsYou(needYou))
+	if b.Hovered() {
+		b.Background(pal.rowHover)
+	}
+	if b.Clicked() {
+		a.railStats = !a.railStats
+	}
+	b.Children(func() {
+		if needYou > 0 {
+			statusIcon(c, pal, proto.Waiting, false, 12)
+			ui.Textf(c, "%d", needYou).FontSize(11).FontWeight(500).TextColor(pal.attention).FontFeatures("tnum")
+		}
+		ui.Icon(c, chev).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+	})
+}
+
+// countOf returns how many sessions meet is, counting only hosts the app
+// is still connected to, as the Dock's badge does.
+func (a *App) countOf(is func(*proto.Session) bool) int {
 	n := 0
 	for i := range a.st.Sessions {
 		if h := a.hostOf(a.st.Sessions[i].ID); h.remote() && h.conn != connReady {
@@ -940,15 +971,22 @@ func (a *App) railChip(c *ui.Context, pal *palette, st proto.Status, unread bool
 			n++
 		}
 	}
+	return n
+}
+
+// railChip is one of the open drawer's counts: the status icon over the
+// number, small enough to fit the rail's width.
+func (a *App) railChip(c *ui.Context, pal *palette, st proto.Status, unread bool, is func(*proto.Session) bool, fg ui.Color, say func(int) string, hint string, jump func()) {
+	n := a.countOf(is)
 	words := say(n)
-	b := ui.Column(c.Key("railchip-"+string(st))).Width(22).Shrink(0).Padding(3, 0, 2, 0).Gap(0).AlignItems(ui.Center).Radius(6).
+	b := ui.Column(c.Key("railchip-"+string(st))).Width(56).Shrink(0).Padding(4, 0, 3, 0).Gap(0).AlignItems(ui.Center).Radius(6).
 		Tooltip(words + " · " + hint)
 	if b.Hovered() {
 		b.Background(pal.rowHover)
 	}
 	b.Children(func() {
-		statusIcon(c, pal, st, unread, 12)
-		ui.Textf(c, "%d", n).FontSize(10).FontWeight(500).TextColor(fg).FontFeatures("tnum")
+		statusIcon(c, pal, st, unread, 13)
+		ui.Textf(c, "%d", n).FontSize(11).FontWeight(500).TextColor(fg).FontFeatures("tnum")
 	})
 	if b.Clicked() && n > 0 {
 		if jump == nil {

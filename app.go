@@ -146,6 +146,7 @@ type App struct {
 	skillMissing bool
 	skillsAt     time.Time
 	sideDrag     float32 // the width as a drag of the sidebar's edge began
+	railStats    bool    // the rail footer's status drawer is pulled open
 	pendingToast string
 	// later are actions that change what the view is building, run once
 	// it is built.
