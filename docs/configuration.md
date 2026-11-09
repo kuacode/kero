@@ -41,7 +41,7 @@ kero config check             # report unknown keys and bad values, and agents.t
 
 | Key                     | Default   | Description                                                   |
 | ----------------------- | --------- | ------------------------------------------------------------- |
-| `new-session-directory` | `current` | Where a new session starts: `current`, `project` or `home`    |
+| `new-session-directory` | `current` | Where a new session starts: `current`, `project`, `home`, or a folder such as `~/Developer` |
 | `session-name`          | `focused` | What names a session you haven't: `focused`, `lead` or `folder` ([more](./sessions.md#how-an-unnamed-session-is-named)) |
 | `sidebar-rows`          | `detailed` | How the sidebar shows a session: `detailed`, with its status message, else its branch and changes, on a second line; or `compact`, on one line |
 | `sidebar-session-count` | `true`    | Show, beside a project's name in the sidebar, how many sessions it holds |
@@ -74,6 +74,7 @@ kero config check             # report unknown keys and bad values, and agents.t
 | `font-ligatures`      | `true`  | Join characters the way the font draws them                              |
 | `font-thicken`        | `false` | A heavier stroke, as in Ghostty                                          |
 | `minimum-contrast`    | `3`     | The least contrast text keeps with its background, from `1` (none) to `21`, so that colors meant for a dark background stay readable on a light one, as in Ghostty |
+| `window-padding-color` | `extend` | What the padding around a terminal's text shows: `background`, the terminal's background; `extend`, the colors of the cells beside it, but for a row left at the background; or `extend-always`, theirs always, as in Ghostty. With `background`, a program's bottom bar stays one row tall |
 | `dim-unfocused-terminals` | `true` | Fade the terminals you're not in, when a session has several panes |
 | `cursor-style`        | `block` | `block`, `bar` or `underline`; programs may change it                    |
 | `cursor-style-blink`  | `true`  | Blink the cursor                                                         |
@@ -129,6 +130,7 @@ Other machines whose sessions the app shows, and `kero -H` reaches. See [Remote 
 | ------------- | ------- | ------------------------------------------------------------------------------------------------- |
 | `git-status`  | `true`  | Show each session's branch and [changes](./changes.md)                                            |
 | `diff-layout` | `auto`  | Diffs of the Changes tab: `unified`, `split` (side by side), or `auto`, side by side once they're wide |
+| `wrap-lines`  | `false` | Wrap the long lines of diffs and of files from Files rather than scrolling them sideways          |
 | `worktree-base` | `default` | What a [session's own worktree](./changes.md#sessions-in-their-own-worktree) branches from: `default`, the repository's default branch, or `current`, the branch of the session you're in |
 | `worktree-dir` |        | Where sessions' own worktrees go, each under its repository's name; empty for `.kero/worktrees` in the repository |
 

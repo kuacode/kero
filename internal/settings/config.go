@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -110,11 +111,39 @@ func mapChoice(name, doc string, f func(*Settings) *string, file, ours []string)
 		}}
 }
 
+// newSessionDirKey takes a folder of the user's too, as ~/… or an
+// absolute path, besides the choices.
+var newSessionDirKey = key{name: "new-session-directory",
+	doc: "where a new session starts (current, project, home, or a folder such as ~/Developer, home when it is gone; sessions on other hosts start in their home)",
+	get: func(s *Settings) []string {
+		if s.NewSessionDir == "custom" {
+			return []string{s.NewSessionPath}
+		}
+		return []string{s.NewSessionDir}
+	},
+	set: func(s *Settings, v []string) error {
+		c := v[len(v)-1]
+		switch {
+		case slices.Contains([]string{"current", "project", "home"}, c):
+			s.NewSessionDir = c
+		case IsFolderPath(c):
+			s.NewSessionDir, s.NewSessionPath = "custom", c
+		default:
+			return fmt.Errorf("%q is none of current, project, home, nor a folder as ~/… or an absolute path", c)
+		}
+		return nil
+	}}
+
+// IsFolderPath tells a folder new-session-directory can name: ~/… or
+// absolute.
+func IsFolderPath(p string) bool {
+	return p == "~" || strings.HasPrefix(p, "~/") || runtime.GOOS == "windows" && strings.HasPrefix(p, `~\`) || filepath.IsAbs(p)
+}
+
 // keys are the configuration's keys, in the order a new file and
 // `kero config show` list them.
 var keys = []key{
-	mapChoice("new-session-directory", "where a new session starts", func(s *Settings) *string { return &s.NewSessionDir },
-		[]string{"current", "project", "home"}, []string{"current", "project", "home"}),
+	newSessionDirKey,
 	choiceKey("session-name", "what names a session you or an agent didn't: the program in the pane you're in, else in the one that most needs you; the program in the one that most needs you; or the first pane's folder",
 		func(s *Settings) *string { return &s.SessionName }, proto.NameFocused, proto.NameLead, proto.NameFolder),
 	choiceKey("sidebar-rows", "how the sidebar shows a session: detailed, with its status message, else its branch and changes, on a second line; or compact, on one line",
@@ -163,6 +192,8 @@ var keys = []key{
 		}},
 	boolKey("font-thicken", "a heavier stroke, as Ghostty's", func(s *Settings) *bool { return &s.Thicken }),
 	numberKey("minimum-contrast", "the least contrast text keeps with its background, 1 (none) to 21, as Ghostty's", func(s *Settings) float64 { return float64(s.MinContrast) }, func(s *Settings, n float64) { s.MinContrast = float32(min(max(n, 1), 21)) }),
+	choiceKey("window-padding-color", "what the padding around a terminal's text shows: the background, or the colors of the cells beside it, as Ghostty's",
+		func(s *Settings) *string { return &s.PaddingColor }, PaddingColors...),
 	boolKey("dim-unfocused-terminals", "fade the terminals you're not in, when a session has several panes", func(s *Settings) *bool { return &s.DimUnfocused }),
 	{name: "theme", doc: "the theme of the window, its panes and terminals: one of kero's (" + strings.Join(keroThemeNames(), ", ") + "), a Ghostty theme, or light:<theme>,dark:<theme>",
 		get: func(s *Settings) []string {
@@ -330,6 +361,7 @@ var keys = []key{
 	choiceKey("worktree-base", "what a session's own git worktree branches from: the repository's default branch, or the branch of the session you're in", func(s *Settings) *string { return &s.WorktreeBase }, "default", "current"),
 	stringKey("worktree-dir", "where sessions' own git worktrees go, each under its repository's name; empty for .kero/worktrees in the repository", func(s *Settings) *string { return &s.WorktreeDir }),
 	choiceKey("diff-layout", "the changes panel's diffs: unified while the panel is narrow and side by side once it's wide, or always one", func(s *Settings) *string { return &s.DiffLayout }, "auto", "unified", "split"),
+	boolKey("wrap-lines", "wrap the long lines of the viewer's diffs and files rather than scrolling them sideways", func(s *Settings) *bool { return &s.WrapLines }),
 	boolKey("browser-block-ads", "block ads and trackers in browser panes, with the browser-filter-list lists", func(s *Settings) *bool { return &s.BlockAds }),
 	{name: "browser-filter-list", doc: "a filter list browser-block-ads blocks with: " + strings.Join(adListIDs(), ", ") + ", or a list's https URL; repeat it, and leave it empty for none", list: true,
 		get: func(s *Settings) []string {

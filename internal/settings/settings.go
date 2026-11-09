@@ -23,7 +23,8 @@ import (
 // choice of its own: Load fills defaults in.
 type Settings struct {
 	// General
-	NewSessionDir     string `json:"newSessionDir"`     // "current", "project" or "home"
+	NewSessionDir     string `json:"newSessionDir"`     // "current", "project", "home" or "custom", NewSessionPath
+	NewSessionPath    string `json:"newSessionPath"`    // the folder new sessions start in when NewSessionDir is "custom", as ~/… or absolute
 	SessionName       string `json:"sessionName"`       // what names an unnamed session: proto.NameFocused, NameLead or NameFolder
 	SidebarRows       string `json:"sidebarRows"`       // "detailed", two lines a session, or "compact", one
 	SidebarCount      bool   `json:"sidebarCount"`      // a project's header shows how many sessions it holds
@@ -60,6 +61,7 @@ type Settings struct {
 	Thicken      bool     `json:"thicken"`
 	MinContrast  float32  `json:"minContrast"`           // a WCAG ratio text keeps with its background
 	DimUnfocused bool     `json:"dimUnfocusedTerminals"` // the terminals the user is not in fade
+	PaddingColor string   `json:"paddingColor"`          // one of PaddingColors: what the padding around a terminal's text shows
 	Cursor       string   `json:"cursor"`                // "block", "bar" or "underline"
 	CursorBlink  bool     `json:"cursorBlink"`
 	LightTheme   string   `json:"lightTheme"` // one of KeroThemes by its Name, or a Ghostty theme's
@@ -93,6 +95,7 @@ type Settings struct {
 	// Git
 	GitStatus  bool   `json:"gitStatus"`  // each pane's branch and changes, which kerod follows
 	DiffLayout string `json:"diffLayout"` // the changes panel's diffs: "auto", "unified" or "split"
+	WrapLines  bool   `json:"wrapLines"`  // the viewer's diffs and files wrap long lines
 	// WorktreeBase is what a session's own worktree branches from:
 	// "default", the repository's default branch, or "current", the
 	// branch of the session the user is in. WorktreeDir is where its
@@ -172,6 +175,7 @@ func Default() Settings {
 		FontWeight:      400,
 		Ligatures:       true,
 		MinContrast:     3,
+		PaddingColor:    "extend",
 		Cursor:          "block",
 		CursorBlink:     true,
 		LightTheme:      "paper",
@@ -208,6 +212,12 @@ var Languages = []string{"en", "ja", "zh-Hans"}
 // AppIcons are where the app's icon shows on macOS: the Dock and the menu
 // bar, the Dock alone, or the menu bar alone.
 var AppIcons = []string{"dock-and-menubar", "dock", "menubar"}
+
+// PaddingColors are what the padding around a terminal's text shows, as
+// Ghostty's window-padding-color: the terminal's background; the colors
+// of the cells beside it, but for a row a program left at the background;
+// or theirs always.
+var PaddingColors = []string{"background", "extend", "extend-always"}
 
 // KeepAwakeModes are when Kero keeps the computer from sleeping: never,
 // as long as it runs, or while an agent on this machine works.
@@ -445,7 +455,10 @@ func (s *Settings) normalize() {
 		}
 		*v = def
 	}
-	oneOf(&s.NewSessionDir, d.NewSessionDir, "current", "project", "home")
+	oneOf(&s.NewSessionDir, d.NewSessionDir, "current", "project", "home", "custom")
+	if s.NewSessionDir == "custom" && !IsFolderPath(s.NewSessionPath) {
+		s.NewSessionDir = d.NewSessionDir
+	}
 	oneOf(&s.SidebarRows, d.SidebarRows, "detailed", "compact")
 	oneOf(&s.Appearance, d.Appearance, "system", "light", "dark")
 	oneOf(&s.WindowControls, d.WindowControls, "builtin", "apple", "windows")

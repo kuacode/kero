@@ -1,0 +1,18 @@
+{
+  "initialized": true,
+  "version": "1.6.2",
+  "fileCount": 234,
+  "nodeCount": 5545,
+  "edgeCount": 17606,
+  "pendingAdded": 0,
+  "pendingModified": 0,
+  "pendingRemoved": 0,
+  "indexState": "complete",
+  "reindexRecommended": false,
+  "lastError": null,
+  "lastCommand": {
+    "name": "codegraph-sync",
+    "summary": "CodeGraph 同步完成"
+  },
+  "updatedAt": 1793840274262
+}

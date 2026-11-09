@@ -815,9 +815,10 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		// another pane.
 		Transparent: true,
 		// Text lines up with the pane's title; a full-screen program's
-		// colors reach the card's edges.
+		// colors reach the card's edges, unless window-padding-color says
+		// otherwise.
 		Padding:      terminal.Padding{X: 16, Y: 6},
-		PaddingColor: terminal.PaddingExtend,
+		PaddingColor: map[string]terminal.PaddingColor{"background": terminal.PaddingBackground, "extend": terminal.PaddingExtend, "extend-always": terminal.PaddingExtendAlways}[a.set.PaddingColor],
 		// Text a program colored for the other appearance, as a dark
 		// theme's light grays on a light one, stays legible.
 		MinimumContrast:  a.set.MinContrast,
@@ -879,10 +880,12 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 	if a.set.CopyOnSelect {
 		o.CopyOnSelect = terminal.CopyOnSelectClipboard
 	}
-	// Files and images pasted into a pane of another machine go there; a
-	// local pane's image alone pastes as the path of a file with it.
+	// Files and images pasted into, or dropped on, a pane of another
+	// machine go there; a local pane's image alone pastes as the path of
+	// a file with it.
 	if a.hostOf(id).remote() {
 		o.OnPaste = func(d transfer.Data) bool { return a.remotePaste(id, d) }
+		o.OnDrop = func(paths []string) bool { return a.remoteDrop(id, paths) }
 	}
 	return o
 }
@@ -920,7 +923,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 		!slices.Equal(old.FontFeatures, s.FontFeatures)
 	themes := old.LightTheme != s.LightTheme || old.DarkTheme != s.DarkTheme
 	anew := old.Cursor != s.Cursor || old.CursorBlink != s.CursorBlink || old.OptionAsAlt != s.OptionAsAlt ||
-		old.Clipboard != s.Clipboard || old.RightClick != s.RightClick
+		old.Clipboard != s.Clipboard || old.RightClick != s.RightClick || old.PaddingColor != s.PaddingColor
 	light, dark := a.termThemes()
 	retune := func(t *terminal.Terminal) {
 		if font {
@@ -1225,13 +1228,38 @@ func (a *App) newSessionOn(h *host, projectID string) {
 	if h.remote() {
 		home = "~" // the host's, as kerod there takes it
 	}
-	if a.set.NewSessionDir == "home" {
+	switch a.set.NewSessionDir {
+	case "home":
 		p.Dir = home
+	case "custom":
+		p.Dir = home
+		if !h.remote() {
+			if dir := expandHome(a.set.NewSessionPath); isDir(dir) {
+				p.Dir = dir
+			}
+		}
 	}
-	if p.Project == "" && len(a.projectsOf(h)) == 0 {
+	if p.Project == "" && len(a.projectsOf(h)) == 0 && a.set.NewSessionDir != "custom" {
 		p.Dir = home
 	}
 	a.create(h, p, "")
+}
+
+// expandHome makes a path of ~/… this machine's home's.
+func expandHome(p string) string {
+	if p == "~" {
+		return proto.Home()
+	}
+	if strings.HasPrefix(p, "~/") || runtime.GOOS == "windows" && strings.HasPrefix(p, `~\`) {
+		return filepath.Join(proto.Home(), p[2:])
+	}
+	return p
+}
+
+// isDir tells whether a folder exists.
+func isDir(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && st.IsDir()
 }
 
 // create starts a session on a host, and shows it, opening the project

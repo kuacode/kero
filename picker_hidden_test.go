@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -102,16 +101,4 @@ func pickerNames(a *App) []string {
 		}
 	}
 	return names
-}
-
-// waitFor polls done until it holds, or fails after a second.
-func waitFor(t *testing.T, done func() bool) {
-	t.Helper()
-	for range 200 {
-		if done() {
-			return
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	t.Fatal("timed out")
 }
