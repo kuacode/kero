@@ -56,7 +56,7 @@ func TestPickerShowHidden(t *testing.T) {
 	a.picker = folderPicker{open: true, host: a.local()}
 	a.pickerGo(dir)
 	// pickerGo asks fs.list with hidden=false for the first listing.
-	waitFor(t, func() bool { return calls.Load() >= 1 })
+	waitForPicker(t, func() bool { return calls.Load() >= 1 })
 	if lastHidden.Load() {
 		t.Error("the first fs.list asked with Hidden=true")
 	}
@@ -76,7 +76,7 @@ func TestPickerShowHidden(t *testing.T) {
 	if !a.picker.hidden {
 		t.Error("the button did not toggle hidden on")
 	}
-	waitFor(t, func() bool { return calls.Load() >= 2 })
+	waitForPicker(t, func() bool { return calls.Load() >= 2 })
 	if !lastHidden.Load() {
 		t.Error("Show Hidden did not ask fs.list with Hidden=true")
 	}
@@ -87,7 +87,7 @@ func TestPickerShowHidden(t *testing.T) {
 	if a.picker.hidden {
 		t.Error("the button did not toggle hidden off")
 	}
-	waitFor(t, func() bool { return calls.Load() >= 3 })
+	waitForPicker(t, func() bool { return calls.Load() >= 3 })
 	if lastHidden.Load() {
 		t.Error("Hide Hidden did not ask fs.list with Hidden=false")
 	}
@@ -105,7 +105,7 @@ func pickerNames(a *App) []string {
 }
 
 // waitFor polls done until it holds, or fails after a second.
-func waitFor(t *testing.T, done func() bool) {
+func waitForPicker(t *testing.T, done func() bool) {
 	t.Helper()
 	for range 200 {
 		if done() {
