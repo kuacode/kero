@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/egoist/mygo/ui"
 
@@ -30,10 +29,6 @@ const (
 	// rowInset is where a sidebar row's text starts: a session's name and
 	// its group's.
 	rowInset = 12
-	// railWidth is the width of the sidebar's collapsed icon rail, shown
-	// instead of hiding the sidebar outright when SidebarRail is on and the
-	// sidebar is folded: a project a mark, a session a status dot.
-	railWidth = float32(64)
 )
 
 // chrome is where the sidebar's animation puts things, in whole pixels so
@@ -67,32 +62,20 @@ func lead(bar ui.TitleBar) float32 {
 
 var sidebarMotion = ui.Animation{Duration: 260 * time.Millisecond, Ease: ui.CubicBezier(0.25, 1, 0.5, 1)}
 
-// chromeForFold is chromeFor over a sidebar that folds to a narrower
-// resting width, foldW, rather than to nothing: shown it is width, folded
-// it is foldW, and it moves between them as progress does. foldW of 0 is
-// the sidebar's two-state fold, hiding it outright, and matches chromeFor.
-func chromeForFold(progress, width, foldW float32, bar ui.TitleBar) chrome {
+// chromeFor is the sidebar's fold: shown it is width, hidden it is gone.
+// It moves between them as progress does, in whole pixels.
+func chromeFor(progress, width float32, bar ui.TitleBar) chrome {
 	round := func(v float32) float32 { return float32(math.Round(float64(v))) }
-	w := round(foldW + (width-foldW)*min(max(progress, 0), 1))
+	w := round(width * min(max(progress, 0), 1))
 	s := w / width
 	pad := round(cardGap * (1 - s))
 	// Where the header's title starts in the window, rounded once: after
 	// the traffic lights and the sidebar's buttons with the sidebar
-	// folded, 16 into the card with it shown. Folded to the rail, the
-	// title clears the rail instead of the window's edge.
+	// folded, 16 into the card with it shown.
 	hidden := lead(bar) + 16 + 60
-	if foldW > 0 {
-		hidden = foldW + 16
-	}
 	shown := width + 16
 	x := round(hidden + (shown-hidden)*s)
 	return chrome{shown: s, sideW: w, mainPad: pad, headerPad: x - w - pad}
-}
-
-// chromeFor is the sidebar's two-state fold: shown it is width, hidden it
-// is gone. It is chromeForFold folding to nothing.
-func chromeFor(progress, width float32, bar ui.TitleBar) chrome {
-	return chromeForFold(progress, width, 0, bar)
 }
 
 func b2f(b bool) float32 {
@@ -100,24 +83,6 @@ func b2f(b bool) float32 {
 		return 1
 	}
 	return 0
-}
-
-// railFold tells whether the sidebar folds to the icon rail rather than to
-// nothing: SidebarRail is on and the window is wide enough for the rail
-// beside the cards and a terminal. Off, the fold is as it always was.
-func (a *App) railFold() bool {
-	return a.set.SidebarRail
-}
-
-// foldWidth is the width the sidebar rests at when folded, in a window winW
-// wide: the rail's, or none when the rail is off or the window too narrow
-// to keep a terminal beside it (herdr gives the rail way rather than leave
-// an edge).
-func (a *App) foldWidth(winW float32) float32 {
-	if !a.railFold() || winW < railWidth+240 {
-		return 0
-	}
-	return railWidth
 }
 
 func (a *App) view(c *ui.Context) {
@@ -145,7 +110,7 @@ func (a *App) view(c *ui.Context) {
 	// settles. This one lands in about 13 frames, moving in every one.
 	winW, _ := c.Size()
 	progress := row.AnimateTo("sidebar", b2f(!a.prefs.SidebarHidden), sidebarMotion)
-	a.chrome = chromeForFold(progress, a.prefs.SidebarWidth, a.foldWidth(winW), bar)
+	a.chrome = chromeFor(progress, a.prefs.SidebarWidth, bar)
 	// In the apple and windows styles the title bar holds the sidebar's
 	// actions, so the pane header at the window's top left has nothing to
 	// dodge: it sits at the card's edge.
@@ -161,9 +126,9 @@ func (a *App) view(c *ui.Context) {
 	rightW := a.rightWidth()
 	// In a window too narrow for it beside the cards, it gets out of their
 	// way, coming back as the window widens, unless shown anyway.
-	leftW := a.prefs.SidebarWidth
-	if a.prefs.SidebarHidden {
-		leftW = a.foldWidth(winW)
+	leftW := float32(0)
+	if !a.prefs.SidebarHidden {
+		leftW = a.prefs.SidebarWidth
 	}
 	a.side.crowded = winW > 0 && winW-leftW-rightW < minCards
 	if !a.side.crowded {
@@ -197,13 +162,6 @@ func (a *App) view(c *ui.Context) {
 			}
 		}
 		side.Children(func() {
-			if a.railFold() && a.prefs.SidebarHidden {
-				// Folded to the rail: the narrow column fills its own width,
-				// opaque, instead of the full sidebar sliding off its edge.
-				ui.Column(c).Width(railWidth).Shrink(0).AlignItems(ui.Stretch).
-					Children(func() { a.rail(c, pal, bar) })
-				return
-			}
 			ui.Column(c).Width(a.prefs.SidebarWidth).Shrink(0).Margin(0, 0, 0, w-a.prefs.SidebarWidth).
 				Opacity(0.4 + 0.6*shown).Children(func() { a.sidebar(c, pal, bar) })
 		})
@@ -886,130 +844,6 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	if a.menuShortcut(m.Item(locales.ActionCloseSession()), "session.close").Chosen() {
 		a.defer_(func() { a.closeSession(id, true) })
 	}
-}
-
-// projectInitial is a project's mark in the rail: its name's first letter.
-func projectInitial(name string) string {
-	for _, r := range name {
-		return string(unicode.ToUpper(r))
-	}
-	return "?"
-}
-
-// rail is the sidebar folded to a narrow column: a mark a project, a
-// status mark a session, each still to click, its tooltip naming what the
-// narrow column cannot. The marks come of the same groups the full
-// sidebar's rows do.
-func (a *App) rail(c *ui.Context, pal *palette, bar ui.TitleBar) {
-	// The rail's own top bar, with the toggle that unfolds the sidebar
-	// again: folded to the rail, the pane header's button is gone, so the
-	// rail keeps the way back. Only the builtin style draws it, which puts
-	// no toggle of its own at the window's top; the apple and windows
-	// styles keep theirs in the title bar, always shown, so the rail draws
-	// none rather than a second one.
-	if !a.titleBar() {
-		ui.Row(c).Height(topBar).Shrink(0).AlignItems(ui.Center).Padding(0, 12, 0, lead(bar)).Gap(2).DragWindow().Children(func() {
-			sidebarTip := locales.SidebarShow()
-			if !a.prefs.SidebarHidden {
-				sidebarTip = locales.SidebarHide()
-			}
-			iconButton(c, "rail-show-sidebar", sidebarIcon, a.tip(sidebarTip, "sidebar.toggle"), pal, a.toggleSidebar)
-			iconButton(c, "rail-new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
-		})
-	}
-	ui.Scroll(c.Key("rail")).Grow(1).Padding(8, 0, 12, 0).DragWindow().Children(func() {
-		for _, g := range a.groups() {
-			if len(g.sessions) == 0 {
-				continue
-			}
-			a.railGroup(c, pal, g)
-		}
-	})
-}
-
-// railGroup is one project's mark in the rail, its sessions' status marks
-// under it. A click on the mark opens the project and picks a session of
-// it; a click on a session's mark picks that session.
-func (a *App) railGroup(c *ui.Context, pal *palette, g group) {
-	selected := false
-	for _, s := range g.sessions {
-		if s.ID == a.selected {
-			selected = true
-		}
-	}
-	ui.Column(c.Key("rail-"+g.key())).Shrink(0).AlignItems(ui.Center).Gap(2).Padding(4, 0).Children(func() {
-		// The project's mark: a box around its initial, the one box
-		// highlighted being the project with the session shown.
-		box := ui.Row(c.Key("mark")).Size(56, 30).Radius(8).Center().AlignItems(ui.Center)
-		switch {
-		case selected:
-			box.Background(pal.rowSelected)
-			if pal.dark {
-				box.Border(1, pal.accent.Alpha(0.5))
-			}
-		case box.Hovered():
-			box.Background(pal.rowHover)
-		}
-		pointerTooltip(c, box, "rail-tip-"+g.key(), g.project.Name)
-		if box.Clicked() {
-			if s := a.firstSessionOf(g); s != nil {
-				a.selectSession(s.ID)
-			}
-		}
-		box.Children(func() {
-			// The project's initial, as a letter the whole narrow column
-			// has room for; the full name is the mark's tooltip.
-			ui.Text(c, projectInitial(g.project.Name)).FontSize(14).FontWeight(650).
-				TextColor(pal.text)
-		})
-		for _, s := range g.sessions {
-			a.railSession(c, pal, s)
-		}
-	})
-}
-
-// railSession is a session's mark in the rail, which a click picks: its
-// agent's icon beside the same status mark the sidebar's row shows, so a
-// session folded into the rail still says who runs it and how it stands.
-func (a *App) railSession(c *ui.Context, pal *palette, s *proto.Session) {
-	d := ui.Row(c.Key("rail-s-"+s.ID)).Size(56, 22).Padding(0, 6).AlignItems(ui.Center).Radius(6)
-	if s.ID == a.selected {
-		d.Background(pal.rowSelected)
-	} else if d.Hovered() {
-		d.Background(pal.rowHover)
-	}
-	pointerTooltip(c, d, "rail-s-"+s.ID, s.DisplayName(a.set.SessionName))
-	if d.Clicked() {
-		a.selectSession(s.ID)
-	}
-	d.Children(func() {
-		// The agent the session runs, at the mark's left.
-		ui.Icon(c, programIcon(&s.Pane)).Size(16, 16).TextColor(programColor(pal, &s.Pane)).Shrink(0)
-		ui.Spacer(c)
-		// How it stands, as the sidebar's row shows it: an agent working
-		// turns, one needing you breathes, one done unseen ticks. A little
-		// margin keeps the status off the mark's edge.
-		statusIconP(c, pal, s.Status, s.Unread, s.Progress, 14).Margin(0, 1, 1, 0)
-	})
-}
-
-// firstSessionOf is a project's session to pick when its mark is clicked:
-// the one shown, else the one most needing the user, else its first.
-func (a *App) firstSessionOf(g group) *proto.Session {
-	for _, s := range g.sessions {
-		if s.ID == a.selected {
-			return s
-		}
-	}
-	for _, s := range g.sessions {
-		if s.Status == proto.Waiting {
-			return s
-		}
-	}
-	if len(g.sessions) > 0 {
-		return g.sessions[0]
-	}
-	return nil
 }
 
 // sidebarFooter is the sidebar's foot: the buttons for projects, the
