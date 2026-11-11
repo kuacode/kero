@@ -220,8 +220,6 @@
   "setRowsCompact": "コンパクト",
   "setSidebarCount": "セッション数",
   "setSidebarCountDetail": "各プロジェクト名の横に、含まれるセッションの数を表示します。",
-  "setSidebarRail": "アイコンレールに折りたたむ",
-  "setSidebarRailDetail": "サイドバーを折りたたむとき、細いアイコンのレールを残します。プロジェクトはマーク、セッションは状態ドットで、どちらもクリックできます。",
   "setFocusFollowsMouse": "マウスでフォーカスを移動",
   "setFocusFollowsMouseDetail": "ポインタが入ったペインに、クリックしなくてもフォーカスが移ります。",
   "setAskBeforeClosing": "実行中のプログラムを閉じる前に確認",

@@ -368,8 +368,6 @@
   "setRowsCompact": "Compact",
   "setSidebarCount": "Session count",
   "setSidebarCountDetail": "Show, beside each project’s name, how many sessions it holds.",
-  "setSidebarRail": "Fold to icon rail",
-  "setSidebarRailDetail": "When you fold the sidebar, keep a narrow rail of icons: a project a mark and a session a status dot, each still to click.",
   "setFocusFollowsMouse": "Focus follows mouse",
   "setFocusFollowsMouseDetail": "A pane takes the focus when the pointer moves into it, without a click.",
   "setAskBeforeClosing": "Ask before closing a running program",

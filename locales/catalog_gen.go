@@ -2260,26 +2260,6 @@ func (msgs Messages) SetSidebarCountDetail() string {
 	return Catalog.Format(msgs.locale, "setSidebarCountDetail", nil)
 }
 
-// SetSidebarRail says "Fold to icon rail"
-// in the language the app shows.
-func SetSidebarRail() string { return In(i18n.Locale()).SetSidebarRail() }
-
-// SetSidebarRail says "Fold to icon rail"
-// in the language of msgs.
-func (msgs Messages) SetSidebarRail() string {
-	return Catalog.Format(msgs.locale, "setSidebarRail", nil)
-}
-
-// SetSidebarRailDetail says "When you fold the sidebar, keep a narrow rail of icons: a project a mark and a session a status dot, each still to cl…"
-// in the language the app shows.
-func SetSidebarRailDetail() string { return In(i18n.Locale()).SetSidebarRailDetail() }
-
-// SetSidebarRailDetail says "When you fold the sidebar, keep a narrow rail of icons: a project a mark and a session a status dot, each still to cl…"
-// in the language of msgs.
-func (msgs Messages) SetSidebarRailDetail() string {
-	return Catalog.Format(msgs.locale, "setSidebarRailDetail", nil)
-}
-
 // SetFocusFollowsMouse says "Focus follows mouse"
 // in the language the app shows.
 func SetFocusFollowsMouse() string { return In(i18n.Locale()).SetFocusFollowsMouse() }
