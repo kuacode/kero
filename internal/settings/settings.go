@@ -30,6 +30,7 @@ type Settings struct {
 	SidebarRows       string `json:"sidebarRows"`       // "detailed", two lines a session, or "compact", one
 	SidebarCount      bool   `json:"sidebarCount"`      // a project's header shows how many sessions it holds
 	HideEmptyHosts    bool   `json:"hideEmptyHosts"`    // the sidebar leaves out remote hosts with no sessions
+	ShowSystemLoad    bool   `json:"showSystemLoad"`    // a host's header shows its CPU and memory load
 	FocusFollowsMouse bool   `json:"focusFollowsMouse"` // a pane the pointer enters takes the focus
 	ConfirmClose      bool   `json:"confirmClose"`      // before closing a pane a program runs in
 	RestoreSessions   bool   `json:"restoreSessions"`   // after kerod restarts, as after a reboot

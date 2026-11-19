@@ -87,6 +87,9 @@ type Message struct {
 	// Browser asks the app to do something on a browser pane's page
 	// ("kero browser"), which it answers with browser.answer.
 	Browser *BrowserRequest `json:"browser,omitempty"`
+	// System is a host's load, on a "system" event, as the daemon reads
+	// it and pushes it for the sidebar's host header.
+	System *SystemLoad `json:"system,omitempty"`
 }
 
 // Notice is a desktop notification a program in a session sent.

@@ -62,6 +62,7 @@ type Daemon struct {
 	clients  map[*proto.ClientInfo]struct{} // the connections, for kero clients
 	conns    int
 	idleAt   time.Time
+	lastLoad time.Time
 	ending   bool
 	// restarting: kerod stops to start again, as a remote client asked
 	// (proto.KindRestart).
@@ -389,6 +390,16 @@ func (d *Daemon) tickLoop() {
 		if changed {
 			d.changed()
 		}
+		// The sidebar's host header shows this machine's load; push it a
+		// couple of times a second, while an app is connected, reading it
+		// only that often (each read samples the CPU twice).
+		d.mu.Lock()
+		if d.conns > 0 && now.Sub(d.lastLoad) >= 2*time.Second {
+			d.lastLoad = now
+			load := LocalLoad()
+			d.broadcastLocked(proto.Message{Event: "system", System: &load})
+		}
+		d.mu.Unlock()
 		// Nothing to keep: go, rather than linger in the background.
 		if idle && idleFor > 30*time.Second {
 			d.log.Printf("idle: exiting")

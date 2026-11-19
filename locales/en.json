@@ -370,6 +370,8 @@
   "setSidebarCountDetail": "Show, beside each project’s name, how many sessions it holds.",
   "setHideEmptyHosts": "Hide hosts with no sessions",
   "setHideEmptyHostsDetail": "Leave remote hosts that hold no sessions out of the sidebar, under their headers.",
+  "setShowSystemLoad": "Show host system load",
+  "setShowSystemLoadDetail": "A host's header shows its CPU and memory load, as its daemon reports them.",
   "setFocusFollowsMouse": "Focus follows mouse",
   "setFocusFollowsMouseDetail": "A pane takes the focus when the pointer moves into it, without a click.",
   "setAskBeforeClosing": "Ask before closing a running program",

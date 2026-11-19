@@ -222,6 +222,8 @@
   "setSidebarCountDetail": "在每个项目名称旁显示其包含的会话数量。",
   "setHideEmptyHosts": "隐藏无会话的主机",
   "setHideEmptyHostsDetail": "在侧边栏中隐藏不包含任何会话的远程主机，仅保留其标题头。",
+  "setShowSystemLoad": "显示主机系统负载",
+  "setShowSystemLoadDetail": "在主机的标题头中显示其 CPU 和内存负载，由该主机的守护进程上报。",
   "setFocusFollowsMouse": "焦点跟随鼠标",
   "setFocusFollowsMouseDetail": "指针移入窗格时，该窗格无需点击即获得焦点。",
   "setAskBeforeClosing": "关闭正在运行的程序前询问",

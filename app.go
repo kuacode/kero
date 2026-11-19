@@ -305,6 +305,12 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 			title = h.name + ": " + title
 		}
 		a.showNotification(n.Session, title, n.Body)
+	case "system":
+		// The host's load, for the sidebar's header. It is this host's,
+		// so the event carries no host: it arrived on its connection.
+		if m.System != nil {
+			h.load = *m.System
+		}
 	}
 }
 

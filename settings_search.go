@@ -28,6 +28,7 @@ func settingsIndex() []searchEntry {
 		{"general", locales.SetSidebarRows(), "sidebar-rows compact detailed status message branch two lines"},
 		{"general", locales.SetSidebarCount(), "sidebar-session-count project sessions number count header"},
 		{"general", locales.SetHideEmptyHosts(), "sidebar-hide-empty-hosts host remote servers hide sessions empty"},
+		{"general", locales.SetShowSystemLoad(), "sidebar-show-system-load host cpu memory load header gauge"},
 		{"general", locales.SetFocusFollowsMouse(), "focus-follows-mouse hover pointer niri hyprland sloppy"},
 		{"general", locales.SetAskBeforeClosing(), "confirm-close quit kill"},
 		{"general", locales.SetRestoreSessions(), "restore-sessions reboot persist"},

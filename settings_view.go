@@ -563,6 +563,9 @@ func (a *App) generalPage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetHideEmptyHosts(), locales.SetHideEmptyHostsDetail(), func() {
 			toggle(c.Key("hide-empty-hosts"), &s.HideEmptyHosts, pal)
 		})
+		settingRow(c, pal, locales.SetShowSystemLoad(), locales.SetShowSystemLoadDetail(), func() {
+			toggle(c.Key("show-system-load"), &s.ShowSystemLoad, pal)
+		})
 		settingRow(c, pal, locales.SetFocusFollowsMouse(), locales.SetFocusFollowsMouseDetail(), func() {
 			toggle(c.Key("focusmouse"), &s.FocusFollowsMouse, pal)
 		})

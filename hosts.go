@@ -56,6 +56,9 @@ type host struct {
 	// busy is what the app does on the host for the user: install, update
 	// or restart.
 	busy string
+	// load is the host's load, as its daemon pushes on "system" events,
+	// for the sidebar's header.
+	load proto.SystemLoad
 }
 
 func (h *host) remote() bool { return h.name != "" }

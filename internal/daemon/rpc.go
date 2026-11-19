@@ -627,6 +627,9 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 	case "host.info":
 		return remote.LocalInfo(""), nil
 
+	case "system.load":
+		return LocalLoad(), nil
+
 	case "clients":
 		return d.clientList(), nil
 

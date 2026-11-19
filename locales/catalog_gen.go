@@ -2280,6 +2280,26 @@ func (msgs Messages) SetHideEmptyHostsDetail() string {
 	return Catalog.Format(msgs.locale, "setHideEmptyHostsDetail", nil)
 }
 
+// SetShowSystemLoad says "Show host system load"
+// in the language the app shows.
+func SetShowSystemLoad() string { return In(i18n.Locale()).SetShowSystemLoad() }
+
+// SetShowSystemLoad says "Show host system load"
+// in the language of msgs.
+func (msgs Messages) SetShowSystemLoad() string {
+	return Catalog.Format(msgs.locale, "setShowSystemLoad", nil)
+}
+
+// SetShowSystemLoadDetail says "A host's header shows its CPU and memory load, as its daemon reports them."
+// in the language the app shows.
+func SetShowSystemLoadDetail() string { return In(i18n.Locale()).SetShowSystemLoadDetail() }
+
+// SetShowSystemLoadDetail says "A host's header shows its CPU and memory load, as its daemon reports them."
+// in the language of msgs.
+func (msgs Messages) SetShowSystemLoadDetail() string {
+	return Catalog.Format(msgs.locale, "setShowSystemLoadDetail", nil)
+}
+
 // SetFocusFollowsMouse says "Focus follows mouse"
 // in the language the app shows.
 func SetFocusFollowsMouse() string { return In(i18n.Locale()).SetFocusFollowsMouse() }

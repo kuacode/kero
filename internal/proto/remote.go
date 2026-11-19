@@ -76,6 +76,15 @@ type HostInfo struct {
 	Peer string `json:"peer,omitempty"`
 }
 
+// SystemLoad is a host's load, as the daemon reads it and pushes to the
+// apps on a "system" event: CPU 0–100, and the memory used of total, in
+// bytes. Zeroes while the platform does not report one.
+type SystemLoad struct {
+	CPU      int     `json:"cpu,omitempty"`
+	MemUsed  uint64  `json:"memUsed,omitempty"`
+	MemTotal uint64  `json:"memTotal,omitempty"`
+}
+
 // HostRequest is the Hello of a host stream: KindRestart or KindUpdate.
 type HostRequest struct {
 	Kind string `json:"kind"`

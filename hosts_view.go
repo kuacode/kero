@@ -79,6 +79,9 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 		}
 		ui.Spacer(c)
+		if a.set.ShowSystemLoad {
+			a.hostLoad(c, pal, h)
+		}
 		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
@@ -95,6 +98,43 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			}
 		}
 	})
+}
+
+// hostLoad draws a host's CPU and memory load, as its daemon pushes, as
+// two small bars in the header: the colored fill is the used part, and a
+// faint track the whole. Nothing while the setting is off or no load came.
+func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
+	load := h.load
+	box := ui.Box(c.Key("load-" + h.name)).Size(46, 12).Shrink(0).Tooltip(a.loadTip(h))
+	box.Draw(func(p *ui.Painter, r ui.Rect) {
+		// Two bars, a track under each, the fill the used part.
+		const barH, gap = 3.5, 3
+		drawBar := func(y float32, frac float32, col ui.Color) {
+			frac = min(1, max(0, frac))
+			p.Fill(ui.Rect{X: r.X, Y: r.Y + y, W: r.W, H: barH}, pal.rowHover, barH/2)
+			if frac > 0.01 {
+				p.Fill(ui.Rect{X: r.X, Y: r.Y + y, W: r.W * frac, H: barH}, col, barH/2)
+			}
+		}
+		col := pal.hostColor(h)
+		drawBar(0, float32(load.CPU)/100, col)
+		var mem float32
+		if load.MemTotal > 0 {
+			mem = float32(load.MemUsed) / float32(load.MemTotal)
+		}
+		drawBar(barH+gap, mem, pal.textMuted)
+	})
+}
+
+// loadTip says what the host's load bars show, or that none did yet.
+func (a *App) loadTip(h *host) string {
+	load := h.load
+	cpu := fmt.Sprintf("%d%%", load.CPU)
+	mem := "—"
+	if load.MemTotal > 0 {
+		mem = fmt.Sprintf("%d%%", 100*load.MemUsed/load.MemTotal)
+	}
+	return fmt.Sprintf("%s: CPU %s · Mem %s", h.name, cpu, mem)
 }
 
 // hostTag names a remote host in its color, after the name of one of its
