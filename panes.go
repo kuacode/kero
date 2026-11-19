@@ -12,7 +12,10 @@ import (
 	"kero/locales"
 )
 
-const paneGap = 8 // between panes, where the divider is
+// paneGap is the space between two panes, where the divider is, and the
+// panes' own gap to the viewer card: the cards' gap (view.go), so the
+// window's rows of cards share one rhythm.
+const paneGap = cardGap
 
 // paneRef returns the handle a pane's terminal binds, which its focus
 // follows.

@@ -23,7 +23,7 @@ const (
 	barMid  = 24
 	topBar  = 2 * barMid
 	headerH = 2 * (barMid - cardGapY)
-	cardGap = 4 // around the card, and the sidebar's own insets
+	cardGap = 6 // around the card, and the sidebar's own insets
 	// cardGapY is the card's gap above and below it, tighter than the
 	// side's, so the window's cards sit closer to its top and bottom.
 	cardGapY = 4

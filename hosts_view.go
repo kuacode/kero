@@ -249,20 +249,10 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 }
 
 // hostTip tells what a host is: its address, and Kero there.
-// hostOriginIcon is the mark before a host's name, telling how the app
-// reaches it: this machine's own, an SSH host, a WSL distribution, or a
-// host the app talks to over HTTP(S).
+// hostOriginIcon is the mark before a host's name: the computer's, for
+// every host, as the device is a computer however the app reaches it.
 func (a *App) hostOriginIcon(h *host) *ui.SVG {
-	switch {
-	case !h.remote():
-		return hostIcon
-	case h.addr.Scheme == "wsl":
-		return terminalIcon
-	case h.addr.Scheme == "ssh":
-		return serverIcon
-	default:
-		return globeIcon
-	}
+	return hostIcon
 }
 
 func (a *App) hostTip(h *host) string {

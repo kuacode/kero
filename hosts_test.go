@@ -47,21 +47,20 @@ func withHost(t *testing.T, a *App, name string) *host {
 
 // The mark before a host's name tells how the app reaches it: this
 // machine's own, an SSH host, a WSL distribution, or a host over HTTP(S).
+// A host's mark is the computer's, however the app reaches it.
 func TestHostOriginIcon(t *testing.T) {
 	a := testApp(t)
 	if got := a.hostOriginIcon(a.local()); got != hostIcon {
 		t.Errorf("this machine's mark is not the computer's")
 	}
-	for scheme, want := range map[string]*ui.SVG{
-		"ssh": serverIcon, "wsl": terminalIcon, "http": globeIcon, "https": globeIcon,
-	} {
+	for _, scheme := range []string{"ssh", "wsl", "http", "https"} {
 		addr, err := remote.ParseAddr(scheme + "://build")
 		if err != nil {
 			t.Fatalf("%s: %v", scheme, err)
 		}
 		h := &host{name: "build", addr: addr}
-		if got := a.hostOriginIcon(h); got != want {
-			t.Errorf("%s: mark is the wrong icon", scheme)
+		if got := a.hostOriginIcon(h); got != hostIcon {
+			t.Errorf("%s: mark is not the computer's", scheme)
 		}
 	}
 }
