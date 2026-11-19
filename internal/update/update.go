@@ -261,16 +261,11 @@ func Install(ctx context.Context, version, dir, current string, downgrade bool) 
 			return fmt.Errorf("Kero %s is installed, newer than %s: update the app instead", current, version)
 		}
 	}
-	name := Asset(version, runtime.GOOS, runtime.GOARCH)
-	archive, err := get(ctx, URL(version, name), maxArchive)
+	// Fetch takes the archive and its signature from the releases,
+	// through the mirror, resuming a fetch cut short and retrying a link
+	// that fails, and refuses an archive that is not signed.
+	archive, err := Fetch(ctx, version, runtime.GOOS, runtime.GOARCH, nil)
 	if err != nil {
-		return fmt.Errorf("downloading Kero %s: %w", version, err)
-	}
-	sig, err := get(ctx, URL(version, name+".sig"), 4096)
-	if err != nil {
-		return fmt.Errorf("downloading the signature of Kero %s: %w", version, err)
-	}
-	if err := Verify(archive, version, runtime.GOOS, runtime.GOARCH, string(sig)); err != nil {
 		return err
 	}
 	return Replace(archive, dir)
