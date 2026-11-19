@@ -161,6 +161,7 @@ func Default() Settings {
 		SessionName:     proto.NameFocused,
 		SidebarRows:     "detailed",
 		SidebarCount:    true,
+		ShowSystemLoad:  true,
 		ConfirmClose:    true,
 		RestoreSessions: true,
 		ResumeAgents:    true,

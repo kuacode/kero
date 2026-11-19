@@ -5,6 +5,7 @@ import (
 
 	"kero/internal/client"
 	"kero/internal/proto"
+	"kero/internal/settings"
 )
 
 // A "system" event from a host's daemon caches its load, which the host
@@ -48,5 +49,21 @@ func TestLoadTip(t *testing.T) {
 	build.load = proto.SystemLoad{CPU: 0}
 	if got := a.loadTip(build); got != "build: CPU 0% · Mem —" {
 		t.Errorf("loadTip = %q", got)
+	}
+}
+
+// The load the header shows is on by default, so a host's CPU and memory
+// are read without the user's asking, and off from the settings.
+func TestShowSystemLoadDefault(t *testing.T) {
+	if !settings.Default().ShowSystemLoad {
+		t.Error("a host's load is not on by default")
+	}
+	a := testApp(t)
+	if !a.set.ShowSystemLoad {
+		t.Error("a fresh app's setting is off")
+	}
+	a.set.ShowSystemLoad = false
+	if a.set.ShowSystemLoad {
+		t.Error("turning the setting off failed")
 	}
 }
