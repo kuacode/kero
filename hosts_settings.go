@@ -162,7 +162,7 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 	}
 	ui.Column(c.Key("host-"+h.name)).Padding(11, 0).Gap(8).Children(func() {
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, hostIcon).Size(16, 16).TextColor(pal.textMuted).Shrink(0)
+			ui.Icon(c, a.hostOriginIcon(h)).Size(16, 16).TextColor(pal.textMuted).Shrink(0)
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, h.name).FontSize(13.5).FontWeight(600).TextColor(pal.text).SingleLine()

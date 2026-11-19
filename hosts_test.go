@@ -43,6 +43,27 @@ func withHost(t *testing.T, a *App, name string) *host {
 	return h
 }
 
+// The mark before a host's name tells how the app reaches it: this
+// machine's own, an SSH host, a WSL distribution, or a host over HTTP(S).
+func TestHostOriginIcon(t *testing.T) {
+	a := testApp(t)
+	if got := a.hostOriginIcon(a.local()); got != hostIcon {
+		t.Errorf("this machine's mark is not the computer's")
+	}
+	for scheme, want := range map[string]*ui.SVG{
+		"ssh": serverIcon, "wsl": terminalIcon, "http": globeIcon, "https": globeIcon,
+	} {
+		addr, err := remote.ParseAddr(scheme + "://build")
+		if err != nil {
+			t.Fatalf("%s: %v", scheme, err)
+		}
+		h := &host{name: "build", addr: addr}
+		if got := a.hostOriginIcon(h); got != want {
+			t.Errorf("%s: mark is the wrong icon", scheme)
+		}
+	}
+}
+
 // Each host's state replaces its own part of what the app shows, in the
 // hosts' order, and leaves the others', with what the app changed in them
 // before their kerods' states come.

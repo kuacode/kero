@@ -73,7 +73,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		a.toggleHost(h)
 	}
 	hdr.Children(func() {
-		ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
+		ui.Icon(c, a.hostOriginIcon(h)).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
 		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
@@ -105,7 +105,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 // faint track the whole. Nothing while the setting is off or no load came.
 func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	load := h.load
-	box := ui.Box(c.Key("load-" + h.name)).Size(46, 12).Shrink(0).Tooltip(a.loadTip(h))
+	box := ui.Box(c.Key("load-"+h.name)).Size(46, 12).Shrink(0).Tooltip(a.loadTip(h))
 	box.Draw(func(p *ui.Painter, r ui.Rect) {
 		// Two bars, a track under each, the fill the used part.
 		const barH, gap = 3.5, 3
@@ -200,6 +200,22 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 }
 
 // hostTip tells what a host is: its address, and Kero there.
+// hostOriginIcon is the mark before a host's name, telling how the app
+// reaches it: this machine's own, an SSH host, a WSL distribution, or a
+// host the app talks to over HTTP(S).
+func (a *App) hostOriginIcon(h *host) *ui.SVG {
+	switch {
+	case !h.remote():
+		return hostIcon
+	case h.addr.Scheme == "wsl":
+		return terminalIcon
+	case h.addr.Scheme == "ssh":
+		return serverIcon
+	default:
+		return globeIcon
+	}
+}
+
 func (a *App) hostTip(h *host) string {
 	tip := h.addr.String()
 	if i := h.info; i.OS != "" {
