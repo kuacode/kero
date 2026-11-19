@@ -23,12 +23,17 @@ const (
 	barMid  = 24
 	topBar  = 2 * barMid
 	headerH = 2 * (barMid - cardGap)
-	cardGap = 8 // around the card
+	cardGap = 8 // around the card, and the sidebar's own insets
 	rowH    = 34
 	rowH2   = 48 // a detailed row, of two lines
 	// rowInset is where a sidebar row's text starts: a session's name and
-	// its group's.
+	// its group's, and every row's, so the rows read as one column.
 	rowInset = 12
+	// rowRadius is every sidebar row's corner, and rowGap the space
+	// between them, so the sidebar reads with the rhythm of the cards
+	// beside it, which are cardGap apart.
+	rowRadius = 8
+	rowGap    = 2
 )
 
 // chrome is where the sidebar's animation puts things, in whole pixels so
@@ -163,7 +168,15 @@ func (a *App) view(c *ui.Context) {
 		}
 		side.Children(func() {
 			ui.Column(c).Width(a.prefs.SidebarWidth).Shrink(0).Margin(0, 0, 0, w-a.prefs.SidebarWidth).
-				Opacity(0.4 + 0.6*shown).Children(func() { a.sidebar(c, pal, bar) })
+				Opacity(0.4 + 0.6*shown).Children(func() {
+				// The sidebar is a card as the content's, its radius and its
+				// gap to it, so the window reads as one set of cards.
+				ui.Column(c).Width(a.prefs.SidebarWidth-2*cardGap).Grow(1).Shrink(0).
+					Margin(cardGap, cardGap, cardGap, cardGap).Children(func() {
+					card := paned(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.card), pal).Clip()
+					card.Children(func() { a.sidebar(c, pal, bar) })
+				})
+			})
 		})
 		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, rightPad, cardGap, a.chrome.mainPad).DragWindow()
 		main.Children(func() {
@@ -315,7 +328,9 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 		// window's top, so the sidebar's top bar carries the toggle that
 		// hides it and the way to a new session. The apple and windows
 		// styles keep both in the title bar instead.
-		ui.Row(c).Height(topBar).Shrink(0).AlignItems(ui.Center).Padding(0, 12, 0, lead(bar)).Gap(2).DragWindow().Children(func() {
+		// Its height is a header's, starting cardGap down like the cards
+		// beside it, so its contents center on barMid as the panes' do.
+		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, rowInset, 0, lead(bar)).Gap(2).DragWindow().Children(func() {
 			sidebarTip := locales.SidebarHide()
 			if a.prefs.SidebarHidden {
 				sidebarTip = locales.SidebarShow()
@@ -325,7 +340,7 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	}
 	// The space between and below the rows moves the window, as the top
 	// bar does, and a double click there starts a session, as ⌘T does.
-	list := ui.Scroll(c.Key("sessions")).Grow(1).Padding(0, 10, 16, 10).DragWindow()
+	list := ui.Scroll(c.Key("sessions")).Grow(1).Padding(cardGap, rowInset, 16, rowInset).DragWindow()
 	if list.WindowDoubleClicked() {
 		a.defer_(func() { a.newSession("") })
 	}
@@ -432,7 +447,7 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 	if pal.dark {
 		inset++
 	}
-	hdr := ui.Row(c.Key("project-"+key)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, inset).Gap(6).AlignItems(ui.Center).Radius(6)
+	hdr := ui.Row(c.Key("project-"+key)).Height(28).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(6).AlignItems(ui.Center).Radius(rowRadius)
 	// While a project is dragged, the headers it passes do not light up.
 	hovered := hdr.Hovered() && a.projMove.id == ""
 	renaming := id != "" && a.renamingProject == id
@@ -561,7 +576,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int) 
 	if detailed {
 		h = rowH2
 	}
-	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, 10, 0, rowInset).Gap(10).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
+	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, rowInset, 0, rowInset).Gap(10).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
 	hovered := row.Hovered()
 	if pal.dark {
 		// Room for the chosen row's edge in every row, so that choosing
@@ -733,7 +748,7 @@ func (a *App) paneRow(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pa
 	if detailed {
 		inset += 2
 	}
-	row := ui.Row(c.Key(sid+"/"+pid)).Height(28).Padding(0, 10, 0, inset).Gap(8).AlignItems(ui.Center).Radius(7).Margin(0, 0, 1, 0)
+	row := ui.Row(c.Key(sid+"/"+pid)).Height(28).Padding(0, rowInset, 0, inset).Gap(8).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
 	focused := s.ID == a.selected && a.focusOf(s) == pid
 	switch {
 	case focused:
@@ -871,7 +886,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 // nothing while nothing does, or the connection to kerod while there is
 // none.
 func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
-	ui.Row(c).Height(36).Shrink(0).Padding(0, 12, 4, 12).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+	ui.Row(c).Height(36).Shrink(0).Padding(0, rowInset, 4, rowInset).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
 		// When the title bar row holds these actions, the footer only
 		// keeps the status chips.
 		if !a.titleBar() {

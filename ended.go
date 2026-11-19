@@ -93,7 +93,7 @@ func (a *App) endedSection(c *ui.Context, pal *palette, key, title string, list 
 	if pal.dark {
 		inset++
 	}
-	hdr := ui.Row(c.Key("section-"+key)).Height(28).Margin(18, 0, 3, 0).Padding(0, 6, 0, inset).Gap(6).AlignItems(ui.Center).Radius(6)
+	hdr := ui.Row(c.Key("section-"+key)).Height(28).Margin(18, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(6).AlignItems(ui.Center).Radius(rowRadius)
 	if hdr.Clicked() {
 		*open = !*open
 		a.savePrefs()
@@ -117,7 +117,7 @@ func (a *App) endedSection(c *ui.Context, pal *palette, key, title string, list 
 		a.endedRow(c, pal, he.h, he.c, now)
 	}
 	if len(shown) < len(list) {
-		more := ui.Row(c.Key("show-all")).Height(26).Padding(0, 6, 0, inset).AlignItems(ui.Center).Radius(6)
+		more := ui.Row(c.Key("show-all")).Height(26).Padding(0, rowInset, 0, inset).Margin(0, 0, rowGap, 0).AlignItems(ui.Center).Radius(rowRadius)
 		if more.Hovered() {
 			more.Background(pal.rowHover)
 		}
@@ -132,7 +132,11 @@ func (a *App) endedSection(c *ui.Context, pal *palette, key, title string, list 
 
 func (a *App) endedRow(c *ui.Context, pal *palette, h *host, cv proto.Conversation, now time.Time) {
 	key := "e-" + h.name + "-" + cv.Agent + "-" + cv.ID
-	row := ui.Row(c.Key(key)).Height(44).Padding(0, 6, 0, rowInset).Gap(10).Radius(8).AlignItems(ui.Center)
+	inset := float32(rowInset)
+	if pal.dark {
+		inset++
+	}
+	row := ui.Row(c.Key(key)).Height(44).Padding(0, rowInset, 0, inset).Gap(10).Radius(rowRadius).Margin(0, 0, rowGap, 0).AlignItems(ui.Center)
 	pointerTooltip(c, row, "tip-"+key, h.shortDir(cv.Dir))
 	hovered := row.Hovered()
 	if hovered {
@@ -246,7 +250,7 @@ func (a *App) skillHint(c *ui.Context, pal *palette) {
 	if !a.skillMissing {
 		return
 	}
-	hint := ui.Row(c.Key("ended-hint")).Margin(18, 0, 3, 0).Padding(6, 6, 6, rowInset).Radius(6)
+	hint := ui.Row(c.Key("ended-hint")).Margin(18, 0, rowGap, 0).Padding(6, rowInset, 6, rowInset).Radius(rowRadius)
 	if hint.Hovered() {
 		hint.Background(pal.rowHover)
 	}

@@ -45,7 +45,13 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 	if !h.remote() {
 		name = locales.HostThisComputer()
 	}
-	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, 2, 0).Padding(0, 6, 0, 8).Gap(7).AlignItems(ui.Center).Radius(6)
+	// Its name starts where every row's does (rowInset), a hair more in the
+	// dark where the chosen row keeps a pixel of edge.
+	inset := float32(rowInset)
+	if pal.dark {
+		inset++
+	}
+	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(7).AlignItems(ui.Center).Radius(rowRadius)
 	hovered := hdr.Hovered()
 	collapsed := a.prefs.Collapsed[a.hostFoldKey(h)]
 	pointerTooltip(c, hdr, "tip-host-"+name, a.hostTip(h))
