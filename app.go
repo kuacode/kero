@@ -373,7 +373,7 @@ func (a *App) showNotification(id, title, body string) {
 // notify tells about sessions that came to need the user, or finished,
 // while the user was elsewhere: a notification, and the Dock's badge.
 func (a *App) notify(first bool) {
-	waiting := 0
+	waiting, unread := 0, 0
 	for i := range a.st.Sessions {
 		s := &a.st.Sessions[i]
 		// A host the app lost shows its sessions as they were: what they
@@ -383,8 +383,13 @@ func (a *App) notify(first bool) {
 		}
 		prev, seen := a.statuses[s.ID]
 		a.statuses[s.ID] = s.Status
-		if s.Status == proto.Waiting {
+		switch {
+		case s.Status == proto.Waiting:
 			waiting++
+		case s.Unread:
+			// One that finished unseen, and one that needs the user is
+			// unread as well, so each session counts once.
+			unread++
 		}
 		if first || !seen || prev == s.Status || a.watching(s.ID) {
 			continue
@@ -419,7 +424,11 @@ func (a *App) notify(first bool) {
 			delete(a.statuses, id)
 		}
 	}
-	if !a.set.DockBadge {
+	switch a.set.DockBadge {
+	case settings.DockBadgeWaitingUnread:
+		// What finished while the user was away counts as what needs them.
+		waiting += unread
+	case settings.DockBadgeOff:
 		waiting = 0
 	}
 	mygo.App.SetBadgeCount(waiting)
@@ -826,6 +835,10 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		// The scrollback-limit kerod's copy keeps, never the terminal's
 		// default, 10 MB, which would keep more here than there.
 		Scrollback: a.set.ScrollbackBytes(),
+		// The image-storage-limit both copies keep, as scrollback's: an
+		// image is drawn here from kerod's frames, and each copy holds
+		// what it takes of it.
+		ImageLimit: a.set.ImageLimitBytes(),
 		// Every terminal zooms together, and the size is remembered.
 		OnZoom: func(z terminal.Zoom) bool {
 			a.zoom(z.Steps, z.Reset)
@@ -893,6 +906,9 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 // zoom makes every terminal's text bigger or smaller, which Settings
 // remembers as the font's size.
 func (a *App) zoom(steps int, reset bool) {
+	if !a.set.FontZoom {
+		return
+	}
 	s := a.set
 	s.FontSize = min(max(s.FontSize+float32(steps), 8), 36)
 	if reset {

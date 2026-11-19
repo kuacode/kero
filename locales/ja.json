@@ -351,7 +351,10 @@
   "setHow": "通知方法",
   "setPlaySound": "サウンドを再生",
   "setDockBadge": "Dock アイコンにバッジを表示",
-  "setDockBadgeDetail": "対応が必要なセッションの数を表示します。",
+  "setDockBadgeDetail": "対応が必要なセッションの数、またはそれとまだ見ていない完了済みのものを表示します。",
+  "setDockBadgeWaiting": "対応が必要なセッション",
+  "setDockBadgeUnread": "それと完了済みのもの",
+  "setDockBadgeOff": "オフ",
   "setDockBounce": "Dock アイコンを弾ませる",
   "setDockBounceDetail": "セッションが対応を求めたときに1回。",
   "setTestNotification": "テスト通知を送信",
@@ -417,6 +420,10 @@
   "filesCantReadFile": "ファイルを読み取れません",
   "filesGone": "ファイルがなくなりました",
   "filesOpenDefault": "デフォルトのアプリで開く",
+  "filesRevealIn": "{app}で表示",
+  "filesCopyPath": "パスをコピー",
+  "filesCopyRelPath": "相対パスをコピー",
+  "filesSendToAgent": "エージェントに送る",
   "filesNewFile": "新規ファイル…",
   "filesNewFolder": "新規フォルダ…",
   "filesRename": "名前を変更…",
@@ -640,5 +647,8 @@
   "actionQuickTerminal": "クイックターミナル",
   "toastGlobalShortcutFailed": "{keys} をクイックターミナルに使えませんでした: {error}",
   "setShortcutGlobal": "どのアプリでも使えます",
-  "keepAwakeDisplay": "スリープさせず画面を常にオン"
+  "keepAwakeDisplay": "スリープさせず画面を常にオン",
+  "commonUnlimited": "無制限",
+  "setImageLimit": "画像の上限",
+  "setImageLimitDetail": "各ペインでプログラムが表示する画像が占める最大量。"
 }

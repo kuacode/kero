@@ -506,7 +506,10 @@
   "setHow": "How",
   "setPlaySound": "Play a sound",
   "setDockBadge": "Badge the Dock icon",
-  "setDockBadgeDetail": "With the number of sessions that need you.",
+  "setDockBadgeDetail": "With the number of sessions that need you, or those and the finished ones you haven’t seen.",
+  "setDockBadgeWaiting": "Sessions needing you",
+  "setDockBadgeUnread": "Those and finished ones",
+  "setDockBadgeOff": "Off",
   "setDockBounce": "Bounce the Dock icon",
   "setDockBounceDetail": "Once, when a session comes to need you.",
   "setTestNotification": "Send a Test Notification",
@@ -572,6 +575,10 @@
   "filesCantReadFile": "Can't read the file",
   "filesGone": "The file is gone",
   "filesOpenDefault": "Open in Default App",
+  "filesRevealIn": "Reveal in {app}",
+  "filesCopyPath": "Copy Path",
+  "filesCopyRelPath": "Copy Relative Path",
+  "filesSendToAgent": "Send to the Agent",
   "filesNewFile": "New File…",
   "filesNewFolder": "New Folder…",
   "filesRename": "Rename…",
@@ -1208,5 +1215,8 @@
   "actionQuickTerminal": "Quick Terminal",
   "toastGlobalShortcutFailed": "Couldn’t use {keys} for the quick terminal: {error}",
   "setShortcutGlobal": "Works in every app",
-  "keepAwakeDisplay": "Keep awake and screen on"
+  "keepAwakeDisplay": "Keep awake and screen on",
+  "commonUnlimited": "Unlimited",
+  "setImageLimit": "Image Limit",
+  "setImageLimitDetail": "The most the images programs show take in a pane."
 }
