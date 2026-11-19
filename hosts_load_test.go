@@ -20,6 +20,9 @@ func TestHostLoadEvent(t *testing.T) {
 	if build.load != load {
 		t.Fatalf("load %+v, want %+v", build.load, load)
 	}
+	if !build.hasLoad() {
+		t.Errorf("a host that got a load does not say it has one")
+	}
 	// Another host's event is its own: it comes on that host's connection.
 	other := withHost(t, a, "gpu")
 	other.cl = cl

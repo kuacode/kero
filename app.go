@@ -312,7 +312,7 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 		// The host's load, for the sidebar's header. It is this host's,
 		// so the event carries no host: it arrived on its connection.
 		if m.System != nil {
-			h.load = *m.System
+			h.load, h.loadAt = *m.System, time.Now()
 		}
 	}
 }

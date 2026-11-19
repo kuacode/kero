@@ -36,6 +36,12 @@ func (a *App) deviceFilterButton(c *ui.Context, pal *palette) {
 				a.toggleDevice(h)
 			}
 		}
+		// Managing the hosts themselves, add and remove: the same page the
+		// settings offer, where a host is added, changed or removed.
+		m.Separator()
+		if m.Item(locales.HostSettings()).Chosen() {
+			a.openSettings("hosts")
+		}
 	})
 }
 

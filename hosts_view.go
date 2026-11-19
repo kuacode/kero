@@ -67,6 +67,10 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			if m.Item(locales.ActionOpenProject()).Chosen() {
 				a.openProjectOn(h)
 			}
+			m.Separator()
+			if m.Item(locales.HostSettings()).Chosen() {
+				a.openSettings("hosts")
+			}
 		}
 	})
 	if hdr.Clicked() {
@@ -109,6 +113,11 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 // and its percent take the host's color, or a warning one when the load
 // is high. Nothing while the setting is off or no load came.
 func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
+	// A host that never sent its load, an earlier kerod, shows no gauge:
+	// nothing, rather than a load of zero that reads as idle.
+	if !h.hasLoad() {
+		return
+	}
 	load := h.load
 	mem := -1.0
 	if load.MemTotal > 0 {

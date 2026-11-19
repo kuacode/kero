@@ -57,9 +57,16 @@ type host struct {
 	// or restart.
 	busy string
 	// load is the host's load, as its daemon pushes on "system" events,
-	// for the sidebar's header.
-	load proto.SystemLoad
+	// for the sidebar's header. loadAt is when it last came: a host that
+	// never sends one, an earlier kerod, shows no gauge rather than a
+	// load of zero.
+	load   proto.SystemLoad
+	loadAt time.Time
 }
+
+// hasLoad reports whether the host told its load, which an earlier kerod
+// that knows no "system" event never does.
+func (h *host) hasLoad() bool { return !h.loadAt.IsZero() }
 
 func (h *host) remote() bool { return h.name != "" }
 
@@ -393,6 +400,21 @@ func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, er
 	}
 	cl.OnEvent(func(m proto.Message) { a.update(func() { a.event(h, cl, m) }) })
 	cl.Go("subscribe", nil, nil)
+	// The header's load comes on "system" events; ask once on connecting
+	// too, so it shows without waiting, and an earlier kerod that knows no
+	// such event simply leaves the gauge off.
+	go func() {
+		var l proto.SystemLoad
+		if err := cl.Call("system.load", nil, &l); err != nil {
+			return
+		}
+		a.update(func() {
+			if h.cl != cl || h.hasLoad() {
+				return
+			}
+			h.load, h.loadAt = l, time.Now()
+		})
+	}()
 	h.viewSent = nil
 	a.reportView()
 	go func() {
