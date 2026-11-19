@@ -64,6 +64,9 @@ type prefs struct {
 	ArchivedOpen bool `json:"archivedOpen,omitempty"`
 	// QuickSession is the session the quick terminal shows (quick.go).
 	QuickSession string `json:"quickSession,omitempty"`
+	// DeviceFilter are the hosts the sidebar hides, by hostFilterKey (a
+	// remote host's name, "this" for this machine); empty hides nothing.
+	DeviceFilter []string `json:"deviceFilter,omitempty"`
 }
 
 const (
@@ -498,10 +501,47 @@ func (a *App) hostFoldKey(h *host) string {
 	return "host:local"
 }
 
+// hostFilterKey names a host in prefs.DeviceFilter: a remote host by its
+// name, and this machine by a fixed key.
+func hostFilterKey(h *host) string {
+	if h.remote() {
+		return h.name
+	}
+	return "this"
+}
+
+// deviceShown reports whether the sidebar lists a host's projects, per
+// the device filter; empty hides nothing.
+func (a *App) deviceShown(h *host) bool {
+	return !slices.Contains(a.prefs.DeviceFilter, hostFilterKey(h))
+}
+
+// toggleDevice adds a host to, or takes it from, the hidden set, so the
+// picker's check (shown) turns off and on. The host of the session shown
+// stays listed even when hidden, as the sidebar draws it all the same.
+func (a *App) toggleDevice(h *host) {
+	key := hostFilterKey(h)
+	filter := slices.Clone(a.prefs.DeviceFilter)
+	if slices.Contains(filter, key) {
+		filter = slices.DeleteFunc(filter, func(k string) bool { return k == key })
+	} else {
+		filter = append(filter, key)
+	}
+	if len(filter) == 0 {
+		a.prefs.DeviceFilter = nil
+	} else {
+		a.prefs.DeviceFilter = filter
+	}
+	a.savePrefs()
+}
+
 // groups returns the projects of every host, as the sidebar lists them.
 func (a *App) groups() []group {
 	var gs []group
 	for _, h := range a.hosts {
+		if !a.deviceShown(h) {
+			continue
+		}
 		gs = append(gs, a.hostGroups(h)...)
 	}
 	return gs

@@ -203,6 +203,60 @@ func TestSidebarHostGroups(t *testing.T) {
 	}
 }
 
+// The footer's picker lists the hosts, checks the ones the sidebar shows,
+// and hiding one leaves it out; the host shown stays listed.
+func TestSidebarDeviceFilter(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	build := withHost(t, a, "build")
+	gpu := withHost(t, a, "gpu")
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	// All hosts show, and the picker names them all.
+	if !tt.HasText("build") || !tt.HasText("gpu") {
+		t.Fatalf("hosts not listed: %q", tt.Texts())
+	}
+	if !tt.HasText(locales.SidebarDeviceAll()) {
+		t.Errorf("picker does not say All Hosts: %q", tt.Texts())
+	}
+	// The picker's list checks the hosts shown.
+	if err := tt.Click(locales.SidebarDeviceAll()); err != nil {
+		t.Fatalf("no picker: %v", err)
+	}
+	menu := tt.Menu()
+	if !slices.Contains(menu, locales.HostThisComputer()) || !slices.Contains(menu, "build") || !slices.Contains(menu, "gpu") {
+		t.Errorf("picker lists %q", menu)
+	}
+	tt.CloseMenu()
+	// Hiding gpu leaves it out; build stays.
+	a.toggleDevice(gpu)
+	tt.Frame()
+	if !a.deviceShown(build) || a.deviceShown(gpu) {
+		t.Errorf("filter: build %v gpu %v", a.deviceShown(build), a.deviceShown(gpu))
+	}
+	if tt.HasText("gpu") {
+		t.Errorf("gpu still listed: %q", tt.Texts())
+	}
+	if got := a.deviceFilterLabel(); got != locales.SidebarDevicePicked(2) {
+		t.Errorf("picker label = %q", got)
+	}
+	// The host of the session shown stays listed, even when hidden.
+	a.selected = "rs-gpu"
+	tt.Frame()
+	if !tt.HasText("gpu") {
+		t.Errorf("shown session's host is hidden: %q", tt.Texts())
+	}
+	// Showing every host again is All.
+	a.toggleDevice(gpu)
+	if !a.deviceAll() {
+		t.Errorf("nothing hidden is not All: %q", a.prefs.DeviceFilter)
+	}
+	tt.Frame()
+	if !tt.HasText("gpu") {
+		t.Errorf("gpu not back: %q", tt.Texts())
+	}
+}
+
 // With hosts, Open Project lists any machine's folders, this one's too,
 // with a switch between them.
 func TestPickerHosts(t *testing.T) {

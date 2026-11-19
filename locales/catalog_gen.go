@@ -1146,6 +1146,36 @@ func (msgs Messages) SidebarNoSessions() string {
 	return Catalog.Format(msgs.locale, "sidebarNoSessions", nil)
 }
 
+// SidebarDeviceFilter says "Show hosts…"
+// in the language the app shows.
+func SidebarDeviceFilter() string { return In(i18n.Locale()).SidebarDeviceFilter() }
+
+// SidebarDeviceFilter says "Show hosts…"
+// in the language of msgs.
+func (msgs Messages) SidebarDeviceFilter() string {
+	return Catalog.Format(msgs.locale, "sidebarDeviceFilter", nil)
+}
+
+// SidebarDeviceAll says "All Hosts"
+// in the language the app shows.
+func SidebarDeviceAll() string { return In(i18n.Locale()).SidebarDeviceAll() }
+
+// SidebarDeviceAll says "All Hosts"
+// in the language of msgs.
+func (msgs Messages) SidebarDeviceAll() string {
+	return Catalog.Format(msgs.locale, "sidebarDeviceAll", nil)
+}
+
+// SidebarDevicePicked says "{count} shown"
+// in the language the app shows.
+func SidebarDevicePicked(count int) string { return In(i18n.Locale()).SidebarDevicePicked(count) }
+
+// SidebarDevicePicked says "{count} shown"
+// in the language of msgs.
+func (msgs Messages) SidebarDevicePicked(count int) string {
+	return Catalog.Format(msgs.locale, "sidebarDevicePicked", map[string]any{"count": count})
+}
+
 // SidebarCollapse says "Collapse"
 // in the language the app shows.
 func SidebarCollapse() string { return In(i18n.Locale()).SidebarCollapse() }

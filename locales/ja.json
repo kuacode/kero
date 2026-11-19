@@ -109,6 +109,16 @@
   "sidebarHide": "サイドバーを隠す",
   "sidebarShow": "サイドバーを表示",
   "sidebarNoSessions": "セッションなし",
+  "sidebarDeviceFilter": "表示するホスト…",
+  "sidebarDeviceAll": "すべてのホスト",
+  "sidebarDevicePicked": "{count} 件表示",
+  "@sidebarDevicePicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sidebarCollapse": "折りたたむ",
   "sidebarExpand": "展開",
   "sidebarCloseProjectMenu": "プロジェクトを閉じる…",

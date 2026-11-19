@@ -157,6 +157,16 @@
   "sidebarHide": "Hide Sidebar",
   "sidebarShow": "Show Sidebar",
   "sidebarNoSessions": "No sessions",
+  "sidebarDeviceFilter": "Show hosts…",
+  "sidebarDeviceAll": "All Hosts",
+  "sidebarDevicePicked": "{count} shown",
+  "@sidebarDevicePicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sidebarCollapse": "Collapse",
   "sidebarExpand": "Expand",
   "sidebarCloseProjectMenu": "Close Project…",

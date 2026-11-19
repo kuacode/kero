@@ -343,6 +343,11 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 		// nothing to show stays out, unless something there wants the user
 		// (hostNeedsRow); HideEmptyHosts leaves out a host with no sessions.
 		for _, h := range a.hosts {
+			// A host the filter leaves out stays, while it holds the
+			// session shown, so the selection never leaves the view.
+			if !a.deviceShown(h) && a.hostOf(a.selected) != h {
+				continue
+			}
 			groups := a.hostGroups(h)
 			count := 0
 			for _, g := range groups {
@@ -872,6 +877,7 @@ func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 		// keeps the status chips.
 		if !a.titleBar() {
 			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
+			a.deviceFilterButton(c, pal)
 			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
 			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
 			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })

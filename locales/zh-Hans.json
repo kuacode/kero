@@ -109,6 +109,16 @@
   "sidebarHide": "隐藏边栏",
   "sidebarShow": "显示边栏",
   "sidebarNoSessions": "没有会话",
+  "sidebarDeviceFilter": "显示主机…",
+  "sidebarDeviceAll": "全部主机",
+  "sidebarDevicePicked": "显示 {count} 个",
+  "@sidebarDevicePicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sidebarCollapse": "折叠",
   "sidebarExpand": "展开",
   "sidebarCloseProjectMenu": "关闭项目…",
