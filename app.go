@@ -472,9 +472,6 @@ type group struct {
 	host     *host
 	project  proto.Project
 	sessions []*proto.Session
-	// first: the first of its host's in the sidebar, whose header tells
-	// how the app stands with the host.
-	first bool
 }
 
 // key is what the group's collapse is remembered by: its project's id,
@@ -532,6 +529,15 @@ func (a *App) collapsed(g group) bool { return a.prefs.Collapsed[g.key()] }
 func (a *App) visibleOrder() []string {
 	var ids []string
 	for _, g := range a.groups() {
+		if g.host.remote() && a.prefs.Collapsed["host:"+g.host.name] {
+			// A folded host keeps only the session shown.
+			for _, s := range g.sessions {
+				if s.ID == a.selected {
+					ids = append(ids, s.ID)
+				}
+			}
+			continue
+		}
 		for _, s := range g.sessions {
 			if !a.collapsed(g) || s.ID == a.selected {
 				ids = append(ids, s.ID)
@@ -1597,6 +1603,17 @@ func (a *App) toggleProject(id string) {
 	a.prefs.Collapsed[id] = !a.prefs.Collapsed[id]
 	if !a.prefs.Collapsed[id] {
 		delete(a.prefs.Collapsed, id)
+	}
+	a.savePrefs()
+}
+
+// toggleHost hides a remote host's projects under its header, or shows
+// them again, as toggleProject does for a project's sessions.
+func (a *App) toggleHost(h *host) {
+	key := "host:" + h.name
+	a.prefs.Collapsed[key] = !a.prefs.Collapsed[key]
+	if !a.prefs.Collapsed[key] {
+		delete(a.prefs.Collapsed, key)
 	}
 	a.savePrefs()
 }

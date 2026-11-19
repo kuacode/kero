@@ -560,6 +560,9 @@ func (a *App) generalPage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetSidebarCount(), locales.SetSidebarCountDetail(), func() {
 			toggle(c.Key("sidebar-count"), &s.SidebarCount, pal)
 		})
+		settingRow(c, pal, locales.SetHideEmptyHosts(), locales.SetHideEmptyHostsDetail(), func() {
+			toggle(c.Key("hide-empty-hosts"), &s.HideEmptyHosts, pal)
+		})
 		settingRow(c, pal, locales.SetFocusFollowsMouse(), locales.SetFocusFollowsMouseDetail(), func() {
 			toggle(c.Key("focusmouse"), &s.FocusFollowsMouse, pal)
 		})

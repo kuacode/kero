@@ -2260,6 +2260,26 @@ func (msgs Messages) SetSidebarCountDetail() string {
 	return Catalog.Format(msgs.locale, "setSidebarCountDetail", nil)
 }
 
+// SetHideEmptyHosts says "Hide hosts with no sessions"
+// in the language the app shows.
+func SetHideEmptyHosts() string { return In(i18n.Locale()).SetHideEmptyHosts() }
+
+// SetHideEmptyHosts says "Hide hosts with no sessions"
+// in the language of msgs.
+func (msgs Messages) SetHideEmptyHosts() string {
+	return Catalog.Format(msgs.locale, "setHideEmptyHosts", nil)
+}
+
+// SetHideEmptyHostsDetail says "Leave remote hosts that hold no sessions out of the sidebar, under their headers."
+// in the language the app shows.
+func SetHideEmptyHostsDetail() string { return In(i18n.Locale()).SetHideEmptyHostsDetail() }
+
+// SetHideEmptyHostsDetail says "Leave remote hosts that hold no sessions out of the sidebar, under their headers."
+// in the language of msgs.
+func (msgs Messages) SetHideEmptyHostsDetail() string {
+	return Catalog.Format(msgs.locale, "setHideEmptyHostsDetail", nil)
+}
+
 // SetFocusFollowsMouse says "Focus follows mouse"
 // in the language the app shows.
 func SetFocusFollowsMouse() string { return In(i18n.Locale()).SetFocusFollowsMouse() }

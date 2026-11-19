@@ -220,6 +220,8 @@
   "setRowsCompact": "コンパクト",
   "setSidebarCount": "セッション数",
   "setSidebarCountDetail": "各プロジェクト名の横に、含まれるセッションの数を表示します。",
+  "setHideEmptyHosts": "セッションのないホストを隠す",
+  "setHideEmptyHostsDetail": "セッションを含まないリモートホストをサイドバーから除外し、そのヘッダーのみを表示します。",
   "setFocusFollowsMouse": "マウスでフォーカスを移動",
   "setFocusFollowsMouseDetail": "ポインタが入ったペインに、クリックしなくてもフォーカスが移ります。",
   "setAskBeforeClosing": "実行中のプログラムを閉じる前に確認",

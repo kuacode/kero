@@ -23,10 +23,10 @@ var (
 	hostIcon = glyph("f7-desktopcomputer")
 )
 
-// The sidebar is flat: groups, a remote host's tagged with its name (see
-// groupView). A host shows only by its groups, and has no row of its own
-// unless something there wants the user: hostNeedsRow. One with no
-// sessions shows nowhere; Open Project and Settings › Hosts reach it.
+// The sidebar heads a remote host, then its projects under it (see
+// groupView). A host folds on a click of its header, and one with no
+// sessions shows nowhere unless something there wants the user
+// (hostNeedsRow), or HideEmptyHosts keeps it out.
 
 // hostNeedsRow reports whether a host has a row of its own in the
 // sidebar, besides its groups: while it can't be reached, wants updating
@@ -35,26 +35,37 @@ func (a *App) hostNeedsRow(h *host) bool {
 	return h.busy != "" || h.conn == connFailed || h.conn == connVersion
 }
 
-// hostLine is a host in the sidebar while it needs a row of its own: its
-// header, which tells how the app stands with it, then what keeps its
-// sessions from showing, and what to do about it.
-func (a *App) hostLine(c *ui.Context, pal *palette, h *host, top float32) {
-	a.hostHeader(c, pal, h, top)
-	a.hostNote(c, pal, h)
-}
-
 // hostHeader is a remote host's name, with how the app stands with it: a
 // dot while it connects or failed to, a chip when Kero there wants
-// updating.
-func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32) {
+// updating. It heads its projects, and hides them on a click.
+func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, count int) {
 	hdr := ui.Row(c.Key("host-"+h.name)).Height(30).Margin(top, 0, 2, 0).Padding(0, 6, 0, 8).Gap(7).AlignItems(ui.Center).Radius(6)
 	hovered := hdr.Hovered()
+	collapsed := a.prefs.Collapsed["host:"+h.name]
 	pointerTooltip(c, hdr, "tip-host-"+h.name, a.hostTip(h))
-	hdr.ContextMenu(func(m *ui.Menu) { a.hostMenu(m, h) })
+	hdr.ContextMenu(func(m *ui.Menu) {
+		label := locales.SidebarCollapse()
+		if collapsed {
+			label = locales.SidebarExpand()
+		}
+		if m.Item(label).Chosen() {
+			a.toggleHost(h)
+		}
+		a.hostMenu(m, h)
+	})
+	if hdr.Clicked() {
+		a.toggleHost(h)
+	}
 	hdr.Children(func() {
 		ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
 		ui.Text(c, h.name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		if a.set.SidebarCount {
+			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
+		}
 		ui.Spacer(c)
+		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
+		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
+		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		a.hostState(c, pal, h)
 		if hovered && h.conn == connReady {
 			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).

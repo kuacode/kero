@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -126,14 +127,14 @@ func TestSidebarFlat(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	shot(t, tt, "sidebar-flat")
-	// build is named once, by its tag: no header.
+	// build is named by its header, then its group's name: no tag.
 	if n := countText(tt.Texts(), "build"); n != 1 {
 		t.Errorf("build shows %d times: %q", n, tt.Texts())
 	}
-	tag, ok := tt.Find("build")
+	hdr, ok := tt.Find("build")
 	api, ok2 := tt.Find("api")
-	if !ok || !ok2 || abs32(tag.Y+tag.H/2-(api.Y+api.H/2)) > 1 || tag.X <= api.X {
-		t.Errorf("build's tag %+v is not after its group's name %+v", tag, api)
+	if !ok || !ok2 || hdr.Y >= api.Y {
+		t.Errorf("build's header %+v is not above its group's name %+v", hdr, api)
 	}
 	// A host with no sessions shows nowhere, nor one connecting first.
 	if tt.HasText("empty") || tt.HasText("No sessions") {
@@ -143,7 +144,7 @@ func TestSidebarFlat(t *testing.T) {
 	if a.hostNeedsRow(build) || a.hostNeedsRow(empty) {
 		t.Error("rows for hosts that want nothing")
 	}
-	// Lost, its groups stay, its tag faded; failing, it has a row.
+	// Lost, its groups stay, its header faded; failing, it has a note.
 	build.conn = connConnecting
 	if a.hostNeedsRow(build) {
 		t.Error("a host reconnecting has a row")
@@ -155,6 +156,50 @@ func TestSidebarFlat(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("Connection refused") || !tt.HasText("agent on build") {
 		t.Errorf("failing: %q", tt.Texts())
+	}
+}
+
+// A remote host heads its projects, folds them on a click of its header,
+// and HideEmptyHosts leaves one with no sessions out.
+func TestSidebarHostGroups(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	build := withHost(t, a, "build")
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	// build's header names it, and its project "api" sits under it.
+	if !tt.HasText("build") || !tt.HasText("api") {
+		t.Fatalf("no host header or project: %q", tt.Texts())
+	}
+	if got := a.visibleOrder(); !slices.Contains(got, "rs-build") {
+		t.Fatalf("build's session is not in the order: %q", got)
+	}
+	// Folding the host hides its projects; the shown session stays.
+	a.toggleHost(build)
+	if got := a.visibleOrder(); slices.Contains(got, "rs-build") {
+		t.Errorf("folded host still shows: %q", got)
+	}
+	a.selected = "rs-build"
+	if got := a.visibleOrder(); !slices.Contains(got, "rs-build") {
+		t.Errorf("folded host does not keep the shown session: %q", got)
+	}
+	a.toggleHost(build)
+	if got := a.visibleOrder(); !slices.Contains(got, "rs-build") {
+		t.Errorf("unfolded host: %q", got)
+	}
+	// HideEmptyHosts leaves the host with no sessions out.
+	a.set.HideEmptyHosts = true
+	a.st.Sessions = nil
+	a.mergeState(build, proto.State{Projects: a.projectsOf(build)})
+	tt.Frame()
+	if tt.HasText("build") {
+		t.Errorf("hide-empty-hosts still shows an empty host: %q", tt.Texts())
+	}
+	// ... but a host the app can't reach still shows, to say so.
+	build.conn, build.err = connFailed, "Connection refused"
+	tt.Frame()
+	if !tt.HasText("build") || !tt.HasText("Connection refused") {
+		t.Errorf("a failing host is hidden: %q", tt.Texts())
 	}
 }
 
