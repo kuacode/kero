@@ -29,9 +29,26 @@ const (
 	cardGapY = 4
 	rowH     = 34
 	rowH2    = 48 // a detailed row, of two lines
-	// rowInset is where a sidebar row's text starts: a session's name and
-	// its group's, and every row's, so the rows read as one column.
-	rowInset = 12
+	// rowInset is a sidebar row's own padding: its content starts this far
+	// in from the row's edge, a hair more in the dark where the chosen
+	// row keeps a pixel of edge.
+	rowInset = 10
+	// hostGlyphW is the host icon's width, treeGap its gap to the host's
+	// name, the anchor of the sidebar tree. nestInset is one step of the
+	// tree: a project's name starts nestInset in from its host's name, a
+	// session's from its project's, and a pane's from its session's, so
+	// the sidebar reads as a tree, not a flat column.
+	hostGlyphW = 14
+	treeGap    = 7
+	nestInset  = 12
+	// The sidebar tree's levels, each name stepping nestInset in from the
+	// one above it: a host's name leads at rowInset+hostGlyphW+treeGap,
+	// then its projects, its sessions from them, and its panes from its
+	// sessions, so the sidebar reads as a tree.
+	hostName    = rowInset + hostGlyphW + treeGap
+	projectName = hostName + nestInset
+	sessionName = projectName + nestInset
+	paneName    = sessionName + nestInset
 	// rowRadius is every sidebar row's corner, and rowGap the space
 	// between them, so the sidebar reads with the rhythm of the cards
 	// beside it, which are cardGap apart.
@@ -450,9 +467,9 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 	if gi == 0 {
 		top = 2
 	}
-	// Its name starts where its sessions' names do (sessionRow), past the
-	// edge a row keeps in dark mode.
-	inset := float32(rowInset)
+	// Its name starts a nestInset in from its host's name, past the edge
+	// a row keeps in dark mode.
+	inset := float32(projectName)
 	if pal.dark {
 		inset++
 	}
@@ -585,7 +602,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int) 
 	if detailed {
 		h = rowH2
 	}
-	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, rowInset, 0, rowInset).Gap(10).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
+	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, rowInset, 0, sessionName-hostGlyphW-10).Gap(10).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
 	hovered := row.Hovered()
 	if pal.dark {
 		// Room for the chosen row's edge in every row, so that choosing
@@ -752,8 +769,8 @@ func (a *App) paneRow(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pa
 	sid, pid := s.ID, p.ID
 	h := a.hostOf(sid)
 	// The pane's program under the session's, its name under the
-	// session's name.
-	inset := float32(rowInset + 14 + 10)
+	// session's name, one nestInset deeper in the tree.
+	inset := float32(paneName - 13 - 8)
 	if detailed {
 		inset += 2
 	}

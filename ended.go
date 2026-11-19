@@ -89,7 +89,7 @@ func (a *App) endedSection(c *ui.Context, pal *palette, key, title string, list 
 	if len(list) == 0 {
 		return
 	}
-	inset := float32(rowInset)
+	inset := float32(hostName)
 	if pal.dark {
 		inset++
 	}
@@ -132,7 +132,9 @@ func (a *App) endedSection(c *ui.Context, pal *palette, key, title string, list 
 
 func (a *App) endedRow(c *ui.Context, pal *palette, h *host, cv proto.Conversation, now time.Time) {
 	key := "e-" + h.name + "-" + cv.Agent + "-" + cv.ID
-	inset := float32(rowInset)
+	// Its name sits where a session's does, so the tree's sessions read as
+	// one column, ended and active.
+	inset := float32(sessionName - 16 - 10)
 	if pal.dark {
 		inset++
 	}
@@ -250,7 +252,7 @@ func (a *App) skillHint(c *ui.Context, pal *palette) {
 	if !a.skillMissing {
 		return
 	}
-	hint := ui.Row(c.Key("ended-hint")).Margin(18, 0, rowGap, 0).Padding(6, rowInset, 6, rowInset).Radius(rowRadius)
+	hint := ui.Row(c.Key("ended-hint")).Margin(18, 0, rowGap, 0).Padding(6, rowInset, 6, hostName).Radius(rowRadius)
 	if hint.Hovered() {
 		hint.Background(pal.rowHover)
 	}

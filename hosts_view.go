@@ -45,13 +45,14 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 	if !h.remote() {
 		name = locales.HostThisComputer()
 	}
-	// Its name starts where every row's does (rowInset), a hair more in the
-	// dark where the chosen row keeps a pixel of edge.
+	// Its icon starts at the sidebar's inset and its name right after it,
+	// the anchor of the tree, a hair more in the dark where the chosen
+	// row keeps a pixel of edge.
 	inset := float32(rowInset)
 	if pal.dark {
 		inset++
 	}
-	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(7).AlignItems(ui.Center).Radius(rowRadius)
+	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(treeGap).AlignItems(ui.Center).Radius(rowRadius)
 	hovered := hdr.Hovered()
 	collapsed := a.prefs.Collapsed[a.hostFoldKey(h)]
 	pointerTooltip(c, hdr, "tip-host-"+name, a.hostTip(h))
@@ -83,7 +84,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		a.toggleHost(h)
 	}
 	hdr.Children(func() {
-		ui.Icon(c, a.hostOriginIcon(h)).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
+		ui.Icon(c, a.hostOriginIcon(h)).Size(hostGlyphW, hostGlyphW).TextColor(pal.hostColor(h)).Shrink(0)
 		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").Margin(2, 0, 0, 0)
