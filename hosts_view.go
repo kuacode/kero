@@ -35,14 +35,20 @@ func (a *App) hostNeedsRow(h *host) bool {
 	return h.busy != "" || h.conn == connFailed || h.conn == connVersion
 }
 
-// hostHeader is a remote host's name, with how the app stands with it: a
-// dot while it connects or failed to, a chip when Kero there wants
-// updating. It heads its projects, and hides them on a click.
+// hostHeader is a host's name, with how the app stands with it: a dot
+// while it connects or failed to, a chip when Kero there wants updating.
+// It heads its projects, and hides them on a click. This machine's says
+// "This Computer" and offers its sessions and projects, not a host's
+// settings or removal.
 func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, count int) {
-	hdr := ui.Row(c.Key("host-"+h.name)).Height(30).Margin(top, 0, 2, 0).Padding(0, 6, 0, 8).Gap(7).AlignItems(ui.Center).Radius(6)
+	name := h.name
+	if !h.remote() {
+		name = locales.HostThisComputer()
+	}
+	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, 2, 0).Padding(0, 6, 0, 8).Gap(7).AlignItems(ui.Center).Radius(6)
 	hovered := hdr.Hovered()
-	collapsed := a.prefs.Collapsed["host:"+h.name]
-	pointerTooltip(c, hdr, "tip-host-"+h.name, a.hostTip(h))
+	collapsed := a.prefs.Collapsed[a.hostFoldKey(h)]
+	pointerTooltip(c, hdr, "tip-host-"+name, a.hostTip(h))
 	hdr.ContextMenu(func(m *ui.Menu) {
 		label := locales.SidebarCollapse()
 		if collapsed {
@@ -51,14 +57,24 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		if m.Item(label).Chosen() {
 			a.toggleHost(h)
 		}
-		a.hostMenu(m, h)
+		if h.remote() {
+			a.hostMenu(m, h)
+		} else {
+			m.Separator()
+			if m.Item(locales.ActionNewSession()).Chosen() {
+				a.newSessionOn(h, "")
+			}
+			if m.Item(locales.ActionOpenProject()).Chosen() {
+				a.openProjectOn(h)
+			}
+		}
 	})
 	if hdr.Clicked() {
 		a.toggleHost(h)
 	}
 	hdr.Children(func() {
 		ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
-		ui.Text(c, h.name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 		}
@@ -69,7 +85,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		a.hostState(c, pal, h)
 		if hovered && h.conn == connReady {
 			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).
-				Label(locales.NewSessionIn(h.name)).Tooltip(locales.ActionNewSession())
+				Label(locales.NewSessionIn(name)).Tooltip(locales.ActionNewSession())
 			if b.Hovered() {
 				b.Background(pal.rowHover).TextColor(pal.text)
 			}

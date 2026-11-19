@@ -483,6 +483,15 @@ func (g group) key() string {
 	return g.project.ID
 }
 
+// hostFoldKey is what a host's fold is remembered by, in prefs.Collapsed:
+// its name, and a fixed key for this machine's, whose name is empty.
+func (a *App) hostFoldKey(h *host) string {
+	if h.remote() {
+		return "host:" + h.name
+	}
+	return "host:local"
+}
+
 // groups returns the projects of every host, as the sidebar lists them.
 func (a *App) groups() []group {
 	var gs []group
@@ -529,7 +538,7 @@ func (a *App) collapsed(g group) bool { return a.prefs.Collapsed[g.key()] }
 func (a *App) visibleOrder() []string {
 	var ids []string
 	for _, g := range a.groups() {
-		if g.host.remote() && a.prefs.Collapsed["host:"+g.host.name] {
+		if a.prefs.Collapsed[a.hostFoldKey(g.host)] {
 			// A folded host keeps only the session shown.
 			for _, s := range g.sessions {
 				if s.ID == a.selected {
@@ -1607,10 +1616,10 @@ func (a *App) toggleProject(id string) {
 	a.savePrefs()
 }
 
-// toggleHost hides a remote host's projects under its header, or shows
-// them again, as toggleProject does for a project's sessions.
+// toggleHost hides a host's projects under its header, or shows them
+// again, as toggleProject does for a project's sessions.
 func (a *App) toggleHost(h *host) {
-	key := "host:" + h.name
+	key := a.hostFoldKey(h)
 	a.prefs.Collapsed[key] = !a.prefs.Collapsed[key]
 	if !a.prefs.Collapsed[key] {
 		delete(a.prefs.Collapsed, key)

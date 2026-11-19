@@ -337,33 +337,27 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 		// this frame's groups find it again.
 		at := a.projMove.at
 		a.projMove.at = -1
-		// This machine's projects first, unlabeled; then each host's,
-		// under its name.
-		if local := a.local(); local.loaded {
-			for _, g := range a.hostGroups(local) {
-				a.groupView(c, pal, g, gi, at, &n)
-				gi++
-			}
-			if len(a.st.Sessions) == 0 && local.conn == connReady && len(a.hosts) == 1 {
-				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.textFaint).Padding(8, 10)
-			}
-		}
-		// Then each host's, under its own header: its name and how the app
-		// stands with it, then its projects, each tagged with its name.
-		// A host with nothing to show stays out, unless something there
-		// wants the user (hostNeedsRow); HideEmptyHosts leaves out a host
-		// with no sessions too.
-		for _, h := range a.hosts[1:] {
+		// This machine's projects, under its own header, which says "This
+		// Computer"; then each host's, under its name: a host heads its
+		// projects, and folds them on a click of its header. A host with
+		// nothing to show stays out, unless something there wants the user
+		// (hostNeedsRow); HideEmptyHosts leaves out a host with no sessions.
+		for _, h := range a.hosts {
 			groups := a.hostGroups(h)
 			count := 0
 			for _, g := range groups {
 				count += len(g.sessions)
 			}
-			if a.set.HideEmptyHosts {
-				if count == 0 && !a.hostNeedsRow(h) {
+			if h.remote() {
+				if a.set.HideEmptyHosts {
+					if count == 0 && !a.hostNeedsRow(h) {
+						continue
+					}
+				} else if len(groups) == 0 && !a.hostNeedsRow(h) {
 					continue
 				}
-			} else if len(groups) == 0 && !a.hostNeedsRow(h) {
+			} else if !h.loaded {
+				// This machine's header comes up with its projects.
 				continue
 			}
 			top := float32(18)
@@ -371,11 +365,14 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 				top = 2
 			}
 			a.hostHeader(c, pal, h, top, count)
-			if a.hostNeedsRow(h) {
+			if h.remote() && a.hostNeedsRow(h) {
 				a.hostNote(c, pal, h)
 			}
 			gi++
-			if a.prefs.Collapsed["host:"+h.name] {
+			if !h.remote() && len(a.st.Sessions) == 0 && h.conn == connReady && len(a.hosts) == 1 {
+				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.textFaint).Padding(8, 10)
+			}
+			if a.prefs.Collapsed[a.hostFoldKey(h)] {
 				// The host's header stays, its projects hidden; the
 				// session shown stays in view.
 				for _, g := range groups {
