@@ -219,7 +219,7 @@ func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 		}
 		b.Children(func() {
 			ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention)
-			ui.Text(c, locales.CommonRestart()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
+			ui.Text(c, locales.CommonRestartService()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
 		})
 		if b.Clicked() {
 			a.offerHostRestart(h)
@@ -519,11 +519,18 @@ func (a *App) offerHostUpdate(h *host) {
 // offerHostRestart restarts kerod on a host, asking first while programs
 // run in its sessions.
 func (a *App) offerHostRestart(h *host) {
+	// This machine's kerod is restarted as the service it runs as, which
+	// the app asks on its own, with the sessions it ends in the words;
+	// another host's over the connection to it.
+	if !h.remote() {
+		a.offerRestart()
+		return
+	}
 	a.confirm = &confirmation{
 		open:    true,
 		title:   locales.HostRestartTitle(h.name),
 		detail:  withRunning(locales.HostRestartDetail(h.name), a.busyCount(h)),
-		action:  locales.CommonRestart(),
+		action:  locales.CommonRestartService(),
 		destroy: true,
 		run:     func() { a.hostRequest(h, "restart") },
 	}

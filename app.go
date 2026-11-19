@@ -1698,11 +1698,6 @@ func (a *App) endDaemonAndQuit() {
 	}()
 }
 
-// daemonStale reports whether kerod runs another version of Kero than
-// this one, as after an update: it speaks the protocol, but runs the code
-// of before until it restarts.
-func (a *App) daemonStale() bool { return a.local().stale() }
-
 // offerRestart restarts kerod into this version of Kero, asking first
 // while programs run in sessions, as the restart ends them.
 func (a *App) offerRestart() {
