@@ -422,7 +422,7 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 			needs++
 		}
 	}
-	top := float32(18)
+	top := float32(6)
 	if gi == 0 {
 		top = 2
 	}
@@ -515,7 +515,7 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		}
 		ui.Text(c, g.project.Name).FontSize(12.5).FontWeight(600).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
-			ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
+			ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").AlignSelf(ui.End).Margin(0, 0, 0, 1)
 		}
 		// The fold of a project's sessions is read right after its count.
 		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
