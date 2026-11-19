@@ -11,73 +11,61 @@ import (
 	"kero/internal/proto"
 )
 
-// LocalLoad reads this machine's load, from /proc: CPU busy percent from
-// the stat counters, and memory from meminfo. It reads twice, a moment
-// apart, for the CPU's busy fraction; the memory needs no second sample.
+// LocalLoad reads this machine's load now, sampling the CPU over a short
+// moment apart. It is a stateless ask, for a client that wants it once;
+// the daemon's periodic push samples the counters itself, over a longer
+// interval, for a steadier figure.
 func LocalLoad() proto.SystemLoad {
-	return proto.SystemLoad{CPU: procCPU(), MemUsed: procMemUsed(), MemTotal: procMemTotal()}
+	used, total := memLoad()
+	return proto.SystemLoad{CPU: procCPU(), MemUsed: used, MemTotal: total}
 }
 
 func procCPU() int {
-	// /proc/stat's first line: the total and the idle of all CPUs, in
-	// hundredths of a second, with the rest of the fields between.
-	read := func() (total, idle uint64, ok bool) {
-		b, err := os.ReadFile("/proc/stat")
-		if err != nil {
-			return 0, 0, false
-		}
-		line, _, _ := strings.Cut(string(b), "\n")
-		f := strings.Fields(line)
-		if len(f) < 5 || f[0] != "cpu" {
-			return 0, 0, false
-		}
-		var v [8]uint64
-		for i := 0; i < len(v) && i+1 < len(f); i++ {
-			v[i], _ = strconv.ParseUint(f[i+1], 10, 64)
-		}
-		// user nice system idle iowait irq softirq steal.
-		idle = v[3] + v[4]
-		for _, x := range v {
-			total += x
-		}
-		return total, idle, true
-	}
-	t0, i0, ok := read()
+	b0, t0, ok := readCPUTicks()
 	if !ok {
 		return 0
 	}
 	// The counters move slowly; a moment apart is enough.
 	time.Sleep(120 * time.Millisecond)
-	t1, i1, ok := read()
-	if !ok || t1 <= t0 {
+	b1, t1, ok := readCPUTicks()
+	if !ok {
 		return 0
 	}
-	idle := i1 - i0
-	busy := t1 - t0 - idle
-	if busy == 0 {
-		return 0
-	}
-	pct := int(100 * busy / (t1 - t0))
-	if pct < 0 {
-		return 0
-	}
-	if pct > 100 {
-		return 100
-	}
-	return pct
+	return cpuPercent(b0, t0, b1, t1)
 }
 
-func procMemTotal() uint64 {
-	return procMeminfo("MemTotal:")
+// readCPUTicks reads /proc/stat's first line once: the busy and total
+// ticks of all CPUs, without waiting.
+func readCPUTicks() (busy, total uint64, ok bool) {
+	b, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		return 0, 0, false
+	}
+	line, _, _ := strings.Cut(string(b), "\n")
+	f := strings.Fields(line)
+	if len(f) < 5 || f[0] != "cpu" {
+		return 0, 0, false
+	}
+	var v [8]uint64
+	for i := 0; i < len(v) && i+1 < len(f); i++ {
+		v[i], _ = strconv.ParseUint(f[i+1], 10, 64)
+	}
+	// user nice system idle iowait irq softirq steal.
+	idle := v[3] + v[4]
+	for _, x := range v {
+		total += x
+	}
+	return total - idle, total, true
 }
 
-func procMemUsed() uint64 {
-	total := procMeminfo("MemTotal:")
+// memLoad reads memory used and total, from meminfo.
+func memLoad() (used, total uint64) {
+	total = procMeminfo("MemTotal:")
 	avail := procMeminfo("MemAvailable:")
 	if total == 0 || avail > total {
-		return 0
+		return 0, total
 	}
-	return total - avail
+	return total - avail, total
 }
 
 func procMeminfo(key string) uint64 {

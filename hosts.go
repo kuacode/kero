@@ -393,6 +393,9 @@ func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, er
 		return
 	}
 	h.cl, h.conn, h.err, h.errKind, h.retries = cl, connReady, "", nil, 0
+	// A fresh kerod starts afresh: drop the load the last one told, so a
+	// kerod that sends none shows no gauge rather than another's stale one.
+	h.load, h.loadAt = proto.SystemLoad{}, time.Time{}
 	h.kerod = kerodID(h, cl)
 	h.daemonApp, h.daemonFP = cl.Welcome.App, cl.Welcome.Build
 	if !h.remote() {

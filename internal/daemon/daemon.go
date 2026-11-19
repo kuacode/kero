@@ -63,7 +63,12 @@ type Daemon struct {
 	conns    int
 	idleAt   time.Time
 	lastLoad time.Time
-	ending   bool
+	// The header's CPU is the busy fraction of the counters between two
+	// ticks, so a short moment between samples does not read as noise.
+	cpuBusy, cpuTotal uint64
+	cpuSeen           bool
+	cpuPct            int
+	ending            bool
 	// restarting: kerod stops to start again, as a remote client asked
 	// (proto.KindRestart).
 	restarting bool
@@ -381,6 +386,17 @@ func (d *Daemon) tickLoop() {
 		}
 		idleFor := now.Sub(d.idleAt)
 		d.mu.Unlock()
+		// Sample the CPU counters cheaply each tick, no waiting, and its
+		// busy fraction over the tick, so the header does not read a
+		// moment's jitter as the load.
+		if busy, total, ok := readCPUTicks(); ok {
+			d.mu.Lock()
+			if d.cpuSeen && total > d.cpuTotal {
+				d.cpuPct = cpuPercent(d.cpuBusy, d.cpuTotal, busy, total)
+			}
+			d.cpuBusy, d.cpuTotal, d.cpuSeen = busy, total, true
+			d.mu.Unlock()
+		}
 		changed := false
 		for _, s := range panes {
 			if s.tick(now) {
@@ -390,13 +406,12 @@ func (d *Daemon) tickLoop() {
 		if changed {
 			d.changed()
 		}
-		// The sidebar's host header shows this machine's load; push it a
-		// couple of times a second, while an app is connected, reading it
-		// only that often (each read samples the CPU twice).
+		// The sidebar's host header shows this machine's load; push it
+		// every couple of seconds, while an app is connected.
 		d.mu.Lock()
 		if d.conns > 0 && now.Sub(d.lastLoad) >= 2*time.Second {
 			d.lastLoad = now
-			load := LocalLoad()
+			load := d.loadLocked()
 			d.broadcastLocked(proto.Message{Event: "system", System: &load})
 		}
 		d.mu.Unlock()
@@ -407,6 +422,14 @@ func (d *Daemon) tickLoop() {
 			return
 		}
 	}
+}
+
+// loadLocked is this machine's load for the header: the CPU busy
+// fraction since the last push, and the memory used now. The caller
+// holds d.mu.
+func (d *Daemon) loadLocked() proto.SystemLoad {
+	used, total := memLoad()
+	return proto.SystemLoad{CPU: d.cpuPct, MemUsed: used, MemTotal: total}
 }
 
 func newID() string {

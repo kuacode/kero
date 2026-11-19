@@ -15,10 +15,15 @@ import (
 // vm.statistics64 counters. It reads CPU twice, a moment apart, for its
 // busy fraction.
 func LocalLoad() proto.SystemLoad {
-	load := proto.SystemLoad{MemTotal: darwinMemTotal()}
-	load.MemUsed = darwinMemUsed(load.MemTotal)
-	load.CPU = darwinCPU()
-	return load
+	used, total := memLoad()
+	return proto.SystemLoad{CPU: darwinCPU(), MemUsed: used, MemTotal: total}
+}
+
+// memLoad reads memory used and total, from hw.memsize and vm.statistics64.
+func memLoad() (used, total uint64) {
+	total = darwinMemTotal()
+	used = darwinMemUsed(total)
+	return used, total
 }
 
 // readCPUTicks reads the cumulative kern.cp_time counters, busy (user +
