@@ -76,7 +76,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		ui.Icon(c, a.hostOriginIcon(h)).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
 		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
-			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
+			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").Margin(2, 0, 0, 0)
 		}
 		// The fold of a host's projects is read right after its count, as
 		// it is a property of the label, not of the row's far end.
