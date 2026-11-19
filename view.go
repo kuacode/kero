@@ -525,14 +525,17 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		if needs > 0 {
 			ui.Text(c, locales.SidebarNeedsYou(needs)).FontSize(12.5).FontWeight(500).TextColor(pal.attention).SingleLine()
 		}
-		// Starting a session is always offered, on the row's far end.
-		b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).Label(locales.NewSessionIn(g.project.Name)).Tooltip(locales.ActionNewSession())
-		if b.Hovered() {
-			b.Background(pal.rowHover).TextColor(pal.text)
-		}
-		b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
-		if b.Clicked() {
-			a.newSessionOn(g.host, id)
+		// Starting a session is offered as the row is hovered, so the rows
+		// stay clean.
+		if hovered {
+			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).Label(locales.NewSessionIn(g.project.Name)).Tooltip(locales.ActionNewSession())
+			if b.Hovered() {
+				b.Background(pal.rowHover).TextColor(pal.text)
+			}
+			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
+			if b.Clicked() {
+				a.newSessionOn(g.host, id)
+			}
 		}
 	})
 	if collapsed {

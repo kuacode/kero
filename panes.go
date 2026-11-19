@@ -202,7 +202,7 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 	if multi && !focused && !p.Browser() && a.set.DimUnfocused {
 		bg = pal.cardDim
 	}
-	card := ui.Column(c.Key("pane-" + p.ID)).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Radius(14).Clip().Bind(a.paneRef("card-" + p.ID))
+	card := ui.Column(c.Key("pane-" + p.ID)).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Radius(8).Clip().Bind(a.paneRef("card-" + p.ID))
 	paned(card.Background(card.AnimateColor("bg", bg, ui.Animation{Duration: 140 * time.Millisecond})), pal)
 	hovered := card.Hovered()
 	if a.set.FocusFollowsMouse && multi {
