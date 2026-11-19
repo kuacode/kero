@@ -580,11 +580,30 @@ func TestSearchMenuOneHighlight(t *testing.T) {
 			t.Errorf("pointer by %s: the menu keeps building", f)
 		}
 		// One accent row: count the accent's pixels down the menu's left.
+		// The highlight is a bar on the item's left; find its column
+		// rather than guess an offset, as the menu moves with the cards'.
 		lit, in := 0, false
 		img := tt.Image()
-		x := int(r.X) - 8
+		accX := -1
+		best := 0
+		for dx := -20; dx <= -2; dx++ {
+			x := int(r.X) + dx
+			n := 0
+			for y := 0; y < img.Bounds().Dy(); y++ {
+				cr, cg, cb, _ := img.At(x, y).RGBA()
+				if cb>>8 > 200 && cr>>8 < 140 && cg>>8 < 160 {
+					n++
+				}
+			}
+			if n > best {
+				best, accX = n, x
+			}
+		}
+		if accX < 0 {
+			t.Errorf("pointer on %s: no accent bar found", f)
+		}
 		for y := 0; y < img.Bounds().Dy(); y++ {
-			cr, cg, cb, _ := img.At(x, y).RGBA()
+			cr, cg, cb, _ := img.At(accX, y).RGBA()
 			acc := cb>>8 > 200 && cr>>8 < 140 && cg>>8 < 160
 			if acc && !in {
 				lit++
