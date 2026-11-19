@@ -19,13 +19,16 @@ const (
 	// barMid is the line the title bar's contents center on: the traffic
 	// lights, the sidebar's buttons, the panes' headers. topBar is the
 	// sidebar's title bar, centered on it, and headerH a header of a card,
-	// which starts cardGap down, centered on it too.
+	// which starts cardGapY down, centered on it too.
 	barMid  = 24
 	topBar  = 2 * barMid
-	headerH = 2 * (barMid - cardGap)
-	cardGap = 8 // around the card, and the sidebar's own insets
-	rowH    = 34
-	rowH2   = 48 // a detailed row, of two lines
+	headerH = 2 * (barMid - cardGapY)
+	cardGap = 6 // around the card, and the sidebar's own insets
+	// cardGapY is the card's gap above and below it, tighter than the
+	// side's, so the window's cards sit closer to its top and bottom.
+	cardGapY = 4
+	rowH     = 34
+	rowH2    = 48 // a detailed row, of two lines
 	// rowInset is where a sidebar row's text starts: a session's name and
 	// its group's, and every row's, so the rows read as one column.
 	rowInset = 12
@@ -172,13 +175,13 @@ func (a *App) view(c *ui.Context) {
 				// The sidebar is a card as the content's, its radius and its
 				// gap to it, so the window reads as one set of cards.
 				ui.Column(c).Width(a.prefs.SidebarWidth-2*cardGap).Grow(1).Shrink(0).
-					Margin(cardGap, cardGap, cardGap, cardGap).Children(func() {
+					Margin(cardGapY, cardGap, cardGapY, cardGap).Children(func() {
 					card := paned(ui.Column(c).Grow(1).MinHeight(0).Radius(rowRadius).Background(pal.card), pal).Clip()
 					card.Children(func() { a.sidebar(c, pal, bar) })
 				})
 			})
 		})
-		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, rightPad, cardGap, a.chrome.mainPad).DragWindow()
+		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGapY, rightPad, cardGapY, a.chrome.mainPad).DragWindow()
 		main.Children(func() {
 			if shown > 0.01 {
 				a.resizeHandle(c, pal)
@@ -194,7 +197,7 @@ func (a *App) view(c *ui.Context) {
 						// A gutter to the window's edge, as the sidebar's and the
 						// cards', so the work panel reads as a card among them.
 						ui.Column(c).Width(rightW-2*cardGap).Grow(1).Shrink(0).
-							Margin(cardGap, cardGap, cardGap, cardGap).
+							Margin(cardGapY, cardGap, cardGapY, cardGap).
 							Children(func() { a.rightSidebar(c, pal, work) })
 					})
 			})
