@@ -265,7 +265,7 @@ func (a *App) filesSide(c *ui.Context, pal *palette, s *proto.Session) {
 			row.Drag(fileDrag{host: h.name, path: it.path})
 			a.dropTarget(row, pal, pid, it.parent)
 		}
-	}).Grow(1).MinHeight(0).Padding(0, 10, 16, 10)
+	}).Grow(1).MinHeight(0).Padding(cardGap, rowInset, 16, rowInset)
 	// Dropped below the rows, files go into the root.
 	a.dropTarget(tree, pal, pid, root)
 }

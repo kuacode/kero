@@ -148,7 +148,7 @@ func (a *App) changesTree(c *ui.Context, pal *palette, s *proto.Session, cf *cha
 			ch.reveal = f.Path
 			a.openView(s, sideChanges, nil)
 		})
-	}).Grow(1).MinHeight(0).Padding(0, 10, 16, 10)
+	}).Grow(1).MinHeight(0).Padding(cardGap, rowInset, 16, rowInset)
 }
 
 // treeKey is what a row of a tree is, as its list keeps its state by: a
@@ -161,7 +161,7 @@ type treeKey struct {
 // treeRow is a row of a tree, depth folders in, the one there chosen as
 // a session's row is.
 func treeRow(c *ui.Context, pal *palette, depth int, current bool) ui.Element {
-	row := ui.Row(c.Key("row")).Height(26).Padding(0, 8, 0, 6+12*float32(depth)).Gap(5).AlignItems(ui.Center).Radius(7)
+	row := ui.Row(c.Key("row")).Height(26).Padding(0, rowInset, 0, rowInset+12*float32(depth)).Gap(5).AlignItems(ui.Center).Radius(rowRadius)
 	if pal.dark {
 		// Room for the chosen row's edge in every row.
 		row.Border(1, ui.Transparent)

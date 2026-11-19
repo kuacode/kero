@@ -173,7 +173,7 @@ func (a *App) view(c *ui.Context) {
 				// gap to it, so the window reads as one set of cards.
 				ui.Column(c).Width(a.prefs.SidebarWidth-2*cardGap).Grow(1).Shrink(0).
 					Margin(cardGap, cardGap, cardGap, cardGap).Children(func() {
-					card := paned(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.card), pal).Clip()
+					card := paned(ui.Column(c).Grow(1).MinHeight(0).Radius(rowRadius).Background(pal.card), pal).Clip()
 					card.Children(func() { a.sidebar(c, pal, bar) })
 				})
 			})
@@ -190,7 +190,13 @@ func (a *App) view(c *ui.Context) {
 			// window's edge.
 			ui.Row(c.Key("right")).Width(right).Shrink(0).AlignItems(ui.Stretch).ClipX().Children(func() {
 				ui.Column(c).Width(rightW).Shrink(0).AlignItems(ui.Stretch).Opacity(0.4 + 0.6*right/rightW).
-					Children(func() { a.rightSidebar(c, pal, work) })
+					Children(func() {
+						// A gutter to the window's edge, as the sidebar's and the
+						// cards', so the work panel reads as a card among them.
+						ui.Column(c).Width(rightW-2*cardGap).Grow(1).Shrink(0).
+							Margin(cardGap, cardGap, cardGap, cardGap).
+							Children(func() { a.rightSidebar(c, pal, work) })
+					})
 			})
 			// Over the cards and the sidebar both, which would take the
 			// pointer from it on either side of their edge.
@@ -1109,7 +1115,7 @@ func (a *App) card(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) 
 		return
 	}
 	// No session: one card, for what the app has to say.
-	card := paned(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.card), pal).Clip()
+	card := paned(ui.Column(c).Grow(1).MinHeight(0).Radius(rowRadius).Background(pal.card), pal).Clip()
 	card.Children(func() {
 		left := a.chrome.headerPad
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {

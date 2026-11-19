@@ -286,47 +286,52 @@ func (a *App) rightSidebar(c *ui.Context, pal *palette, s *proto.Session) {
 	// The bar's tabs and button slide in from the window's edge with the
 	// sidebar, under the window controls, which stay in the window's
 	// corner (mainControls): they show up to the controls, not under them.
-	w := a.rightWidth() - 10
+	w := a.rightWidth() - 2*cardGap
 	shown := w
 	if showControls && a.win != nil {
 		if a.controlsMode() == "builtin" {
 			// As main draws them: the bar slides in under the window
 			// controls, which stay in the window's corner.
 			w -= controlsW
-			shown = min(max(a.side.barW-a.side.edge-10-controlsW, 0), w)
+			shown = min(max(a.side.barW-a.side.edge-2*cardGap-controlsW, 0), w)
 		} else {
 			// apple and windows draw their own controls elsewhere, so the
 			// bar's button sits at the sidebar's far right.
-			shown = min(max(a.side.barW-a.side.edge, 0), w)
+			shown = min(max(a.side.barW-a.side.edge-2*cardGap, 0), w)
 		}
 	}
-	ui.Row(c.Key("right-bar")).Height(topBar).Shrink(0).AlignItems(ui.Stretch).DragWindow().Children(func() {
-		ui.Row(c.Key("shown")).Width(shown).Shrink(0).AlignItems(ui.Stretch).ClipX().Children(func() {
-			ui.Row(c.Key("tabs")).Width(w).Shrink(0).AlignItems(ui.Center).Padding(0, 0, 0, 10).Gap(2).Children(func() {
-				a.tabButton(c, pal, sideChanges, locales.SideChanges(), tab)
-				a.tabButton(c, pal, sideFiles, locales.SideFiles(), tab)
-				ui.Spacer(c)
-				// The title bar styles put the toggle in the title row: the
-				// bar's own button would ask for what its row already shows.
-				if !a.titleBar() {
-					iconButton(c, "hide-right", sidebarRightIcon, a.tip(locales.RightSidebarHide(), "rightSidebar.toggle"), pal, a.toggleRight)
-				}
+	// The work panel is a card as the sidebar's and the content's, its
+	// radius and its gap to it, so the window reads as one set of cards.
+	card := paned(ui.Column(c.Key("side-panel")).Grow(1).MinHeight(0).Radius(rowRadius).Background(pal.card), pal).Clip()
+	card.Children(func() {
+		ui.Row(c.Key("right-bar")).Height(headerH).Shrink(0).AlignItems(ui.Stretch).DragWindow().Children(func() {
+			ui.Row(c.Key("shown")).Width(shown).Shrink(0).AlignItems(ui.Stretch).ClipX().Children(func() {
+				ui.Row(c.Key("tabs")).Width(w).Shrink(0).AlignItems(ui.Center).Padding(0, 0, 0, rowInset).Gap(2).Children(func() {
+					a.tabButton(c, pal, sideChanges, locales.SideChanges(), tab)
+					a.tabButton(c, pal, sideFiles, locales.SideFiles(), tab)
+					ui.Spacer(c)
+					// The title bar styles put the toggle in the title row: the
+					// bar's own button would ask for what its row already shows.
+					if !a.titleBar() {
+						iconButton(c, "hide-right", sidebarRightIcon, a.tip(locales.RightSidebarHide(), "rightSidebar.toggle"), pal, a.toggleRight)
+					}
+				})
 			})
 		})
-	})
-	ui.Column(c.Key("tab-" + tab)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		if tab == sideFiles {
-			a.filesSide(c, pal, s)
-		} else {
-			a.changesSide(c, pal, s)
-		}
+		ui.Column(c.Key("tab-" + tab)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+			if tab == sideFiles {
+				a.filesSide(c, pal, s)
+			} else {
+				a.changesSide(c, pal, s)
+			}
+		})
 	})
 }
 
 // tabButton is a tab of the sidebar, its own chosen as a session's row is,
 // in the same weight as the others.
 func (a *App) tabButton(c *ui.Context, pal *palette, id, label, tab string) {
-	b := ui.ButtonBase(c.Key("tab-"+id)).Height(26).Padding(0, 10).Radius(7).Center().Label(label)
+	b := ui.ButtonBase(c.Key("tab-"+id)).Height(26).Padding(0, rowInset).Radius(rowRadius).Center().Label(label)
 	if pal.dark {
 		// Room for the chosen tab's edge in every tab.
 		b.Border(1, ui.Transparent)
@@ -397,7 +402,7 @@ func (a *App) sideEdge(c *ui.Context, pal *palette, row float32) {
 // the window's right edge, whose header keeps room for the window's
 // controls (controlsRoom).
 func (a *App) viewerCard(c *ui.Context, pal *palette, s *proto.Session, v *sideView, width float32) {
-	card := paned(ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(pal.card), pal).
+	card := paned(ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(rowRadius).Clip().Background(pal.card), pal).
 		Focusable().Bind(a.paneRef("side-card"))
 	a.side.focused = card.FocusWithin()
 	card.Children(func() {
