@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -275,6 +277,32 @@ func TestSidebarDeviceFilter(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("gpu") {
 		t.Errorf("gpu not back: %q", tt.Texts())
+	}
+}
+
+// The plus at a host's header opens the picker of its folders, which
+// opens a project there; it does not start a session at once.
+func TestHostHeaderPlusOpensPicker(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	build := withHost(t, a, "build")
+	build.cl, _ = projectClient(t, func(method string, _ json.RawMessage) (any, error) {
+		return nil, errors.New("unexpected method " + method)
+	})
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	// The plus shows on hovering the header; hovering reveals it.
+	hdr, ok := tt.Find("build")
+	if !ok {
+		t.Fatalf("no build header; texts %q", tt.Texts())
+	}
+	tt.Move(hdr.X+hdr.W/2, hdr.Y+hdr.H/2)
+	tt.Frame()
+	if err := tt.Click(locales.ActionOpenProject()); err != nil {
+		t.Fatalf("no plus at the header: %v", err)
+	}
+	if !a.picker.open || a.picker.host != build {
+		t.Fatalf("plus did not open the picker on %q: %+v", build.name, a.picker)
 	}
 }
 

@@ -78,51 +78,85 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 		}
+		// The fold of a host's projects is read right after its count, as
+		// it is a property of the label, not of the row's far end.
+		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
+		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
+		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
 		if a.set.ShowSystemLoad {
 			a.hostLoad(c, pal, h)
 		}
-		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
-		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
-		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		a.hostState(c, pal, h)
-		if hovered && h.conn == connReady {
+		// Opening a project is always offered, on the row's far end.
+		if h.conn == connReady {
 			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).
-				Label(locales.NewSessionIn(name)).Tooltip(locales.ActionNewSession())
+				Label(locales.ActionOpenProject()).Tooltip(locales.ActionOpenProject())
 			if b.Hovered() {
 				b.Background(pal.rowHover).TextColor(pal.text)
 			}
 			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
 			if b.Clicked() {
-				a.newSessionOn(h, "")
+				a.openProjectOn(h)
 			}
 		}
 	})
 }
 
 // hostLoad draws a host's CPU and memory load, as its daemon pushes, as
-// two small bars in the header: the colored fill is the used part, and a
-// faint track the whole. Nothing while the setting is off or no load came.
+// two compact gauges in the header: a thin vertical gauge of the used
+// part, and its percent, as the reference (sheprd) reads them. The gauge
+// and its percent take the host's color, or a warning one when the load
+// is high. Nothing while the setting is off or no load came.
 func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	load := h.load
-	box := ui.Box(c.Key("load-"+h.name)).Size(46, 12).Shrink(0).Tooltip(a.loadTip(h))
-	box.Draw(func(p *ui.Painter, r ui.Rect) {
-		// Two bars, a track under each, the fill the used part.
-		const barH, gap = 3.5, 3
-		drawBar := func(y float32, frac float32, col ui.Color) {
-			frac = min(1, max(0, frac))
-			p.Fill(ui.Rect{X: r.X, Y: r.Y + y, W: r.W, H: barH}, pal.rowHover, barH/2)
-			if frac > 0.01 {
-				p.Fill(ui.Rect{X: r.X, Y: r.Y + y, W: r.W * frac, H: barH}, col, barH/2)
-			}
+	mem := -1.0
+	if load.MemTotal > 0 {
+		mem = float64(load.MemUsed) / float64(load.MemTotal)
+	}
+	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(3).AlignItems(ui.Center).Tooltip(a.loadTip(h))
+	row.Children(func() {
+		cpu := float64(load.CPU)
+		a.loadGauge(c, pal, float32(cpu)/100, a.loadColor(pal, pal.hostColor(h), cpu, cpuWarn))
+		ui.Text(c, fmt.Sprintf("%d%%", load.CPU)).FontSize(11).TextColor(a.loadColor(pal, pal.textMuted, cpu, cpuWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
+		if mem >= 0 {
+			a.loadGauge(c, pal, float32(mem), a.loadColor(pal, pal.textMuted, mem*100, memWarn))
+			ui.Text(c, fmt.Sprintf("%d%%", int(mem*100))).FontSize(11).TextColor(a.loadColor(pal, pal.textMuted, mem*100, memWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
-		col := pal.hostColor(h)
-		drawBar(0, float32(load.CPU)/100, col)
-		var mem float32
-		if load.MemTotal > 0 {
-			mem = float32(load.MemUsed) / float32(load.MemTotal)
+	})
+}
+
+// The load past which a gauge's color warns, then turns critical, as
+// sheprd's CPU and memory do.
+const (
+	cpuWarn = 75.0
+	memWarn = 80.0
+	loadMax = 90.0
+)
+
+// loadColor grades a share of a resource: the given color while it is
+// low, the palette's warning past warn, its danger past loadMax.
+func (a *App) loadColor(pal *palette, normal ui.Color, value, warn float64) ui.Color {
+	switch {
+	case value >= loadMax:
+		return pal.danger
+	case value >= warn:
+		return pal.attention
+	}
+	return normal
+}
+
+// loadGauge is the thin vertical gauge of a host's load: a track, and the
+// used part filled from the bottom.
+func (a *App) loadGauge(c *ui.Context, pal *palette, frac float32, col ui.Color) {
+	g := ui.Box(c).Size(3, 10).Shrink(0)
+	g.Draw(func(p *ui.Painter, r ui.Rect) {
+		p.Fill(r, pal.rowHover, r.W/2)
+		frac = min(1, max(0, frac))
+		if frac > 0.01 {
+			h := r.H * frac
+			p.Fill(ui.Rect{X: r.X, Y: r.Y + r.H - h, W: r.W, H: h}, col, r.W/2)
 		}
-		drawBar(barH+gap, mem, pal.textMuted)
 	})
 }
 

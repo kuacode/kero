@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
 	"kero/internal/actions"
@@ -59,11 +60,26 @@ func (a *App) pickerRoots() []pickerItem {
 	return append(out, pickerItem{name: locales.PickerHome(), path: home})
 }
 
-// openProjectOn lists a host's folders, from its home, to open a project
-// in one.
+// openProjectOn opens a project on a host. On this machine, the file
+// manager of the computer asks for the folder; elsewhere, the app's
+// picker, which lists the host's folders from its home.
 func (a *App) openProjectOn(h *host) {
 	if h.cl == nil {
 		a.toast(locales.HostNotConnected(h.name))
+		return
+	}
+	if !h.remote() {
+		win := a.win
+		go func() {
+			paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
+				Parent: win, Title: locales.OpenProjectTitle(), Directory: true, ButtonLabel: locales.CommonOpen(),
+				Message: locales.OpenProjectMessage(),
+			})
+			if err != nil || len(paths) == 0 {
+				return
+			}
+			a.update(func() { a.openProjectAt(h, paths[0]) })
+		}()
 		return
 	}
 	a.picker = folderPicker{open: true, host: h}

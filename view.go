@@ -321,7 +321,6 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 				sidebarTip = locales.SidebarShow()
 			}
 			iconButton(c, "hide-sidebar", sidebarIcon, a.tip(sidebarTip, "sidebar.toggle"), pal, a.toggleSidebar)
-			iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 		})
 	}
 	// The space between and below the rows moves the window, as the top
@@ -374,9 +373,6 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 				a.hostNote(c, pal, h)
 			}
 			gi++
-			if !h.remote() && len(a.st.Sessions) == 0 && h.conn == connReady && len(a.hosts) == 1 {
-				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.textFaint).Padding(8, 10)
-			}
 			if a.prefs.Collapsed[a.hostFoldKey(h)] {
 				// The host's header stays, its projects hidden; the
 				// session shown stays in view.
@@ -521,6 +517,7 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 		}
+		// The fold of a project's sessions is read right after its count.
 		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
@@ -528,15 +525,14 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		if needs > 0 {
 			ui.Text(c, locales.SidebarNeedsYou(needs)).FontSize(12.5).FontWeight(500).TextColor(pal.attention).SingleLine()
 		}
-		if hovered {
-			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).Label(locales.NewSessionIn(g.project.Name)).Tooltip(locales.ActionNewSession())
-			if b.Hovered() {
-				b.Background(pal.rowHover).TextColor(pal.text)
-			}
-			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
-			if b.Clicked() {
-				a.newSessionOn(g.host, id)
-			}
+		// Starting a session is always offered, on the row's far end.
+		b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).Label(locales.NewSessionIn(g.project.Name)).Tooltip(locales.ActionNewSession())
+		if b.Hovered() {
+			b.Background(pal.rowHover).TextColor(pal.text)
+		}
+		b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
+		if b.Clicked() {
+			a.newSessionOn(g.host, id)
 		}
 	})
 	if collapsed {
