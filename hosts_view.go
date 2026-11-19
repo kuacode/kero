@@ -76,7 +76,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		ui.Icon(c, a.hostOriginIcon(h)).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
 		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
-			ui.Text(c, fmt.Sprintf("%d", count)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").AlignSelf(ui.End).Margin(0, 0, 0, 1)
+			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 		}
 		// The fold of a host's projects is read right after its count, as
 		// it is a property of the label, not of the row's far end.
@@ -118,10 +118,10 @@ func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	row.Children(func() {
 		cpu := float64(load.CPU)
 		a.loadGauge(c, pal, float32(cpu)/100, a.loadColor(pal, pal.hostColor(h), cpu, cpuWarn))
-		ui.Text(c, fmt.Sprintf("%d%%", load.CPU)).FontSize(11).TextColor(a.loadColor(pal, pal.textMuted, cpu, cpuWarn)).FontFeatures("tnum").SingleLine().Shrink(0).AlignSelf(ui.End).Margin(0, 0, 0, 2)
+		ui.Text(c, fmt.Sprintf("%d%%", load.CPU)).FontSize(11).TextColor(a.loadColor(pal, pal.textMuted, cpu, cpuWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
 		if mem >= 0 {
 			a.loadGauge(c, pal, float32(mem), a.loadColor(pal, pal.textMuted, mem*100, memWarn))
-			ui.Text(c, fmt.Sprintf("%d%%", int(mem*100))).FontSize(11).TextColor(a.loadColor(pal, pal.textMuted, mem*100, memWarn)).FontFeatures("tnum").SingleLine().Shrink(0).AlignSelf(ui.End).Margin(0, 0, 0, 2)
+			ui.Text(c, fmt.Sprintf("%d%%", int(mem*100))).FontSize(11).TextColor(a.loadColor(pal, pal.textMuted, mem*100, memWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
 	})
 }
