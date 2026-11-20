@@ -42,7 +42,7 @@ var menuIconCache sync.Map // *ui.SVG -> *mygo.MenuIcon
 func (a *App) deviceFilterButton(c *ui.Context, pal *palette) {
 	label := a.deviceFilterLabel()
 	b := ui.ButtonBase(c.Key("device-filter")).Height(26).Radius(6).Padding(0, 8).Gap(5).
-		AlignItems(ui.Center).TextColor(pal.textMuted).
+		AlignItems(ui.Center).Justify(ui.End).TextColor(pal.textMuted).
 		Label(label).Tooltip(locales.SidebarDeviceFilter() + " · " + label)
 	if b.Pressed() {
 		b.Background(pal.rowHover.Alpha(0.12))
@@ -79,7 +79,9 @@ func (a *App) deviceFilterButton(c *ui.Context, pal *palette) {
 // devicePickerMenu builds the panel of the picker: a header naming what
 // it lists, the All row, one row per host, and the way to add one.
 func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
-	// The panel's title and the hint of how it is used.
+	// The panel's title and the hint of how it is used. The panel is as
+	// wide as the sidebar's card, as its children show, and hangs above
+	// the button at the card's end.
 	m.Item(locales.DevicePickerTitle()).Disabled(true).Content(func(x ui.MenuItemContent) {
 		ui.Text(x.Context, locales.DevicePickerTitle()).FontSize(11).FontWeight(600).TextColor(pal.textFaint)
 		ui.Text(x.Context, locales.DevicePickerHint()).FontSize(11).TextColor(pal.textFaint).Opacity(0.8)
@@ -114,6 +116,7 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 	if m.Item(locales.SetHostAdd()).Icon(menuIconOf(plusIcon)).IconColor(pal.accent).
 		Subtitle(locales.DevicePickerAddDetail()).Chosen() {
 		a.openPalette()
+		a.pal.addingHost = true
 	}
 }
 
