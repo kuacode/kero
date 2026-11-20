@@ -31,7 +31,7 @@ import (
 
 // PublicKey checks Kero's releases: mygo.json's updates.publicKey, whose
 // private key signs the app's updates and the server build's archives.
-const PublicKey = "WzJsOGNIuf6mcEqo5ff8jub+NoQQOEk4JXreLPYjgyQ="
+const PublicKey = "NQcIBW+mHFZDA4coUfarTy43yfwYUM8ZuLd6CID/nQI="
 
 // Repo is the GitHub repository of Kero's releases.
 const Repo = "kuacode/kero"
