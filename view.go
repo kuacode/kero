@@ -930,81 +930,23 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	}
 }
 
-// sidebarFooter is the sidebar's foot: the buttons for projects, the
-// palette and Settings; then, at the right, what across the sessions
-// wants a look, each a button going to the next session of it, and
-// nothing while nothing does, or the connection to kerod while there is
-// none.
+// sidebarFooter is the sidebar's foot: the picker of the hosts shown, and
+// the buttons for projects, the palette and Settings.  It keeps the
+// window's actions only: what across the sessions wants a look the app
+// says in the title bar and the Dock's badge, and how the connection to
+// kerod is the host's own row in the sidebar shows.
 func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, rowInset, 4, rowInset).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-		// When the title bar row holds these actions, the footer only
-		// keeps the status chips.
-		if !a.titleBar() {
-			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
-			a.deviceFilterButton(c, pal)
-			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
-			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+		// The picker of the hosts shown stands first, at the foot's edge,
+		// whether the title bar row holds the rest or the footer does.
+		a.deviceFilterButton(c, pal)
+		if a.titleBar() {
+			return
 		}
-		ui.Spacer(c)
-		switch a.local().conn {
-		case connReady:
-			waiting := func(s *proto.Session) bool { return s.Status == proto.Waiting }
-			working := func(s *proto.Session) bool { return s.Status == proto.Working }
-			done := func(s *proto.Session) bool { return s.Status == proto.Idle && s.Unread }
-			a.footerChip(c, pal, proto.Waiting, false, waiting, pal.attention, locales.FooterNeedsYou, a.tip(locales.FooterGoToIt(), "session.attention"), a.jumpToAttention)
-			a.footerChip(c, pal, proto.Working, false, working, pal.textMuted, locales.FooterWorking, locales.FooterGoToIt(), nil)
-			a.footerChip(c, pal, proto.Idle, true, done, pal.textMuted, locales.FooterDone, locales.FooterGoToIt(), nil)
-		case connConnecting:
-			a.footerNote(c, pal, pal.textFaint, locales.StatusConnecting())
-		default:
-			a.footerNote(c, pal, pal.danger, locales.StatusDisconnected())
-		}
-	})
-}
-
-// footerChip counts the sessions that are, by is, as their rows' status
-// icon and the count, in fg; a click goes to the next of them, by jump,
-// or else after the one shown. one and many word its label and tooltip,
-// as "%d session needs you". It shows nothing while none is.
-func (a *App) footerChip(c *ui.Context, pal *palette, st proto.Status, unread bool, is func(*proto.Session) bool, fg ui.Color, say func(int) string, hint string, jump func()) {
-	n := 0
-	for i := range a.st.Sessions {
-		// A host the app lost says nothing new, as for the Dock's badge.
-		if h := a.hostOf(a.st.Sessions[i].ID); h.remote() && h.conn != connReady {
-			continue
-		}
-		if is(&a.st.Sessions[i]) {
-			n++
-		}
-	}
-	if n == 0 {
-		return
-	}
-	words := say(n)
-	b := ui.ButtonBase(c.Key("chip-"+string(st))).Height(24).Padding(0, 8, 0, 6).Gap(5).Radius(12).AlignItems(ui.Center).
-		Label(words).Tooltip(words + " · " + hint)
-	if b.Hovered() {
-		b.Background(pal.rowHover)
-	}
-	b.Children(func() {
-		statusIcon(c, pal, st, unread, 12)
-		ui.Textf(c, "%d", n).FontSize(12).FontWeight(500).TextColor(fg).FontFeatures("tnum")
-	})
-	if b.Clicked() {
-		if jump == nil {
-			jump = func() { a.jumpTo(is) }
-		}
-		jump()
-	}
-}
-
-// footerNote says how the connection to kerod is, by a dot.
-func (a *App) footerNote(c *ui.Context, pal *palette, dot ui.Color, label string) {
-	ui.Row(c).Gap(7).Padding(0, 6).AlignItems(ui.Center).Children(func() {
-		ui.Box(c).Size(6, 6).Radius(3).Background(dot)
-		ui.Text(c, label).FontSize(12).TextColor(pal.textFaint).SingleLine().
-			Tooltip(locales.FooterServiceTip())
+		iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
+		iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+		iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
+		iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 	})
 }
 

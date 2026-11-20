@@ -400,18 +400,14 @@ func TestCopyOnSelectToast(t *testing.T) {
 	}
 }
 
-// The sidebar's foot counts what wants a look, each count going to the
-// next session of it, and says nothing while nothing does ($KERO_SHOTS).
+// The sidebar's foot keeps the picker of the hosts shown and the window's
+// actions, and none of what wants a look: that the title bar and the Dock
+// badge say, not a chip of the foot's ($KERO_SHOTS).
 func TestSidebarFooter(t *testing.T) {
 	a := testApp(t)
 	a.local().conn = connReady
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
-	for _, txt := range tt.Texts() {
-		if strings.Contains(txt, "running") {
-			t.Errorf("the foot still says %q", txt)
-		}
-	}
 	base := a.st.Sessions[0]
 	add := func(id, name string, st proto.Status, unread bool) {
 		s := base
@@ -426,16 +422,16 @@ func TestSidebarFooter(t *testing.T) {
 	tt.Advance(time.Second)
 	tt.Frame()
 	shot(t, tt, "sidebar-footer")
-	for label, want := range map[string]string{"1 session needs you": "s2", "2 sessions working": "s3", "1 session done, unseen": "s5"} {
-		a.selected = "s1"
-		tt.Frame()
-		if err := tt.Click(label); err != nil {
-			t.Errorf("no %q in the foot: %v", label, err)
-			continue
+	for _, say := range []string{"1 session needs you", "2 sessions working", "1 session done, unseen"} {
+		if err := tt.Click(say); err == nil {
+			t.Errorf("the foot still has %q", say)
 		}
-		tt.Frame()
-		if a.selected != want {
-			t.Errorf("%q went to %s, want %s", label, a.selected, want)
+	}
+	// None of them sits in the texts, either: the foot keeps the picker of
+	// the hosts shown and the window's actions, no chip of these.
+	for _, txt := range tt.Texts() {
+		if strings.HasSuffix(txt, "session needs you") || strings.HasSuffix(txt, "sessions working") {
+			t.Errorf("the foot says %q", txt)
 		}
 	}
 }
