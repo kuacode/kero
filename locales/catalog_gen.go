@@ -1176,6 +1176,58 @@ func (msgs Messages) SidebarDevicePicked(count int) string {
 	return Catalog.Format(msgs.locale, "sidebarDevicePicked", map[string]any{"count": count})
 }
 
+// DevicePickerTitle says "Hosts & Sessions"
+// in the language the app shows.
+func DevicePickerTitle() string { return In(i18n.Locale()).DevicePickerTitle() }
+
+// DevicePickerTitle says "Hosts & Sessions"
+// in the language of msgs.
+func (msgs Messages) DevicePickerTitle() string {
+	return Catalog.Format(msgs.locale, "devicePickerTitle", nil)
+}
+
+// DevicePickerHint says "Pick the hosts to show"
+// in the language the app shows.
+func DevicePickerHint() string { return In(i18n.Locale()).DevicePickerHint() }
+
+// DevicePickerHint says "Pick the hosts to show"
+// in the language of msgs.
+func (msgs Messages) DevicePickerHint() string {
+	return Catalog.Format(msgs.locale, "devicePickerHint", nil)
+}
+
+// DevicePickerSummary says "{total, plural, one {# host} other {# hosts}} · {connected, plural, one {# connected} other {# connected}}"
+// in the language the app shows.
+func DevicePickerSummary(total int, connected int) string {
+	return In(i18n.Locale()).DevicePickerSummary(total, connected)
+}
+
+// DevicePickerSummary says "{total, plural, one {# host} other {# hosts}} · {connected, plural, one {# connected} other {# connected}}"
+// in the language of msgs.
+func (msgs Messages) DevicePickerSummary(total int, connected int) string {
+	return Catalog.Format(msgs.locale, "devicePickerSummary", map[string]any{"total": total, "connected": connected})
+}
+
+// DevicePickerAddDetail says "An SSH host or a WSL distribution"
+// in the language the app shows.
+func DevicePickerAddDetail() string { return In(i18n.Locale()).DevicePickerAddDetail() }
+
+// DevicePickerAddDetail says "An SSH host or a WSL distribution"
+// in the language of msgs.
+func (msgs Messages) DevicePickerAddDetail() string {
+	return Catalog.Format(msgs.locale, "devicePickerAddDetail", nil)
+}
+
+// DeviceOnline says "online"
+// in the language the app shows.
+func DeviceOnline() string { return In(i18n.Locale()).DeviceOnline() }
+
+// DeviceOnline says "online"
+// in the language of msgs.
+func (msgs Messages) DeviceOnline() string {
+	return Catalog.Format(msgs.locale, "deviceOnline", nil)
+}
+
 // SidebarCollapse says "Collapse"
 // in the language the app shows.
 func SidebarCollapse() string { return In(i18n.Locale()).SidebarCollapse() }

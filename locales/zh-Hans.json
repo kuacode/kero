@@ -119,6 +119,21 @@
       }
     }
   },
+  "devicePickerTitle": "主机与会话",
+  "devicePickerHint": "选择要显示的主机",
+  "devicePickerSummary": "{total} 台主机 · {connected} 台已连接",
+  "@devicePickerSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "connected": {
+        "type": "int"
+      }
+    }
+  },
+  "devicePickerAddDetail": "一个 SSH 主机或一个 WSL 发行版",
+  "deviceOnline": "在线",
   "sidebarCollapse": "折叠",
   "sidebarExpand": "展开",
   "sidebarCloseProjectMenu": "关闭项目…",

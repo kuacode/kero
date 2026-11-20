@@ -167,6 +167,21 @@
       }
     }
   },
+  "devicePickerTitle": "Hosts & Sessions",
+  "devicePickerHint": "Pick the hosts to show",
+  "devicePickerSummary": "{total, plural, one {# host} other {# hosts}} · {connected, plural, one {# connected} other {# connected}}",
+  "@devicePickerSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "connected": {
+        "type": "int"
+      }
+    }
+  },
+  "devicePickerAddDetail": "An SSH host or a WSL distribution",
+  "deviceOnline": "online",
   "sidebarCollapse": "Collapse",
   "sidebarExpand": "Expand",
   "sidebarCloseProjectMenu": "Close Project…",

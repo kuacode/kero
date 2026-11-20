@@ -119,6 +119,21 @@
       }
     }
   },
+  "devicePickerTitle": "ホストとセッション",
+  "devicePickerHint": "表示するホストを選択",
+  "devicePickerSummary": "{total} 台のホスト · {connected} 台接続中",
+  "@devicePickerSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "connected": {
+        "type": "int"
+      }
+    }
+  },
+  "devicePickerAddDetail": "SSH ホストまたは WSL ディストリビューション",
+  "deviceOnline": "オンライン",
   "sidebarCollapse": "折りたたむ",
   "sidebarExpand": "展開",
   "sidebarCloseProjectMenu": "プロジェクトを閉じる…",
