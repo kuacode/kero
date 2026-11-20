@@ -382,6 +382,8 @@
   "setHideEmptyHostsDetail": "Leave remote hosts that hold no sessions out of the sidebar, under their headers.",
   "setShowSystemLoad": "Show host system load",
   "setShowSystemLoadDetail": "A host's header shows its CPU and memory load, as its daemon reports them.",
+  "setDownloadMirror": "Download mirror",
+  "setDownloadMirrorDetail": "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL.",
   "setFocusFollowsMouse": "Focus follows mouse",
   "setFocusFollowsMouseDetail": "A pane takes the focus when the pointer moves into it, without a click.",
   "setAskBeforeClosing": "Ask before closing a running program",

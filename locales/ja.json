@@ -234,6 +234,8 @@
   "setHideEmptyHostsDetail": "セッションを含まないリモートホストをサイドバーから除外し、そのヘッダーのみを表示します。",
   "setShowSystemLoad": "ホストのシステム負荷を表示",
   "setShowSystemLoadDetail": "ホストのヘッダーに、そのデーモンが報告する CPU とメモリの負荷を表示します。",
+  "setDownloadMirror": "ダウンロードミラー",
+  "setDownloadMirrorDetail": "GitHub Releases のプロキシ（gh-proxy.com など）経由でリリースを取得します。プロキシの URL を入力してください。",
   "setFocusFollowsMouse": "マウスでフォーカスを移動",
   "setFocusFollowsMouseDetail": "ポインタが入ったペインに、クリックしなくてもフォーカスが移ります。",
   "setAskBeforeClosing": "実行中のプログラムを閉じる前に確認",

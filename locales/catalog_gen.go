@@ -2330,6 +2330,26 @@ func (msgs Messages) SetShowSystemLoadDetail() string {
 	return Catalog.Format(msgs.locale, "setShowSystemLoadDetail", nil)
 }
 
+// SetDownloadMirror says "Download mirror"
+// in the language the app shows.
+func SetDownloadMirror() string { return In(i18n.Locale()).SetDownloadMirror() }
+
+// SetDownloadMirror says "Download mirror"
+// in the language of msgs.
+func (msgs Messages) SetDownloadMirror() string {
+	return Catalog.Format(msgs.locale, "setDownloadMirror", nil)
+}
+
+// SetDownloadMirrorDetail says "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL."
+// in the language the app shows.
+func SetDownloadMirrorDetail() string { return In(i18n.Locale()).SetDownloadMirrorDetail() }
+
+// SetDownloadMirrorDetail says "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL."
+// in the language of msgs.
+func (msgs Messages) SetDownloadMirrorDetail() string {
+	return Catalog.Format(msgs.locale, "setDownloadMirrorDetail", nil)
+}
+
 // SetFocusFollowsMouse says "Focus follows mouse"
 // in the language the app shows.
 func SetFocusFollowsMouse() string { return In(i18n.Locale()).SetFocusFollowsMouse() }

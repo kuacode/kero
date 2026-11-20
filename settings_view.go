@@ -694,6 +694,7 @@ func adListDetail(src adblock.Source) string {
 }
 
 func (a *App) updatesGroup(c *ui.Context, pal *palette) {
+	s := &a.set
 	u := &a.ss.updates
 	version := "Kero " + mygo.App.Version()
 	switch {
@@ -715,6 +716,9 @@ func (a *App) updatesGroup(c *ui.Context, pal *palette) {
 		})
 		settingRow(c, pal, locales.SetAutoInstall(), locales.SetAutoInstallDetail(), func() {
 			toggle(c.Key("auto-download"), &u.download, pal).OnChange(func() { updater.SetAutomaticDownloads(u.download) })
+		})
+		settingRow(c, pal, locales.SetDownloadMirror(), locales.SetDownloadMirrorDetail(), func() {
+			textField(c, "download-mirror", &s.DownloadMirror, "https://gh-proxy.com", 0, pal).Font("monospace")
 		})
 	})
 }

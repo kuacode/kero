@@ -234,6 +234,8 @@
   "setHideEmptyHostsDetail": "在侧边栏中隐藏不包含任何会话的远程主机，仅保留其标题头。",
   "setShowSystemLoad": "显示主机系统负载",
   "setShowSystemLoadDetail": "在主机的标题头中显示其 CPU 和内存负载，由该主机的守护进程上报。",
+  "setDownloadMirror": "下载镜像",
+  "setDownloadMirrorDetail": "通过 GitHub Releases 的代理（如 gh-proxy.com）获取发布文件，填写该代理的地址。",
   "setFocusFollowsMouse": "焦点跟随鼠标",
   "setFocusFollowsMouseDetail": "指针移入窗格时，该窗格无需点击即获得焦点。",
   "setAskBeforeClosing": "关闭正在运行的程序前询问",
