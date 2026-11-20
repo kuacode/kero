@@ -31,6 +31,7 @@ func settingsIndex() []searchEntry {
 		{"general", locales.SetShowSystemLoad(), "sidebar-show-system-load host cpu memory load header gauge"},
 		{"general", locales.SetFocusFollowsMouse(), "focus-follows-mouse hover pointer niri hyprland sloppy"},
 		{"general", locales.SetAskBeforeClosing(), "confirm-close quit kill"},
+		{"general", locales.SetQuitEndsSessions(), "quit-ends-sessions quit end all sessions stop exit"},
 		{"general", locales.SetRestoreSessions(), "restore-sessions reboot persist"},
 		{"general", locales.SetResumeAgents(), "resume-agents claude codex pi opencode conversation restore reboot"},
 		{"general", locales.SetSessionHistory(), "session-history ended sessions archived resume claude codex conversation"},

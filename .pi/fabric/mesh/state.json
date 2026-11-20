@@ -44,65 +44,6 @@
         "sessionId": "01a19ac5-2913-7417-bc0e-bb0d04d1387e"
       }
     },
-    "topology/participants/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2": {
-      "key": "topology/participants/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2",
-      "value": {
-        "format": 1,
-        "id": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "kind": "root",
-        "rootId": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "ownerHostId": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "ownerIdentityId": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "name": "main",
-        "status": "idle",
-        "runner": "pi",
-        "transport": "host",
-        "capabilities": [],
-        "cwd": "/home/hfk/github/kero",
-        "sessionId": "01a19ad2-9be4-7536-b280-a2861c711d57",
-        "model": "9router/free",
-        "thinking": "off",
-        "startedAt": 1793665096183,
-        "updatedAt": 1793687923861,
-        "pendingMessages": false,
-        "controlProtocol": "v1",
-        "ownerIncarnation": "3a0792de-59b5-4ce4-9060-a90d57ff4763",
-        "label": "KER-2"
-      },
-      "version": 9877,
-      "updatedAt": 1793687923867,
-      "updatedBy": {
-        "id": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "name": "main",
-        "kind": "main",
-        "sessionId": "01a19ad2-9be4-7536-b280-a2861c711d57"
-      }
-    },
-    "topology/hosts/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2": {
-      "key": "topology/hosts/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2",
-      "value": {
-        "format": 1,
-        "id": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "rootId": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "identity": {
-          "id": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-          "name": "main",
-          "kind": "main",
-          "sessionId": "01a19ad2-9be4-7536-b280-a2861c711d57"
-        },
-        "startedAt": 1793665096183,
-        "updatedAt": 1793687923868,
-        "expiresAt": 1793687938868
-      },
-      "version": 9878,
-      "updatedAt": 1793687923873,
-      "updatedBy": {
-        "id": "session:01a19ad2-9be4-7536-b280-a2861c711d57",
-        "name": "main",
-        "kind": "main",
-        "sessionId": "01a19ad2-9be4-7536-b280-a2861c711d57"
-      }
-    },
     "topology/tombstones/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0": {
       "key": "topology/tombstones/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0",
       "value": {
@@ -158,69 +99,6 @@
         "sessionId": "01a1a45c-a21f-777f-b65d-54b0aa396ff5"
       }
     },
-    "topology/participants/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509": {
-      "key": "topology/participants/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509",
-      "value": {
-        "format": 1,
-        "id": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "kind": "root",
-        "rootId": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "ownerHostId": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "ownerIdentityId": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "name": "main",
-        "status": "idle",
-        "runner": "pi",
-        "transport": "host",
-        "capabilities": [
-          "steer",
-          "followUp",
-          "fabric"
-        ],
-        "cwd": "/home/hfk/github/kero",
-        "sessionId": "01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "model": "kaifa-codex/gpt-5.6-luna",
-        "thinking": "medium",
-        "startedAt": 1793762730661,
-        "updatedAt": 1793803741379,
-        "pendingMessages": false,
-        "controlProtocol": "v1",
-        "ownerIncarnation": "12cd5968-02f3-4242-8695-871e3e04fc1b",
-        "label": "KER-4"
-      },
-      "version": 41130,
-      "updatedAt": 1793803741380,
-      "updatedBy": {
-        "id": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "name": "main",
-        "kind": "main",
-        "sessionId": "01a1a45c-a21f-777f-b65d-54b0aa396ff5"
-      }
-    },
-    "topology/hosts/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509": {
-      "key": "topology/hosts/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509",
-      "value": {
-        "format": 1,
-        "id": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "rootId": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "identity": {
-          "id": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-          "name": "main",
-          "kind": "main",
-          "sessionId": "01a1a45c-a21f-777f-b65d-54b0aa396ff5"
-        },
-        "startedAt": 1793762730661,
-        "updatedAt": 1793803741380,
-        "expiresAt": 1793803756380
-      },
-      "version": 41131,
-      "updatedAt": 1793803741381,
-      "updatedBy": {
-        "id": "session:01a1a45c-a21f-777f-b65d-54b0aa396ff5",
-        "name": "main",
-        "kind": "main",
-        "sessionId": "01a1a45c-a21f-777f-b65d-54b0aa396ff5"
-      }
-    },
     "sessions/01a1a4d7-f055-749f-af63-5ef64f207018": {
       "key": "sessions/01a1a4d7-f055-749f-af63-5ef64f207018",
       "value": {
@@ -228,20 +106,20 @@
         "name": "KER-5",
         "label": "KER-5",
         "kind": "peer",
-        "status": "running",
+        "status": "idle",
         "runner": "pi",
         "transport": "host",
         "cwd": "/home/hfk/github/kero",
         "sessionId": "01a1a4d7-f055-749f-af63-5ef64f207018",
-        "model": "kaifa/l3.2",
+        "model": "9router/free",
         "thinking": "medium",
-        "startedAt": 1793777700494,
-        "updatedAt": 1793777825658,
+        "startedAt": 1794291399859,
+        "updatedAt": 1794409265665,
         "pendingMessages": false,
         "local": false
       },
-      "version": 39052,
-      "updatedAt": 1793777825659,
+      "version": 62626,
+      "updatedAt": 1794409265666,
       "updatedBy": {
         "id": "session:01a1a4d7-f055-749f-af63-5ef64f207018",
         "name": "main",
@@ -259,7 +137,7 @@
         "ownerHostId": "session:01a1a4d7-f055-749f-af63-5ef64f207018",
         "ownerIdentityId": "session:01a1a4d7-f055-749f-af63-5ef64f207018",
         "name": "main",
-        "status": "running",
+        "status": "idle",
         "runner": "pi",
         "transport": "host",
         "capabilities": [
@@ -269,17 +147,17 @@
         ],
         "cwd": "/home/hfk/github/kero",
         "sessionId": "01a1a4d7-f055-749f-af63-5ef64f207018",
-        "model": "kaifa/l3.2",
+        "model": "9router/free",
         "thinking": "medium",
-        "startedAt": 1793777700494,
-        "updatedAt": 1793777825658,
+        "startedAt": 1794291399859,
+        "updatedAt": 1794409265665,
         "pendingMessages": false,
         "controlProtocol": "v1",
-        "ownerIncarnation": "a096969d-55c9-4715-aa3c-59d9bdbfc6fa",
+        "ownerIncarnation": "d1348903-7e34-46bc-a6d9-b384649f055c",
         "label": "KER-5"
       },
-      "version": 39053,
-      "updatedAt": 1793777825660,
+      "version": 62627,
+      "updatedAt": 1794409265666,
       "updatedBy": {
         "id": "session:01a1a4d7-f055-749f-af63-5ef64f207018",
         "name": "main",
@@ -299,12 +177,12 @@
           "kind": "main",
           "sessionId": "01a1a4d7-f055-749f-af63-5ef64f207018"
         },
-        "startedAt": 1793777700494,
-        "updatedAt": 1793777825660,
-        "expiresAt": 1793777840660
+        "startedAt": 1794291399859,
+        "updatedAt": 1794409265666,
+        "expiresAt": 1794409280666
       },
-      "version": 39054,
-      "updatedAt": 1793777825661,
+      "version": 62628,
+      "updatedAt": 1794409265667,
       "updatedBy": {
         "id": "session:01a1a4d7-f055-749f-af63-5ef64f207018",
         "name": "main",
@@ -313,7 +191,7 @@
       }
     }
   },
-  "highWater": 65492,
+  "highWater": 136218,
   "versions": {
     "sessions/01a19ac5-2913-7417-bc0e-bb0d04d1387e": 177,
     "topology/participants/aef4773f282c3e111dabed467231ff107bf3e8b5c8a0d90a7f96356ab4bb383c": 179,
@@ -321,18 +199,18 @@
     "topology/peer-seq/3": 8,
     "topology/tombstones/aef4773f282c3e111dabed467231ff107bf3e8b5c8a0d90a7f96356ab4bb383c": 533,
     "sessions/01a19ad2-9be4-7536-b280-a2861c711d57": 9876,
-    "topology/participants/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2": 9877,
-    "topology/hosts/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2": 9878,
+    "topology/participants/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2": 9878,
+    "topology/hosts/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2": 9879,
     "sessions/01a1a3fc-f194-777f-b65d-54ae4161b4e4": 29841,
     "topology/participants/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0": 29843,
     "topology/hosts/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0": 29844,
     "topology/tombstones/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0": 32407,
     "sessions/01a1a45c-a21f-777f-b65d-54b0aa396ff5": 41129,
-    "topology/participants/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509": 41130,
-    "topology/hosts/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509": 41131,
-    "sessions/01a1a4d7-f055-749f-af63-5ef64f207018": 39052,
-    "topology/participants/4dd0c183c1a51b5ddb2f48eafa286a6202d86c122c8ab8f7193f5b75145ba49a": 39053,
-    "topology/hosts/4dd0c183c1a51b5ddb2f48eafa286a6202d86c122c8ab8f7193f5b75145ba49a": 39054
+    "topology/participants/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509": 41131,
+    "topology/hosts/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509": 41132,
+    "sessions/01a1a4d7-f055-749f-af63-5ef64f207018": 62626,
+    "topology/participants/4dd0c183c1a51b5ddb2f48eafa286a6202d86c122c8ab8f7193f5b75145ba49a": 62627,
+    "topology/hosts/4dd0c183c1a51b5ddb2f48eafa286a6202d86c122c8ab8f7193f5b75145ba49a": 62628
   },
   "tombstoneOrder": [
     "sessions/01a19ac5-2913-7417-bc0e-bb0d04d1387e",
@@ -341,6 +219,10 @@
     "sessions/01a19ad2-9be4-7536-b280-a2861c711d57",
     "sessions/01a1a3fc-f194-777f-b65d-54ae4161b4e4",
     "topology/participants/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0",
-    "topology/hosts/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0"
+    "topology/hosts/d1cc91119c48bdec54b8054147a6163722a5e0ae21432a2cc1cef51e054327a0",
+    "topology/participants/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2",
+    "topology/hosts/2fa513b99c70fa8c300724b80d40ab494e6cd62331942fc1c88504eb024cebf2",
+    "topology/participants/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509",
+    "topology/hosts/42846efd649c0afa586fef71bf77a25977d02f2c6046ca287344f609856bb509"
   ]
 }
