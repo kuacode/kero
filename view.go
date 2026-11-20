@@ -49,6 +49,14 @@ const (
 	projectName = hostName + nestInset
 	sessionName = projectName + nestInset
 	paneName    = sessionName + nestInset
+	// folderGlyphW is a project's folder mark's width, projectGap its gap
+	// to the project's name: the mark leads the name, as the host's OS
+	// icon does its, so the name stays at the tree's step. sessionGap
+	// does the same for a session's program mark; the marks and names
+	// step nestInset in each level, host, project, session, pane.
+	folderGlyphW = 14
+	projectGap   = 7
+	sessionGap   = 7
 	// rowRadius is every sidebar row's corner, and rowGap the space
 	// between them, so the sidebar reads with the rhythm of the cards
 	// beside it, which are cardGap apart.
@@ -468,12 +476,13 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		top = 2
 	}
 	// Its name starts a nestInset in from its host's name, past the edge
-	// a row keeps in dark mode.
-	inset := float32(projectName)
+	// a row keeps in dark mode; its folder leads it, a mark as the host's
+	// OS icon is its, so the name stays where the tree's step puts it.
+	inset := float32(projectName - folderGlyphW - projectGap)
 	if pal.dark {
 		inset++
 	}
-	hdr := ui.Row(c.Key("project-"+key)).Height(28).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(6).AlignItems(ui.Center).Radius(rowRadius)
+	hdr := ui.Row(c.Key("project-"+key)).Height(28).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(projectGap).AlignItems(ui.Center).Radius(rowRadius)
 	// While a project is dragged, the headers it passes do not light up.
 	hovered := hdr.Hovered() && a.projMove.id == ""
 	renaming := id != "" && a.renamingProject == id
@@ -554,6 +563,9 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 			}
 			return
 		}
+		// Its folder leads its name, in the theme's folder color as the
+		// Files tree's folders are, so a project reads as a folder.
+		fileIconImage(c, pal, g.project.Name, true, !collapsed)
 		ui.Text(c, g.project.Name).FontSize(12.5).FontWeight(600).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
@@ -602,7 +614,18 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int) 
 	if detailed {
 		h = rowH2
 	}
-	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, rowInset, 0, sessionName-hostGlyphW-10).Gap(10).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
+	// The program's mark leads the row, as the host's OS icon and the
+	// project's folder do: its column steps nestInset in from the one
+	// above, and the name follows, so the sidebar reads as a tree.
+	size := float32(14)
+	if detailed {
+		size = 16
+	}
+	inset := sessionName - size - sessionGap
+	if pal.dark {
+		inset++
+	}
+	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, rowInset, 0, inset).Gap(sessionGap).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
 	hovered := row.Hovered()
 	if pal.dark {
 		// Room for the chosen row's edge in every row, so that choosing
@@ -659,10 +682,6 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int) 
 			return
 		}
 		// The program the lead pane runs, whose status the row shows.
-		size := float32(14)
-		if detailed {
-			size = 16
-		}
 		ui.Icon(c, programIcon(&s.Pane)).Size(size, size).TextColor(programColor(pal, &s.Pane)).Shrink(0)
 		name := func() {
 			name := ui.Text(c, s.DisplayName(a.set.SessionName)).FontSize(13.5).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.text)
@@ -770,11 +789,11 @@ func (a *App) paneRow(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pa
 	h := a.hostOf(sid)
 	// The pane's program under the session's, its name under the
 	// session's name, one nestInset deeper in the tree.
-	inset := float32(paneName - 13 - 8)
+	inset := float32(paneName - 13 - sessionGap)
 	if detailed {
 		inset += 2
 	}
-	row := ui.Row(c.Key(sid+"/"+pid)).Height(28).Padding(0, rowInset, 0, inset).Gap(8).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
+	row := ui.Row(c.Key(sid+"/"+pid)).Height(28).Padding(0, rowInset, 0, inset).Gap(sessionGap).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
 	focused := s.ID == a.selected && a.focusOf(s) == pid
 	switch {
 	case focused:
