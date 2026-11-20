@@ -120,6 +120,15 @@ func (h *host) windows() bool {
 	return h.info.OS == "windows"
 }
 
+// os is the operating system of the host, its kerod's, or this app's for
+// the local one, as hostOriginIcon marks it and the host's tip names it.
+func (h *host) os() string {
+	if !h.remote() {
+		return runtime.GOOS
+	}
+	return h.info.OS
+}
+
 // shortDir writes a directory of the host with ~ for its home.
 func (h *host) shortDir(dir string) string {
 	if !h.remote() {

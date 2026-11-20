@@ -47,11 +47,12 @@ func withHost(t *testing.T, a *App, name string) *host {
 
 // The mark before a host's name tells how the app reaches it: this
 // machine's own, an SSH host, a WSL distribution, or a host over HTTP(S).
-// A host's mark is the computer's, however the app reaches it.
+// A host's mark is its operating system's logo, the computer's when the
+// host has not told its OS yet.
 func TestHostOriginIcon(t *testing.T) {
 	a := testApp(t)
-	if got := a.hostOriginIcon(a.local()); got != hostIcon {
-		t.Errorf("this machine's mark is not the computer's")
+	if got, want := a.hostOriginIcon(a.local()), osIcons[runtime.GOOS]; got != want {
+		t.Errorf("this machine's mark is not its OS's")
 	}
 	for _, scheme := range []string{"ssh", "wsl", "http", "https"} {
 		addr, err := remote.ParseAddr(scheme + "://build")
@@ -60,8 +61,13 @@ func TestHostOriginIcon(t *testing.T) {
 		}
 		h := &host{name: "build", addr: addr}
 		if got := a.hostOriginIcon(h); got != hostIcon {
-			t.Errorf("%s: mark is not the computer's", scheme)
+			t.Errorf("%s: a host that has not answered keeps the computer's mark", scheme)
 		}
+	}
+	// A host's kerod tells its OS, which the mark shows.
+	h := &host{name: "build", info: proto.HostInfo{OS: "linux"}}
+	if got := a.hostOriginIcon(h); got != osIcons["linux"] {
+		t.Errorf("a linux host's mark is not linux's")
 	}
 }
 

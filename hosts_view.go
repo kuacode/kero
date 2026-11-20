@@ -22,6 +22,16 @@ import (
 
 var (
 	hostIcon = glyph("f7-desktopcomputer")
+
+	// osIcons mark a host by its operating system, the logo of the OS its
+	// kerod runs: the host's tip names the OS too, so the mark stays a
+	// mark and not another line of text. Unknown, or a host that has not
+	// answered yet (h.info.OS empty), keeps the computer.
+	osIcons = map[string]*ui.SVG{
+		"linux":   glyph("si-linux"),
+		"darwin":  glyph("si-apple"),
+		"windows": glyph("si-windows11"),
+	}
 )
 
 // The sidebar heads a remote host, then its projects under it (see
@@ -261,9 +271,13 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 }
 
 // hostTip tells what a host is: its address, and Kero there.
-// hostOriginIcon is the mark before a host's name: the computer's, for
-// every host, as the device is a computer however the app reaches it.
+// hostOriginIcon is the mark before a host's name: the operating system's
+// logo, as the device is a computer and its OS names it; a host that has
+// not told its OS yet keeps the computer, for it may be another platform.
 func (a *App) hostOriginIcon(h *host) *ui.SVG {
+	if ic, ok := osIcons[h.os()]; ok {
+		return ic
+	}
 	return hostIcon
 }
 
