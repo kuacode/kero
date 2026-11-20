@@ -187,7 +187,7 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 		floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.popover), pal).Clip().
 			Label(locales.PickerTitle(h.label()))
 		ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, a.hostOriginIcon(h)).Size(14, 14).TextColor(pal.hostColor(h))
+			ui.Icon(c, a.hostOriginIcon(h)).Size(14, 14).TextColor(a.hostOriginColor(pal, h))
 			// The machine it lists, which any other can take the place of.
 			if len(a.hosts) > 1 {
 				a.pickerHosts(c, pal, h)

@@ -105,10 +105,37 @@ func programIcon(p *proto.Pane) *ui.SVG {
 }
 
 // agentColors are the colors of coding agents whose logos have one of
-// their own, as Claude's orange; the others take the text's.
+// their own, as Claude's orange; the others take the text's.  The colors
+// are the agents' brands, as Simple Icons serves them.
 var agentColors = map[string]ui.Color{
-	"claude": ui.Hex("#d97757"),
-	"gemini": ui.Hex("#3186ff"),
+	"claude":       ui.Hex("#d97757"),
+	"gemini":       ui.Hex("#3186ff"),
+	"codex":        ui.Hex("#10a37f"),
+	"opencode":     ui.Hex("#1c1c1e"),
+	"amp":          ui.Hex("#1c1c1e"),
+	"cursor-agent": ui.Hex("#5f7cff"),
+	"copilot":      ui.Hex("#6e6e6e"),
+	"qwen":         ui.Hex("#7b5cf0"),
+	"kimi":         ui.Hex("#1c1c1e"),
+	"cline":        ui.Hex("#7b5cf0"),
+}
+
+// programColors are the colors of the programs a pane runs, by the name
+// kerod gives its foreground program, its agent or its script's runtime:
+// the program's brand, as Simple Icons serves it, where it has one; the
+// text's for another program, and faint once the shell is back in the
+// foreground or the pane ended, as the Ended list shows the agents that
+// stopped.
+var programColors = map[string]ui.Color{
+	"node":    ui.Hex("#5fa04e"),
+	"bun":     ui.Hex("#fbf0df"),
+	"deno":    ui.Hex("#1c1c1e"),
+	"python":  ui.Hex("#3776ab"),
+	"python3": ui.Hex("#3776ab"),
+	"vim":     ui.Hex("#019733"),
+	"nvim":    ui.Hex("#57a143"),
+	"git":     ui.Hex("#f05032"),
+	"docker":  ui.Hex("#2496ed"),
 }
 
 // programColor is the color of a pane's program icon in the sidebar: a
@@ -116,15 +143,28 @@ var agentColors = map[string]ui.Color{
 // faint once the shell is back in the foreground or the pane ended, as
 // the Ended list shows the agents that stopped.
 func programColor(pal *palette, p *proto.Pane) ui.Color {
+	// A brand that is black reads on the light, but is lost on the dark:
+	// take a gray there.
+	fixed := func(col ui.Color) ui.Color {
+		if pal.dark && col == ui.Hex("#1c1c1e") {
+			return ui.Hex("#9a9aa0")
+		}
+		return col
+	}
 	switch {
 	case p.Status == proto.Exited:
 		return pal.textFaint
 	case p.Agent != "":
 		if col, ok := agentColors[p.Agent]; ok {
-			return col
+			return fixed(col)
 		}
 		return pal.text
-	case p.Process != "", p.Browser():
+	case p.Browser():
+		return pal.textMuted
+	case p.Process != "":
+		if col, ok := programColors[p.Process]; ok {
+			return fixed(col)
+		}
 		return pal.textMuted
 	}
 	return pal.textFaint

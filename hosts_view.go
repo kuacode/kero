@@ -57,6 +57,35 @@ var (
 	}
 )
 
+// osBrands are the colors of the marks of operating systems and
+// distributions, as their own: the logo of Linux, Apple and Windows, and
+// of the distributions Kero names.  Light then dark, as hostColors are;
+// the dark ones for the marks that are black on light, which would be
+// lost on the dark.
+var osBrands = map[string][2]ui.Color{
+	// Operating systems.
+	"linux":   {ui.Hex("#0f0f10"), ui.Hex("#b8b8bd")},
+	"darwin":  {ui.Hex("#1a1a1c"), ui.Hex("#e6e6ea")},
+	"windows": {ui.Hex("#0078d4"), ui.Hex("#5ab4f5")},
+	// Distributions of Linux.
+	"debian":              {ui.Hex("#a81d33"), ui.Hex("#f06a7e")},
+	"ubuntu":              {ui.Hex("#e95420"), ui.Hex("#ff8a50")},
+	"arch":                {ui.Hex("#1793d1"), ui.Hex("#5bc0f0")},
+	"archlinux":           {ui.Hex("#1793d1"), ui.Hex("#5bc0f0")},
+	"fedora":              {ui.Hex("#51a2da"), ui.Hex("#7cc0ef")},
+	"linuxmint":           {ui.Hex("#87cf3e"), ui.Hex("#a8e06c")},
+	"mint":                {ui.Hex("#87cf3e"), ui.Hex("#a8e06c")},
+	"centos":              {ui.Hex("#262577"), ui.Hex("#8a8ad8")},
+	"opensuse":            {ui.Hex("#73ba25"), ui.Hex("#9cd85c")},
+	"opensuse-leap":       {ui.Hex("#73ba25"), ui.Hex("#9cd85c")},
+	"opensuse-tumbleweed": {ui.Hex("#73ba25"), ui.Hex("#9cd85c")},
+	"manjaro":             {ui.Hex("#35bf5c"), ui.Hex("#6fe58d")},
+	"kali":                {ui.Hex("#557c94"), ui.Hex("#8fb4cc")},
+	"kalilinux":           {ui.Hex("#557c94"), ui.Hex("#8fb4cc")},
+	"alpine":              {ui.Hex("#0d597f"), ui.Hex("#4aa8d8")},
+	"alpinelinux":         {ui.Hex("#0d597f"), ui.Hex("#4aa8d8")},
+}
+
 // The sidebar heads a remote host, then its projects under it (see
 // groupView). A host folds on a click of its header, and one with no
 // sessions shows nowhere unless something there wants the user
@@ -118,7 +147,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		a.toggleHost(h)
 	}
 	hdr.Children(func() {
-		ui.Icon(c, a.hostOriginIcon(h)).Size(hostGlyphW, hostGlyphW).TextColor(pal.hostColor(h)).Shrink(0)
+		ui.Icon(c, a.hostOriginIcon(h)).Size(hostGlyphW, hostGlyphW).TextColor(a.hostOriginColor(pal, h)).Shrink(0)
 		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
 			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").Margin(2, 0, 0, 0)
@@ -294,6 +323,32 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 }
 
 // hostTip tells what a host is: its address, and Kero there.
+// hostOriginColor is the color of the mark before a host's name: the
+// brand of the distribution or operating system the mark is of, light or
+// dark as the appearance, else the host's color for the computer of a
+// host that has not told its OS yet, and this machine's muted text.
+func (a *App) hostOriginColor(pal *palette, h *host) ui.Color {
+	name := ""
+	if h.os() == "linux" {
+		if _, ok := distroIcons[h.distro()]; ok {
+			name = h.distro()
+		}
+	}
+	if name == "" {
+		name = h.os()
+	}
+	if col, ok := osBrands[name]; ok {
+		if pal.dark {
+			return col[1]
+		}
+		return col[0]
+	}
+	if _, ok := osIcons[name]; ok {
+		return pal.hostColor(h)
+	}
+	return pal.hostColor(h)
+}
+
 // hostOriginIcon is the mark before a host's name: its distribution's
 // logo for a linux host that told one (as the user asked Debian and
 // Ubuntu to read apart), else its operating system's, else the
