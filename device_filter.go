@@ -62,8 +62,10 @@ func (a *App) deviceFilterButton(c *ui.Context, pal *palette) {
 	b.PopoverMenuButton(func(m *ui.Menu) {
 		a.devicePickerMenu(c, pal, m)
 	}, ui.PopoverMenuButtonOptions{
-		// The button is at the window's bottom, so the panel opens above it.
-		At: ui.AnchorTopStart, Self: ui.AnchorBottomStart,
+		// The button is at the window's foot's end, so the panel opens
+		// above it, lined up with its end: the picker hangs from the
+		// corner it comes of, as a device picker does.
+		At: ui.AnchorTopEnd, Self: ui.AnchorBottomEnd,
 		Panel: func(p ui.Element) {
 			p.NoShadow().Background(pal.popover).Radius(rowRadius)
 			floating(p, pal)
@@ -88,27 +90,30 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 		Subtitle(a.deviceSummary()).Chosen() {
 		a.showAllDevices()
 	}
-	// One row per host, marking each host shown.
+	// One row per host, marking each host shown.  The trailing text is
+	// how far the host is, once a heartbeat came of its connection, as
+	// the host's header shows it.
 	for _, h := range a.hosts {
 		if !h.remote() && !h.loaded {
 			continue
 		}
 		name := a.hostName(h)
-		if m.Item(name).Checked(a.deviceShown(h)).ID("device-" + hostFilterKey(h)).
+		it := m.Item(name).Checked(a.deviceShown(h)).ID("device-" + hostFilterKey(h)).
 			Icon(menuIconOf(a.hostOriginIcon(h))).IconColor(a.hostOriginColor(pal, h)).
-			Subtitle(a.deviceSubtitle(h)).Chosen() {
+			Subtitle(a.deviceSubtitle(h))
+		if h.hasRTT() {
+			it = it.Trailing(rttText(h.rtt))
+		}
+		if it.Chosen() {
 			a.toggleDevice(h)
 		}
 	}
-	// Managing the hosts themselves, add and remove: the same page the
-	// settings offer, where a host is added, changed or removed.
+	// Adding a host: the palette takes an address, or name=address, as a
+	// host to add, without a trip to Settings.
 	m.Separator()
 	if m.Item(locales.SetHostAdd()).Icon(menuIconOf(plusIcon)).IconColor(pal.accent).
 		Subtitle(locales.DevicePickerAddDetail()).Chosen() {
-		a.openSettings("hosts")
-	}
-	if m.Item(locales.HostSettings()).Icon(menuIconOf(gearIcon)).IconColor(pal.textMuted).Chosen() {
-		a.openSettings("hosts")
+		a.openPalette()
 	}
 }
 

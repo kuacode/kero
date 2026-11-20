@@ -283,9 +283,10 @@ func TestSidebarDeviceFilter(t *testing.T) {
 	if !slices.Contains(menu, locales.HostThisComputer()) || !slices.Contains(menu, "build") || !slices.Contains(menu, "gpu") {
 		t.Errorf("picker lists %q", menu)
 	}
-	// The picker is also where the hosts are managed, as a device's is.
-	if !slices.Contains(menu, locales.HostSettings()) {
-		t.Errorf("picker has no host settings: %q", menu)
+	// The picker is also where a host is added: the palette, and the
+	// Settings Hosts page behind it, is the quick way to.
+	if !slices.Contains(menu, locales.SetHostAdd()) {
+		t.Errorf("picker has no add-host: %q", menu)
 	}
 	tt.CloseMenu()
 	// Hiding gpu leaves it out; build stays.

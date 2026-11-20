@@ -176,6 +176,8 @@
   "paletteSettingsPage": "設定: {page}",
   "paletteRestartService": "バックグラウンドサービスを再起動",
   "paletteRestartServiceDetail": "セッションは元の場所から再開します",
+  "paletteAddHost": "ホストを追加",
+  "paletteAddHostDetail": "アドレスのホストを追加します",
   "paletteOpenInBrowser": "ブラウザペインで開く",
   "paletteLabel": "セッションへ移動",
   "palettePlaceholder": "セッションへ移動、またはコマンドを実行…",

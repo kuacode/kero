@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/egoist/mygo/i18n"
@@ -34,6 +35,43 @@ func TestPaletteKeywords(t *testing.T) {
 	// Keywords match by their starts, not as letters strewn through them.
 	if keywords("bsr", actionWords["pane.browser"]) >= 0 {
 		t.Error("keywords matched letters in order")
+	}
+}
+
+// An address, or name=address, typed in the palette offers a host to add,
+// where a bare word does not, and choosing it adds the host and connects.
+func TestPaletteAddHost(t *testing.T) {
+	a := testApp(t)
+	a.openPalette()
+	for _, q := range []string{"me@build", "ssh://me@build", "dbox=192.168.1.5", "build=me@build"} {
+		a.pal.query = q
+		if it := a.paletteItems(); !slices.ContainsFunc(it, func(x paletteItem) bool { return x.title == locales.PaletteAddHost() }) {
+			t.Errorf("%q: no Add Host in the palette", q)
+		}
+	}
+	// A bare word is a command, not a host.
+	a.pal.query = "git"
+	if it := a.paletteItems(); slices.ContainsFunc(it, func(x paletteItem) bool { return x.title == locales.PaletteAddHost() }) {
+		t.Error("a bare word offered a host to add")
+	}
+	// Choosing it adds the host and connects at once.
+	a.pal.query = "me@build"
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if h := a.set.Host("build"); h == nil {
+		t.Errorf("no host added: %v", a.set.Hosts)
+	}
+	// The app follows the configuration's hosts when its window shows
+	// them; the tester has none, so the hosts follow it here.
+	a.syncHosts()
+	added := a.hostNamed("build")
+	if added == nil {
+		t.Fatal("added host not in the app")
+	}
+	if !a.deviceShown(added) {
+		t.Error("added host not shown")
 	}
 }
 

@@ -13,6 +13,8 @@ import (
 	"kero/internal/actions"
 
 	"kero/internal/proto"
+	"kero/internal/remote"
+	"kero/internal/settings"
 
 	"kero/locales"
 )
@@ -160,6 +162,47 @@ func (a *App) resumeConversation(h *host, cv proto.Conversation) {
 	}()
 }
 
+// hostFromQuery reads a host from what the user typed in the palette:
+// name=address, as the configuration's host key takes, or an address
+// alone, which names itself as defaultHostName does.  It reports nil
+// when the query is no host: taken, invalid, or no address at all.
+func (a *App) hostFromQuery(q string) *settings.Host {
+	if q == "" || strings.ContainsAny(q, " \t") {
+		return nil
+	}
+	line := q
+	if !strings.Contains(q, "=") {
+		// Only an address the app would open elsewhere: a bare word is a
+		// command, not a host to add.  An address has a scheme, a user, a
+		// port, or a dot, as IsAddress and @ and : tell.
+		if !proto.IsAddress(q) && !strings.ContainsAny(q, "@:") {
+			return nil
+		}
+		addr, err := remote.ParseAddr(q)
+		if err != nil {
+			return nil
+		}
+		line = defaultHostName(addr.String()) + "=" + q
+	}
+	h, err := settings.ParseHost(line)
+	if err != nil || a.set.Host(h.Name) != nil {
+		return nil
+	}
+	return &h
+}
+
+// addHostQuery adds the host the palette's query reads, as the Hosts
+// page's form does, and connects at once.
+func (a *App) addHostQuery(q string) {
+	h := a.hostFromQuery(q)
+	if h == nil {
+		return
+	}
+	s := a.set.Clone()
+	s.Hosts = append(s.Hosts, *h)
+	a.applySettings(s)
+}
+
 func (a *App) paletteItems() []paletteItem {
 	if a.pal.only {
 		return a.conversationItems()
@@ -187,10 +230,18 @@ func (a *App) paletteItems() []paletteItem {
 	var cmds []paletteItem
 	// Commands are found by their English names too, in any language.
 	en := locales.In("en")
+	q := strings.TrimSpace(a.pal.query)
 	// An address typed opens in a browser beside the pane the user is in.
-	if q := strings.TrimSpace(a.pal.query); proto.IsAddress(q) && a.session(a.selected) != nil {
+	if proto.IsAddress(q) && a.session(a.selected) != nil {
 		cmds = append(cmds, paletteItem{title: locales.PaletteOpenInBrowser(), detail: proto.BrowserURL(q), top: true,
 			run: func() { a.openBrowser(q) }})
+	}
+	// An address, or name=address, typed adds a host: the palette is
+	// where a host is added quickly, as the picker's Add a Host comes
+	// here, without a trip to Settings.
+	if a.hostFromQuery(q) != nil {
+		cmds = append(cmds, paletteItem{title: locales.PaletteAddHost(), detail: q, top: true,
+			run: func() { a.addHostQuery(q) }})
 	}
 	for _, act := range actions.All {
 		id := act.ID

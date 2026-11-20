@@ -937,16 +937,17 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 // kerod is the host's own row in the sidebar shows.
 func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, rowInset, 4, rowInset).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-		// The picker of the hosts shown stands first, at the foot's edge,
-		// whether the title bar row holds the rest or the footer does.
-		a.deviceFilterButton(c, pal)
-		if a.titleBar() {
-			return
+		if !a.titleBar() {
+			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
+			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
+			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		}
-		iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
-		iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-		iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
-		iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+		// The picker of the hosts shown stands at the foot's end, at the
+		// corner of the sidebar, as a device picker does: the panel hangs
+		// above it, lined up with the button.
+		ui.Spacer(c)
+		a.deviceFilterButton(c, pal)
 	})
 }
 

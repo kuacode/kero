@@ -176,6 +176,8 @@
   "paletteSettingsPage": "设置：{page}",
   "paletteRestartService": "重启后台服务",
   "paletteRestartServiceDetail": "会话会在原处重新开始",
+  "paletteAddHost": "添加主机",
+  "paletteAddHostDetail": "按地址添加该主机",
   "paletteOpenInBrowser": "在浏览器面板中打开",
   "paletteLabel": "前往会话",
   "palettePlaceholder": "前往会话或运行命令…",

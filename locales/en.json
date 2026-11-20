@@ -252,6 +252,8 @@
   "paletteSettingsPage": "Settings: {page}",
   "paletteRestartService": "Restart Background Service",
   "paletteRestartServiceDetail": "Sessions start again where they were",
+  "paletteAddHost": "Add Host",
+  "paletteAddHostDetail": "Adds the host the address names",
   "paletteOpenInBrowser": "Open in Browser Pane",
   "paletteLabel": "Go to Session",
   "palettePlaceholder": "Go to session or run a command…",

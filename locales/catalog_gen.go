@@ -1648,6 +1648,26 @@ func (msgs Messages) PaletteRestartServiceDetail() string {
 	return Catalog.Format(msgs.locale, "paletteRestartServiceDetail", nil)
 }
 
+// PaletteAddHost says "Add Host"
+// in the language the app shows.
+func PaletteAddHost() string { return In(i18n.Locale()).PaletteAddHost() }
+
+// PaletteAddHost says "Add Host"
+// in the language of msgs.
+func (msgs Messages) PaletteAddHost() string {
+	return Catalog.Format(msgs.locale, "paletteAddHost", nil)
+}
+
+// PaletteAddHostDetail says "Adds the host the address names"
+// in the language the app shows.
+func PaletteAddHostDetail() string { return In(i18n.Locale()).PaletteAddHostDetail() }
+
+// PaletteAddHostDetail says "Adds the host the address names"
+// in the language of msgs.
+func (msgs Messages) PaletteAddHostDetail() string {
+	return Catalog.Format(msgs.locale, "paletteAddHostDetail", nil)
+}
+
 // PaletteOpenInBrowser says "Open in Browser Pane"
 // in the language the app shows.
 func PaletteOpenInBrowser() string { return In(i18n.Locale()).PaletteOpenInBrowser() }
