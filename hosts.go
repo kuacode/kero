@@ -62,6 +62,10 @@ type host struct {
 	// load of zero.
 	load   proto.SystemLoad
 	loadAt time.Time
+	// progress is how far the update of the host has gone, 0..100, as
+	// the app fetches the archive to upload it, then uploads it, when
+	// busy is update.
+	progress int
 }
 
 // hasLoad reports whether the host told its load, which an earlier kerod

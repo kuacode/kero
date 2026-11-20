@@ -96,7 +96,17 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
-		if a.set.ShowSystemLoad {
+		if h.busy == "update" && h.progress > 0 {
+			// The update's progress, in place of the load's gauges: a
+			// bar as far as the archive has come, fetched or sent.
+			ui.Box(c).Size(46, 5).Radius(2.5).Background(pal.chip).Shrink(0).Children(func() {
+				w := float32(46 * h.progress / 100)
+				if w < 2 {
+					w = 2
+				}
+				ui.Box(c).Size(w, 5).Radius(2.5).Background(pal.hostColor(h))
+			})
+		} else if a.set.ShowSystemLoad {
 			a.hostLoad(c, pal, h)
 		}
 		a.hostState(c, pal, h)
@@ -289,6 +299,9 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 			title = locales.HostInstalling(h.name)
 		case h.busy == "update":
 			title = locales.HostUpdating(h.name)
+			if h.progress > 0 {
+				detail = fmt.Sprintf("%d%%", h.progress)
+			}
 		case h.busy == "restart":
 			title = locales.HostRestarting(h.name)
 		case h.conn == connVersion:
@@ -571,9 +584,13 @@ func (a *App) hostRequest(h *host, what string) {
 			platform := h.info.OS + "/" + h.info.Arch
 			if platform != "" && slices.Contains(update.Platforms, platform) {
 				update.SetMirror(a.set.DownloadMirror)
-				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, nil)
+				download := func(n int64) { a.setProgress(h, n, 0) }
+				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, download)
 				if ferr == nil {
-					err = rc.Upload(ctx, version, h.info.OS, h.info.Arch, sig, archive, nil)
+					// What the app fetched, the app now sends: the host's
+					// kerod replaces its install with it.
+					upload := func(sent, total int64) { a.setProgress(h, sent, total) }
+					err = rc.Upload(ctx, version, h.info.OS, h.info.Arch, sig, archive, upload)
 				} else {
 					err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
 				}
@@ -586,6 +603,7 @@ func (a *App) hostRequest(h *host, what string) {
 		}
 		a.update(func() {
 			h.busy = ""
+			h.progress = 0
 			if !slices.Contains(a.hosts, h) {
 				return
 			}
@@ -604,6 +622,23 @@ func (a *App) hostRequest(h *host, what string) {
 			time.AfterFunc(time.Second, func() { a.update(func() { a.reconnectHost(h) }) })
 		})
 	}()
+}
+
+// setProgress tells how far the update of a host has gone, for its
+// header: a fraction of the archive the app fetched (total 0) or sent.
+func (a *App) setProgress(h *host, got, total int64) {
+	pct := 0
+	if total > 0 {
+		pct = int(100 * got / total)
+	} else if h.loadAt.IsZero() {
+		// Fetching: no total until the server says.
+		pct = -1
+	}
+	a.update(func() {
+		if slices.Contains(a.hosts, h) {
+			h.progress = pct
+		}
+	})
 }
 
 // openRemotePath opens what a path printed in a remote pane names, which
