@@ -5632,6 +5632,28 @@ func (msgs Messages) HostSessions(count int) string {
 	return Catalog.Format(msgs.locale, "hostSessions", map[string]any{"count": count})
 }
 
+// HostLatency says "Latency {rtt}"
+// in the language the app shows.
+func HostLatency(rtt string) string { return In(i18n.Locale()).HostLatency(rtt) }
+
+// HostLatency says "Latency {rtt}"
+// in the language of msgs.
+func (msgs Messages) HostLatency(rtt string) string {
+	return Catalog.Format(msgs.locale, "hostLatency", map[string]any{"rtt": rtt})
+}
+
+// HostLatencyJitter says "Latency {rtt} · jitter {jitter}"
+// in the language the app shows.
+func HostLatencyJitter(rtt string, jitter string) string {
+	return In(i18n.Locale()).HostLatencyJitter(rtt, jitter)
+}
+
+// HostLatencyJitter says "Latency {rtt} · jitter {jitter}"
+// in the language of msgs.
+func (msgs Messages) HostLatencyJitter(rtt string, jitter string) string {
+	return Catalog.Format(msgs.locale, "hostLatencyJitter", map[string]any{"rtt": rtt, "jitter": jitter})
+}
+
 // HostCopyAddress says "Copy Address"
 // in the language the app shows.
 func HostCopyAddress() string { return In(i18n.Locale()).HostCopyAddress() }

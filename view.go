@@ -41,6 +41,11 @@ const (
 	hostGlyphW = 14
 	treeGap    = 7
 	nestInset  = 12
+	// hdrGap is the space between a host header's parts, tighter than
+	// treeGap so that the name, its count and the load and round trip it
+	// shows all fit: the name keeps treeGap from its icon, by a margin,
+	// so the tree's anchor holds.
+	hdrGap = 4
 	// The sidebar tree's levels, each name stepping nestInset in from the
 	// one above it: a host's name leads at rowInset+hostGlyphW+treeGap,
 	// then its projects, its sessions from them, and its panes from its

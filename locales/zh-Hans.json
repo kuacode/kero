@@ -562,6 +562,8 @@
   "hostAbout": "{platform} 上的 Kero {version} · {hostname}，用户 {user}",
   "hostConnected": "已连接：{platform} 上的 Kero {version} · {hostname}，用户 {user}",
   "hostSessions": "{count} 个会话",
+  "hostLatency": "延迟 {rtt}",
+  "hostLatencyJitter": "延迟 {rtt} · 抖动 {jitter}",
   "hostCopyAddress": "复制地址",
   "hostSettings": "主机设置…",
   "hostRemove": "移除主机…",

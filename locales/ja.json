@@ -562,6 +562,8 @@
   "hostAbout": "Kero {version}（{platform}）· {hostname}、ユーザー {user}",
   "hostConnected": "接続済み: Kero {version}（{platform}）· {hostname}、ユーザー {user}",
   "hostSessions": "{count} 個のセッション",
+  "hostLatency": "レイテンシ {rtt}",
+  "hostLatencyJitter": "レイテンシ {rtt} · ジッタ {jitter}",
   "hostCopyAddress": "アドレスをコピー",
   "hostSettings": "ホストの設定…",
   "hostRemove": "ホストを削除…",

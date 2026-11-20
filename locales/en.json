@@ -826,6 +826,25 @@
       }
     }
   },
+  "hostLatency": "Latency {rtt}",
+  "@hostLatency": {
+    "placeholders": {
+      "rtt": {
+        "type": "String"
+      }
+    }
+  },
+  "hostLatencyJitter": "Latency {rtt} · jitter {jitter}",
+  "@hostLatencyJitter": {
+    "placeholders": {
+      "rtt": {
+        "type": "String"
+      },
+      "jitter": {
+        "type": "String"
+      }
+    }
+  },
   "hostCopyAddress": "Copy Address",
   "hostSettings": "Host Settings…",
   "hostRemove": "Remove Host…",

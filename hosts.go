@@ -66,6 +66,44 @@ type host struct {
 	// the app fetches the archive to upload it, then uploads it, when
 	// busy is update.
 	progress int
+	// rtt is the smoothed round trip to a remote host (its SRTT), rttVar
+	// its variance (RTTVAR, the jitter), as watchPing folds each heartbeat
+	// in, and rttSamples how many it took.  A host shows a figure once one
+	// came on its present connection, not another's.
+	rtt        time.Duration
+	rttVar     time.Duration
+	rttSamples int
+	rttAt      time.Time
+	rttLost    bool // the last beat went unanswered
+}
+
+// hasRTT reports whether the app read a round trip on the host's present
+// connection.
+func (h *host) hasRTT() bool { return h.remote() && h.rttSamples > 0 }
+
+// observeRTT folds a round trip into the host's moving average, as RFC
+// 6298 has TCP keep its SRTT and RTTVAR: the first sample seeds both, the
+// rest move an eighth of the way, and the variance a quarter toward the
+// gap, so a single slow sample bends the figure instead of becoming it.
+func (h *host) observeRTT(d time.Duration) {
+	if h.rttSamples == 0 {
+		h.rtt, h.rttVar = d, d/2
+	} else {
+		gap := h.rtt - d
+		if gap < 0 {
+			gap = -gap
+		}
+		h.rttVar = (3*h.rttVar + gap) / 4
+		h.rtt = (7*h.rtt + d) / 8
+	}
+	h.rttSamples++
+	h.rttAt = time.Now()
+}
+
+// forgetRTT drops the round trip of a connection gone, so the next one is
+// read as its own.
+func (h *host) forgetRTT() {
+	h.rtt, h.rttVar, h.rttSamples, h.rttAt, h.rttLost = 0, 0, 0, time.Time{}, false
 }
 
 // hasLoad reports whether the host told its load, which an earlier kerod
@@ -420,6 +458,8 @@ func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, er
 	// A fresh kerod starts afresh: drop the load the last one told, so a
 	// kerod that sends none shows no gauge rather than another's stale one.
 	h.load, h.loadAt = proto.SystemLoad{}, time.Time{}
+	// A new connection's round trip is not the last one's.
+	h.forgetRTT()
 	h.kerod = kerodID(h, cl)
 	h.daemonApp, h.daemonFP = cl.Welcome.App, cl.Welcome.Build
 	if !h.remote() {
@@ -485,6 +525,8 @@ func (a *App) lost(h *host, rc *remote.Conn) {
 		return
 	}
 	h.rc = nil
+	// A round trip of a connection gone says nothing of the next.
+	h.forgetRTT()
 	go rc.Close()
 	if h.cl == nil && h.conn != connFailed {
 		// Nothing else follows the end: kerod was of another version.
