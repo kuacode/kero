@@ -271,6 +271,30 @@ func Install(ctx context.Context, version, dir, current string, downgrade bool) 
 	return Replace(archive, dir)
 }
 
+// InstallArchive puts an archive a client uploaded, of version for the
+// host's platform, in place of what dir holds, as Install does: it is the
+// archive the app fetched through the mirror, where the host could not, or
+// the app's own build, where the versions matched. The archive must be
+// signed as the releases are, for this version and platform, else it is
+// not Kero's.
+func InstallArchive(archive []byte, version, goos, goarch, sig, dir string) error {
+	version = strings.TrimPrefix(version, "v")
+	if !ValidVersion(version) {
+		return fmt.Errorf("%q is not a version of Kero", version)
+	}
+	platform := goos + "/" + goarch
+	if !slices.Contains(Platforms, platform) {
+		return fmt.Errorf("the server build of Kero is not made for %s", platform)
+	}
+	if err := Verify(archive, version, goos, goarch, sig); err != nil {
+		return err
+	}
+	if !Managed(dir) {
+		return fmt.Errorf("Kero in %s was not installed with Kero's install script: update it as you installed it", dir)
+	}
+	return Replace(archive, dir)
+}
+
 // Replace puts what the archive holds in place of dir, as a whole, so
 // that no file of the old version stays: into a directory beside it
 // first, then by renames. The archive is the server build's, for this

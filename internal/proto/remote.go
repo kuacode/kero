@@ -30,6 +30,13 @@ const (
 	// to App's version (Hello.App), signed as the app's own updates are. A
 	// HostReply answers it; a restart then runs the new version.
 	KindUpdate = "host.update"
+	// KindUpload asks a server build of Kero on the host to replace itself
+	// with the archive the client uploads over the stream: the app
+	// downloads it through the mirror, to upload it where the host itself
+	// could not. The archive is of App's version (Hello.App), for the
+	// host's platform, signed as the app's own updates are (UploadRequest.
+	// Sig). A HostReply answers it; a restart then runs the new version.
+	KindUpload = "host.upload"
 )
 
 // MuxHello opens a remote connection.
@@ -80,9 +87,9 @@ type HostInfo struct {
 // apps on a "system" event: CPU 0–100, and the memory used of total, in
 // bytes. Zeroes while the platform does not report one.
 type SystemLoad struct {
-	CPU      int     `json:"cpu,omitempty"`
-	MemUsed  uint64  `json:"memUsed,omitempty"`
-	MemTotal uint64  `json:"memTotal,omitempty"`
+	CPU      int    `json:"cpu,omitempty"`
+	MemUsed  uint64 `json:"memUsed,omitempty"`
+	MemTotal uint64 `json:"memTotal,omitempty"`
 }
 
 // HostRequest is the Hello of a host stream: KindRestart or KindUpdate.
@@ -90,6 +97,21 @@ type HostRequest struct {
 	Kind string `json:"kind"`
 	// App is the version to update to.
 	App string `json:"app,omitempty"`
+	// Upload, on KindUpload, describes the archive that follows on the
+	// stream: its version, platform, and signature.
+	Upload *UploadRequest `json:"upload,omitempty"`
+}
+
+// UploadRequest is what precedes the archive a client uploads over a host
+// stream (KindUpload): the archive's version, platform, and signature,
+// and how many bytes it holds (Len), which follow the request on the
+// stream, to its end.
+type UploadRequest struct {
+	App  string `json:"app"`
+	OS   string `json:"os"`
+	Arch string `json:"arch"`
+	Sig  string `json:"sig"`
+	Len  int64  `json:"len"`
 }
 
 // HostReply answers a HostRequest.

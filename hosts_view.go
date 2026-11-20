@@ -15,6 +15,7 @@ import (
 	"kero/internal/proto"
 	"kero/internal/remote"
 	"kero/internal/shell"
+	"kero/internal/update"
 
 	"kero/locales"
 )
@@ -561,7 +562,24 @@ func (a *App) hostRequest(h *host, what string) {
 		defer cancel()
 		var err error
 		if what == "update" {
-			err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
+			// The app downloads the archive through the mirror, where the
+			// host itself could not, and uploads it: the host's kerod
+			// replaces its install with what the stream holds. A host of
+			// another platform, or an app not of a release, updates as
+			// the host does (KindUpdate, which fetches it itself). Should
+			// the app's fetch fail, the host may still fetch it: let it.
+			platform := h.info.OS + "/" + h.info.Arch
+			if platform != "" && slices.Contains(update.Platforms, platform) {
+				update.SetMirror(a.set.DownloadMirror)
+				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, nil)
+				if ferr == nil {
+					err = rc.Upload(ctx, version, h.info.OS, h.info.Arch, sig, archive, nil)
+				} else {
+					err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
+				}
+			} else {
+				err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
+			}
 		}
 		if err == nil {
 			err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindRestart})

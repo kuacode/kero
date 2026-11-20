@@ -50,6 +50,11 @@ func muxConfig(lg *log.Logger) *yamux.Config {
 // maxLine bounds the JSON lines that open a connection and its streams.
 const maxLine = 64 << 10
 
+// maxArchive bounds an archive a client uploads (proto.KindUpload): the
+// server build's archive of a release is a few megabytes, so a gigabyte
+// is far past it.
+const maxArchive = 1 << 30
+
 // readLine reads a line of at most maxLine bytes.
 func readLine(r *bufio.Reader) ([]byte, error) {
 	var line []byte
@@ -259,6 +264,60 @@ func (c *Conn) Host(ctx context.Context, req proto.HostRequest) error {
 	return nil
 }
 
+// Upload streams an archive of the server build of Kero, of version for
+// the host's platform and signed as the releases are (sig), to the host,
+// which replaces its install with it (proto.KindUpload): the app fetched
+// it through the mirror, where the host could not, or it is the app's own
+// build, where the versions matched. Upload runs until the host answers
+// or ctx ends. onProgress reports the bytes sent, and total what the
+// archive holds.
+func (c *Conn) Upload(ctx context.Context, app, goos, goarch, sig string, archive []byte, onProgress func(sent, total int64)) error {
+	st, err := c.Open()
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	stop := context.AfterFunc(ctx, func() { st.Close() })
+	defer stop()
+	b, _ := json.Marshal(proto.HostRequest{Kind: proto.KindUpload, App: app, Upload: &proto.UploadRequest{App: app, OS: goos, Arch: goarch, Sig: sig, Len: int64(len(archive))}})
+	if _, err := st.Write(append(b, '\n')); err != nil {
+		return err
+	}
+	// The archive follows the request, as many bytes as the request said:
+	// write it, reporting the bytes as they go, so the update's progress
+	// shows. The stream stays open for the host's reply.
+	sent := int64(0)
+	for len(archive) > 0 {
+		n, err := st.Write(archive)
+		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return err
+		}
+		archive = archive[n:]
+		sent += int64(n)
+		if onProgress != nil {
+			onProgress(sent, sent+int64(len(archive)))
+		}
+	}
+	line, err := readLine(bufio.NewReader(st))
+	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return err
+	}
+	var r proto.HostReply
+	if err := json.Unmarshal(line, &r); err != nil {
+		return err
+	}
+	if !r.OK {
+		return errors.New(r.Error)
+	}
+	return nil
+}
+
 // stream is a stream of a remote connection, whose Close wakes its own
 // reads too, as closing a socket does: a yamux stream closed goes on
 // reading until the other side closes it.
@@ -283,7 +342,10 @@ type Server struct {
 	// written: a kerod that restarts itself ends with it.
 	Restart func() (then func(), err error)
 	Update  func(app string) error
-	// Closed, when set, runs as the connection ends.
+	// Upload answers proto.KindUpload: it reads the archive the stream
+	// holds after the request, replacing the host's install with it. nil
+	// refuses it. It runs as long as the upload takes.
+	Upload func(req proto.UploadRequest, r io.Reader) error // Closed, when set, runs as the connection ends.
 	Closed func()
 	Log    *log.Logger
 }
@@ -387,6 +449,24 @@ func (s *Server) stream(st *yamux.Stream, mux proto.MuxHello) {
 			return
 		}
 		reply(s.Update(req.App))
+	case proto.KindUpload:
+		if s.Upload == nil || req.Upload == nil {
+			reply(errors.New("Kero on this host updates as it was installed: update it there"))
+			return
+		}
+		// The archive follows the request on the stream, as many bytes
+		// as the request said, then the reply. The stream's half of it
+		// needs no close: the length bounds the read.
+		if req.Upload.Len < 0 || req.Upload.Len > maxArchive {
+			reply(errors.New("the upload is too large to be Kero's server build"))
+			return
+		}
+		archive, err := io.ReadAll(io.LimitReader(br, req.Upload.Len))
+		if err != nil {
+			reply(err)
+			return
+		}
+		reply(s.Upload(*req.Upload, bytes.NewReader(archive)))
 	default:
 		s.Stream(&streamConn{stream: stream{st}, r: br}, line, mux)
 	}

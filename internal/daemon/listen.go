@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/netip"
@@ -414,6 +415,14 @@ func (d *Daemon) remoteServer(id identity) *remote.Server {
 				return err
 			}
 			return nil
+		}
+		s.Upload = func(req proto.UploadRequest, r io.Reader) error {
+			archive, err := io.ReadAll(r)
+			if err != nil {
+				return err
+			}
+			d.log.Printf("uploading Kero %s (%s/%s), as %s sent it", req.App, req.OS, req.Arch, id.peer)
+			return update.InstallArchive(archive, req.App, req.OS, req.Arch, req.Sig, filepath.Dir(d.exe))
 		}
 	} else if !build.Server {
 		s.Update = func(app string) error {

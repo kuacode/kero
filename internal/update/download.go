@@ -184,21 +184,29 @@ func backoff(attempt int) time.Duration {
 // through the mirror with resume and retry, reporting the bytes received
 // to onProgress as it goes.
 func Fetch(ctx context.Context, version, goos, goarch string, onProgress func(int64)) ([]byte, error) {
+	archive, _, err := FetchWithSig(ctx, version, goos, goarch, onProgress)
+	return archive, err
+}
+
+// FetchWithSig is Fetch, with the signature the archive is signed with:
+// to upload the archive to a host that could not fetch it itself, the
+// host checks the signature it came with.
+func FetchWithSig(ctx context.Context, version, goos, goarch string, onProgress func(int64)) ([]byte, string, error) {
 	version = strings.TrimPrefix(version, "v")
 	if !ValidVersion(version) {
-		return nil, fmt.Errorf("%q is not a version of Kero", version)
+		return nil, "", fmt.Errorf("%q is not a version of Kero", version)
 	}
 	name := Asset(version, goos, goarch)
 	archive, err := download(ctx, mirrored(URL(version, name)), maxArchive, onProgress)
 	if err != nil {
-		return nil, fmt.Errorf("downloading Kero %s: %w", version, err)
+		return nil, "", fmt.Errorf("downloading Kero %s: %w", version, err)
 	}
 	sig, err := download(ctx, mirrored(URL(version, name+".sig")), 4096, nil)
 	if err != nil {
-		return nil, fmt.Errorf("downloading the signature of Kero %s: %w", version, err)
+		return nil, "", fmt.Errorf("downloading the signature of Kero %s: %w", version, err)
 	}
 	if err := Verify(archive, version, goos, goarch, string(sig)); err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return archive, nil
+	return archive, string(sig), nil
 }

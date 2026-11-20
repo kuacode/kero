@@ -103,6 +103,31 @@ func TestInstallRefuses(t *testing.T) {
 	}
 }
 
+// A client's uploaded archive installs as the host's own, signed for the
+// version and platform, and a managed install, else it is refused.
+func TestInstallArchiveRefuses(t *testing.T) {
+	dir := t.TempDir()
+	kero := exe(runtime.GOOS)
+	archive := tarball(t, map[string]string{kero: "new", Marker: ""})
+	// Not signed as Kero's, for this version and platform.
+	if err := InstallArchive(archive, "2.1.0", runtime.GOOS, runtime.GOARCH, "not a signature", dir); err == nil {
+		t.Error("took an unsigned archive")
+	}
+	// A platform Kero does not build for.
+	if err := InstallArchive(archive, "2.1.0", "plan9", "mips", "AA==", dir); err == nil || !strings.Contains(err.Error(), "not made") {
+		t.Errorf("a foreign platform: %v", err)
+	}
+	// A directory Kero did not install.
+	os.WriteFile(filepath.Join(dir, Marker), nil, 0o644)
+	if err := InstallArchive(archive, "2.1.0", runtime.GOOS, runtime.GOARCH, "AA==", dir); err == nil || !strings.Contains(err.Error(), "signature") {
+		t.Errorf("a managed install with a bad signature: %v", err)
+	}
+	// A version that is none.
+	if err := InstallArchive(archive, "../../x", runtime.GOOS, runtime.GOARCH, "AA==", dir); err == nil {
+		t.Error("took a version that is none")
+	}
+}
+
 func tarball(t *testing.T, files map[string]string) []byte {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)

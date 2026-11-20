@@ -292,6 +292,19 @@ func echoServer(t *testing.T) *Server {
 			}
 			return nil
 		},
+		Upload: func(req proto.UploadRequest, r io.Reader) error {
+			if req.App == "bad" {
+				return errors.New("no such version")
+			}
+			b, err := io.ReadAll(r)
+			if err != nil {
+				return err
+			}
+			if string(b) != "the archive" {
+				return fmt.Errorf("got %q, want the archive", b)
+			}
+			return nil
+		},
 	}
 }
 
@@ -371,6 +384,14 @@ func TestMuxStreams(t *testing.T) {
 	}
 	if err := c.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: "bad"}); err == nil || !strings.Contains(err.Error(), "no such version") {
 		t.Errorf("update to a bad version: %v", err)
+	}
+	// An archive the app fetched is uploaded to the host, which replaces
+	// its install with it.
+	if err := c.Upload(ctx, "2.0", "linux", "amd64", "sig", []byte("the archive"), nil); err != nil {
+		t.Errorf("upload: %v", err)
+	}
+	if err := c.Upload(ctx, "bad", "linux", "amd64", "sig", []byte("the archive"), nil); err == nil || !strings.Contains(err.Error(), "no such version") {
+		t.Errorf("upload of a bad version: %v", err)
 	}
 	c.Close()
 	select {
