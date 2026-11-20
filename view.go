@@ -56,81 +56,6 @@ const (
 	rowGap    = 2
 )
 
-// The sidebar tree's guide lines, faint connectors drawn in the gaps
-// between the rows so the sidebar reads as a tree: a vertical line at
-// each level's content, and a stub from a parent's line to its child's.
-// hostLineX is the host icon's center; each deeper level steps nestInset
-// in, so the lines line up with the names. A line's own content sits 14
-// in from its line, half an icon plus the gap to the name, so each line
-// points at its level's content. treeGuideAlpha keeps them quiet under
-// the rows' names and icons.
-const (
-	treeGuideAlpha = 0.35
-	hostLineX      = rowInset + hostGlyphW/2
-	projectLineX   = hostLineX + nestInset
-	sessionLineX   = projectLineX + nestInset
-	paneLineX      = sessionLineX + nestInset
-)
-
-// treeVertical is an ancestor guide line running through a row: its x
-// from the row's left edge, and whether the line ends at the row — the
-// row is the last leaf of that ancestor's subtree, so the line stops at
-// its center rather than running past it.
-type treeVertical struct {
-	x    float32
-	tail bool
-}
-
-// treeGuide carries where a sidebar row's guide lines run, from its
-// parent down. nil draws no lines (a session kept in view under a folded
-// host or project, the ended section).
-type treeGuide struct {
-	color     ui.Color
-	lineX     float32 // this row's own line x, from its left edge
-	parentX   float32 // the parent's line x, where the stub starts
-	verticals []treeVertical
-	children  bool // a line drops from this row's center to the next
-}
-
-// child is this row's guide for a child at lineX. isLast tells whether
-// the child is the last of its siblings, so each ancestor's line can end
-// at the child's last leaf.
-func (g *treeGuide) child(lineX float32, isLast bool) *treeGuide {
-	if g == nil {
-		return nil
-	}
-	verts := make([]treeVertical, len(g.verticals)+1)
-	for i, v := range g.verticals {
-		v.tail = v.tail && isLast
-		verts[i] = v
-	}
-	verts[len(g.verticals)] = treeVertical{x: g.lineX, tail: isLast}
-	return &treeGuide{color: g.color, lineX: lineX, parentX: g.lineX, verticals: verts}
-}
-
-// drawTreeGuides paints the row's place in the tree, in the row's local
-// coordinates (r is the row's box): the ancestor lines through it, its
-// stub from the parent's line to its own, and, if children follow, its
-// own line dropping from its center. The lines reach into the rowGap on
-// each side, so a level's line runs continuous down the rows.
-func drawTreeGuides(p *ui.Painter, r ui.Rect, g treeGuide) {
-	cy := r.Y + r.H/2
-	bottom := r.Y + r.H + rowGap
-	for _, v := range g.verticals {
-		end := bottom
-		if !g.children && v.tail {
-			end = cy
-		}
-		p.Fill(ui.Rect{X: v.x - 0.5, Y: r.Y - rowGap, W: 1, H: end - (r.Y - rowGap)}, g.color, 0)
-	}
-	if g.parentX > 0 {
-		p.Fill(ui.Rect{X: g.parentX, Y: cy - 0.5, W: g.lineX - g.parentX, H: 1}, g.color, 0)
-	}
-	if g.children {
-		p.Fill(ui.Rect{X: g.lineX - 0.5, Y: cy, W: 1, H: bottom - cy}, g.color, 0)
-	}
-}
-
 // chrome is where the sidebar's animation puts things, in whole pixels so
 // that edges stay crisp. Each is rounded once, from one progress quantized
 // to the sidebar's pixels, so that they move together: rounded apart,
@@ -484,27 +409,25 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 			if gi == 0 {
 				top = 2
 			}
-			collapsedHost := a.prefs.Collapsed[a.hostFoldKey(h)]
-			guide := &treeGuide{color: pal.textFaint.Alpha(treeGuideAlpha), lineX: hostLineX, children: !collapsedHost && len(groups) > 0}
-			a.hostHeader(c, pal, h, top, count, guide)
+			a.hostHeader(c, pal, h, top, count)
 			if h.remote() && a.hostNeedsRow(h) {
-				a.hostNote(c, pal, h, guide)
+				a.hostNote(c, pal, h)
 			}
 			gi++
-			if collapsedHost {
+			if a.prefs.Collapsed[a.hostFoldKey(h)] {
 				// The host's header stays, its projects hidden; the
 				// session shown stays in view.
 				for _, g := range groups {
 					for _, s := range g.sessions {
 						if s.ID == a.selected {
-							a.sessionRow(c, pal, s, &n, nil)
+							a.sessionRow(c, pal, s, &n)
 						}
 					}
 				}
 				continue
 			}
-			for i, g := range groups {
-				a.groupView(c, pal, g, gi, at, &n, guide.child(projectLineX, i == len(groups)-1))
+			for _, g := range groups {
+				a.groupView(c, pal, g, gi, at, &n)
 				gi++
 			}
 		}
@@ -516,7 +439,7 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	c.After(20 * time.Second) // times ago move on
 }
 
-func (a *App) groupView(c *ui.Context, pal *palette, g group, gi, at int, n *int, guide *treeGuide) {
+func (a *App) groupView(c *ui.Context, pal *palette, g group, gi, at int, n *int) {
 	// The group, its header and its rows, takes a project dragged to
 	// another place: a line shows where it would go.
 	grp := ui.Column(c.Key("group-" + g.key())).Shrink(0)
@@ -524,14 +447,14 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi, at int, n *int
 	moving := g.project.ID != "" && a.projMove.id == g.project.ID
 	grp.Opacity(grp.Animate("moving", 1-0.6*b2f(moving), 120*time.Millisecond))
 	grp.Children(func() {
-		a.groupBody(c, pal, g, gi, moving, n, guide)
+		a.groupBody(c, pal, g, gi, moving, n)
 		if a.projMove.id != "" && a.projMove.host == g.host && at >= 0 {
 			a.insertionLine(c, pal, g, gi, at)
 		}
 	})
 }
 
-func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving bool, n *int, guide *treeGuide) {
+func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving bool, n *int) {
 	id, key := g.project.ID, g.key()
 	collapsed := a.prefs.Collapsed[key]
 	needs := 0
@@ -551,10 +474,6 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		inset++
 	}
 	hdr := ui.Row(c.Key("project-"+key)).Height(28).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(6).AlignItems(ui.Center).Radius(rowRadius)
-	if guide != nil {
-		guide.children = !collapsed && len(g.sessions) > 0
-		hdr.Draw(func(p *ui.Painter, r ui.Rect) { drawTreeGuides(p, r, *guide) })
-	}
 	// While a project is dragged, the headers it passes do not light up.
 	hovered := hdr.Hovered() && a.projMove.id == ""
 	renaming := id != "" && a.renamingProject == id
@@ -664,17 +583,17 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		// The session shown stays in view.
 		for _, s := range g.sessions {
 			if s.ID == a.selected {
-				a.sessionRow(c, pal, s, n, nil)
+				a.sessionRow(c, pal, s, n)
 			}
 		}
 		return
 	}
-	for i, s := range g.sessions {
-		a.sessionRow(c, pal, s, n, guide.child(sessionLineX, i == len(g.sessions)-1))
+	for _, s := range g.sessions {
+		a.sessionRow(c, pal, s, n)
 	}
 }
 
-func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, guide *treeGuide) {
+func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int) {
 	*n++
 	index := *n
 	selected := s.ID == a.selected
@@ -711,10 +630,6 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		a.startRename(s.ID)
 	}
 	expanded := len(s.Panes) > 1 && a.prefs.Expanded[s.ID]
-	if guide != nil {
-		guide.children = expanded
-		row.Draw(func(p *ui.Painter, r ui.Rect) { drawTreeGuides(p, r, *guide) })
-	}
 	tip := a.hostOf(s.ID).shortDir(s.WorkDir())
 	if s.Process != "" {
 		tip = s.Process + " · " + tip
@@ -819,7 +734,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	})
 	if expanded {
 		for i := range s.Panes {
-			a.paneRow(c, pal, s, &s.Panes[i], detailed, guide.child(paneLineX, i == len(s.Panes)-1))
+			a.paneRow(c, pal, s, &s.Panes[i], detailed)
 		}
 	}
 }
@@ -850,7 +765,7 @@ func (a *App) panesToggle(c *ui.Context, pal *palette, s *proto.Session, expande
 // paneRow is a pane of an expanded split session, under its row: its
 // program, its name, where it works and its status. A click shows the
 // session with that pane focused.
-func (a *App) paneRow(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane, detailed bool, guide *treeGuide) {
+func (a *App) paneRow(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane, detailed bool) {
 	sid, pid := s.ID, p.ID
 	h := a.hostOf(sid)
 	// The pane's program under the session's, its name under the
@@ -860,10 +775,6 @@ func (a *App) paneRow(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pa
 		inset += 2
 	}
 	row := ui.Row(c.Key(sid+"/"+pid)).Height(28).Padding(0, rowInset, 0, inset).Gap(8).AlignItems(ui.Center).Radius(rowRadius).Margin(0, 0, rowGap, 0)
-	if guide != nil {
-		guide.children = false
-		row.Draw(func(p *ui.Painter, r ui.Rect) { drawTreeGuides(p, r, *guide) })
-	}
 	focused := s.ID == a.selected && a.focusOf(s) == pid
 	switch {
 	case focused:

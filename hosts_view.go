@@ -74,7 +74,7 @@ func (a *App) hostNeedsRow(h *host) bool {
 // It heads its projects, and hides them on a click. This machine's says
 // "This Computer" and offers its sessions and projects, not a host's
 // settings or removal.
-func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, count int, guide *treeGuide) {
+func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, count int) {
 	name := h.name
 	if !h.remote() {
 		name = locales.HostThisComputer()
@@ -87,9 +87,6 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		inset++
 	}
 	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(treeGap).AlignItems(ui.Center).Radius(rowRadius)
-	if guide != nil {
-		hdr.Draw(func(p *ui.Painter, r ui.Rect) { drawTreeGuides(p, r, *guide) })
-	}
 	hovered := hdr.Hovered()
 	collapsed := a.prefs.Collapsed[a.hostFoldKey(h)]
 	pointerTooltip(c, hdr, "tip-host-"+name, a.hostTip(h))
@@ -338,16 +335,8 @@ func (a *App) hostProblem(h *host) string {
 
 // hostNote says, under a host's header, what keeps its sessions from
 // showing, and what to do about it.
-func (a *App) hostNote(c *ui.Context, pal *palette, h *host, guide *treeGuide) {
-	col := ui.Column(c.Key("note-" + h.name))
-	// The host's guide line runs on through the note, so the tree keeps
-	// its one line down to the projects.
-	if guide != nil {
-		col.Draw(func(p *ui.Painter, r ui.Rect) {
-			p.Fill(ui.Rect{X: guide.lineX - 0.5, Y: r.Y - rowGap, W: 1, H: r.H + 2*rowGap}, guide.color, 0)
-		})
-	}
-	col.Margin(0, 0, 6, 0).Padding(8, 10).Gap(6).Radius(8).Background(pal.chip).Children(func() {
+func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
+	ui.Column(c.Key("note-"+h.name)).Margin(0, 0, 6, 0).Padding(8, 10).Gap(6).Radius(8).Background(pal.chip).Children(func() {
 		var title, detail string
 		switch {
 		case h.busy == "install":
