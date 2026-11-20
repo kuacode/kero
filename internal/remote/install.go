@@ -3,6 +3,7 @@ package remote
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -48,6 +49,86 @@ func InstallCommand(a Addr, version string, batch bool) (*exec.Cmd, error) {
 	}
 	hideWindow(cmd)
 	return cmd, nil
+}
+
+// Platform is the operating system and architecture of a host reached
+// over SSH, as uname tells it, for the app to fetch the right archive
+// and install it there. A host with no kero, or one a connection has not
+// found yet, tells its platform with a command of its own. Windows maps
+// its uname.
+func Platform(a Addr, batch bool) (string, string, error) {
+	switch a.Scheme {
+	case "ssh":
+		run := "sh -c " + shellQuote(`uname -s; uname -m`)
+		cmd := exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
+		cmd.Env = sshEnv()
+		hideWindow(cmd)
+		out, err := cmd.Output()
+		if err != nil {
+			return "", "", err
+		}
+		return parsePlatform(string(out))
+	case "wsl":
+		return "linux", "amd64", nil // WSL is Windows' Linux; its arch the app's is, as WSL runs it.
+	default:
+		return "", "", errors.New("no way to tell the platform of " + a.String())
+	}
+}
+
+// parsePlatform is uname's answer: "Linux\nx86_64" and the like, as a
+// goos and goarch pair. A host of Windows' uname maps as it does.
+func parsePlatform(out string) (string, string, error) {
+	lines := strings.Fields(out)
+	if len(lines) < 2 {
+		return "", "", errors.New("uname told nothing of the platform")
+	}
+	goos := map[string]string{"Linux": "linux", "Darwin": "darwin"}[lines[0]]
+	arch := map[string]string{"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}[lines[1]]
+	if goos == "" || arch == "" {
+		return "", "", fmt.Errorf("the host is %s %s, which Kero's server build is not made for", lines[0], lines[1])
+	}
+	return goos, arch, nil
+}
+
+// InstallArchiveCommand is the command that installs the server build of
+// Kero, of version, on a host reached over SSH, from an archive the app
+// fetched and verified: the archive is written to the host, which
+// installs it with install-server.sh --archive, with no download of its
+// own. Only sh hosts: Windows has no archive of the app's (install.go's
+// InstallCommand still runs the script there, which downloads).
+func InstallArchiveCommand(a Addr, version string, batch bool) (*exec.Cmd, error) {
+	version = strings.TrimPrefix(version, "v")
+	if !update.ValidVersion(version) {
+		return nil, errors.New(version + " is not a version of Kero")
+	}
+	switch a.Scheme {
+	case "ssh":
+		if Windows(a) {
+			return nil, errors.New("Kero installs over SSH on Windows with the script of its releases, which downloads")
+		}
+		// The archive comes on the command's standard input: the app writes
+		// it, and the host writes it to a temp file before it installs, as
+		// a download cut short could stop it anywhere.
+		run := "sh -c " + shellQuote(shInstallArchive(version))
+		cmd := exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
+		cmd.Env = sshEnv()
+		hideWindow(cmd)
+		return cmd, nil
+	default:
+		return nil, errors.New("Kero installs itself on a host over SSH or WSL: install it there with the script of its releases")
+	}
+}
+
+// shInstallArchive is the script of sh that installs Kero from an archive
+// the app streams on its standard input: install-server.sh, which it
+// writes to a file and runs with --archive, so no download of the host's.
+func shInstallArchive(version string) string {
+	return `set -e; f="$(mktemp)"; trap 'rm -f "$f"' EXIT; cat >"$f"; ` +
+		`url=` + shellQuote(update.InstallScript(version)) + `; s="$(mktemp)"; trap 'rm -f "$s" "$f"' EXIT; ` +
+		`if command -v curl >/dev/null 2>&1; then curl -fsSL "$url" -o "$s"; ` +
+		`elif command -v wget >/dev/null 2>&1; then wget -qO "$s" "$url"; ` +
+		`else echo "installing Kero needs curl or wget" >&2; exit 1; fi; ` +
+		`sh "$s" --archive "$f" --version ` + shellQuote(version)
 }
 
 // shInstall is the script of sh that installs Kero: install-server.sh, or

@@ -24,11 +24,14 @@ marker=.kero-server
 usage() {
 	cat <<EOF
 Usage: sh install-server.sh [--version VERSION] [--no-service] [--dry-run]
+       sh install-server.sh --archive FILE --version VERSION
        sh install-server.sh --uninstall
 
 Installs the server build of Kero in $lib, the kero command in $bin, and
 runs kerod as a service: systemd's on Linux, launchd's on macOS
-(--no-service: kerod starts as Kero connects). --uninstall removes them, and leaves your settings and data in
+(--no-service: kerod starts as Kero connects). --archive names an archive
+of the version --version names, which the app fetched and verified: it
+installs it with no download of the host's own. --uninstall removes them, and leaves your settings and data in
 ~/.config/kero.
 EOF
 }
@@ -114,6 +117,7 @@ uninstall() {
 main() {
 	service=1
 	dry_run=0
+	archive=
 	while [ $# -gt 0 ]; do
 		case "$1" in
 		--version)
@@ -124,6 +128,14 @@ main() {
 		--version=*)
 			version="${1#--version=}"
 			version="${version#v}"
+			;;
+		--archive)
+			[ $# -ge 2 ] || fail "--archive needs a file"
+			archive="$2"
+			shift
+			;;
+		--archive=*)
+			archive="${1#--archive=}"
 			;;
 		--no-service) service=0 ;;
 		--dry-run) dry_run=1 ;;
@@ -181,11 +193,18 @@ main() {
 	trap 'rm -rf "$work" "$staging"' EXIT
 	trap 'exit 1' HUP INT TERM
 
-	echo "Downloading Kero $version for $os/$arch"
-	fetch "$url" >"$work/$name" || fail "could not download $url"
-	fetch "$url.sha256" >"$work/$name.sha256" || fail "could not download $url.sha256"
-	want="$(cut -d' ' -f1 <"$work/$name.sha256")"
-	[ "$(sha256 "$work/$name")" = "$want" ] || fail "$name is not the release's: its SHA-256 differs"
+	if [ -n "$archive" ]; then
+		# The archive the app fetched and sent, which it verified: no
+		# download of its own. The app names the version with --version.
+		[ -f "$archive" ] || fail "no archive at $archive"
+		cp "$archive" "$work/$name"
+	else
+		echo "Downloading Kero $version for $os/$arch"
+		fetch "$url" >"$work/$name" || fail "could not download $url"
+		fetch "$url.sha256" >"$work/$name.sha256" || fail "could not download $url.sha256"
+		want="$(cut -d' ' -f1 <"$work/$name.sha256")"
+		[ "$(sha256 "$work/$name")" = "$want" ] || fail "$name is not the release's: its SHA-256 differs"
+	fi
 	tar -tzf "$work/$name" >"$work/names" || fail "$name is not a .tar.gz archive"
 	if grep -Eq '^/|(^|/)\.\.(/|$)' "$work/names"; then
 		fail "$name holds files outside it"

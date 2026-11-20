@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"math"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -605,6 +607,61 @@ func (a *App) install(h *host) {
 	if !released(version) {
 		version = ""
 	}
+	// The app fetches the archive itself, where the host could not, and
+	// sends it: the host installs it with no download of its own. A host
+	// of another platform, or one without the app's path, still installs
+	// as it did, with the script that downloads. Should the fetch fail,
+	// the host may fetch it: let it.
+	platform := h.info.OS + "/" + h.info.Arch
+	goos, goarch := h.info.OS, h.info.Arch
+	if platform == "" {
+		// A host with no kero (ErrNotInstalled) tells its platform with a
+		// command of its own, so the app fetches the right archive.
+		if gos, garch, perr := remote.Platform(h.addr, true); perr == nil {
+			goos, goarch = gos, garch
+			platform = gos + "/" + garch
+		}
+	}
+	if platform != "" && slices.Contains(update.Platforms, platform) && version != "" {
+		update.SetMirror(a.set.DownloadMirror)
+		update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
+		h.busy = "install"
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			archive, _, ferr := update.FetchWithSig(ctx, version, goos, goarch, nil)
+			if ferr != nil {
+				a.installFromScript(h, version)
+				return
+			}
+			cmd, cerr := remote.InstallArchiveCommand(h.addr, version, true)
+			if cerr != nil {
+				a.installFromScript(h, version)
+				return
+			}
+			cmd.Stdin = bytes.NewReader(archive)
+			out, err := cmd.CombinedOutput()
+			a.update(func() {
+				h.busy = ""
+				if !slices.Contains(a.hosts, h) {
+					return
+				}
+				if err != nil {
+					a.toast(installError(locales.HostInstallFailed, h, out, err))
+					return
+				}
+				a.toast(locales.HostInstalled(h.name))
+				a.reconnectHost(h)
+			})
+		}()
+		return
+	}
+	a.installFromScript(h, version)
+}
+
+// installFromScript installs Kero on a host with the release's script,
+// which downloads the archive there, as the app's own install did.
+func (a *App) installFromScript(h *host, version string) {
 	cmd, err := remote.InstallCommand(h.addr, version, true)
 	if err != nil {
 		a.toast(err.Error())
@@ -619,20 +676,26 @@ func (a *App) install(h *host) {
 				return
 			}
 			if err != nil {
-				msg := strings.TrimSpace(string(out))
-				if i := strings.LastIndex(msg, "\n"); i >= 0 {
-					msg = msg[i+1:]
-				}
-				if msg == "" {
-					msg = err.Error()
-				}
-				a.toast(locales.HostInstallFailed(h.name, msg))
+				a.toast(installError(locales.HostInstallFailed, h, out, err))
 				return
 			}
 			a.toast(locales.HostInstalled(h.name))
 			a.reconnectHost(h)
 		})
 	}()
+}
+
+// installError is the message an install failed with: the program's last
+// line, or the error itself.
+func installError(f func(string, string) string, h *host, out []byte, err error) string {
+	msg := strings.TrimSpace(string(out))
+	if i := strings.LastIndex(msg, "\n"); i >= 0 {
+		msg = msg[i+1:]
+	}
+	if msg == "" {
+		msg = err.Error()
+	}
+	return f(h.name, msg)
 }
 
 // hostVersionDetail says how Kero on a host differs from this app, and

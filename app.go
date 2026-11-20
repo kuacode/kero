@@ -25,6 +25,7 @@ import (
 	"kero/internal/client"
 	"kero/internal/proto"
 	"kero/internal/settings"
+	"kero/internal/update"
 
 	"kero/locales"
 )
@@ -202,6 +203,7 @@ func newApp() *App {
 	a.loadPrefs()
 	a.loadBackup()
 	a.set = settings.Load()
+	update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
 	a.ss.problems = settings.Problems()
 	a.applied = a.set.Clone()
 	a.selected = a.prefs.Selected

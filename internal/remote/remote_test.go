@@ -134,6 +134,11 @@ func fakeSSH() {
 	switch {
 	case shell == "sh" && cmd == "sh -c 'exit 0'":
 		os.Exit(0)
+	case shell == "sh" && strings.Contains(cmd, "uname -s"):
+		// Platform probes a host with uname: a host that answers tells
+		// what it is.
+		fmt.Fprintln(os.Stdout, "Linux\nx86_64")
+		os.Exit(0)
 	case shell == "sh" && sh:
 		fmt.Fprintln(os.Stderr, "kero is not installed on devbox")
 		os.Exit(127)

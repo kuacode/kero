@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +34,66 @@ func mirrored(u string) string {
 		return u
 	}
 	return m + "/" + u
+}
+
+// cacheDir is where a release's archive is kept, once fetched, so that
+// another host of the same platform takes it without a download: kero's
+// update cache, under the user's cache directory, or $KERO_CACHE in the
+// tests. An empty cacheDir turns the cache off.
+var cacheDir string
+
+// SetCacheDir names the directory that holds the archives a release's
+// update fetched, keyed by version and platform, as the app sets it from
+// kero's directory. An empty value turns the cache off.
+func SetCacheDir(dir string) { cacheDir = dir }
+
+// cacheName is the file an archive of a version for a platform is cached
+// under: the archive's name, which names the version and the platform.
+func cacheName(version, goos, goarch string) string {
+	return Asset(version, goos, goarch)
+}
+
+// Cached is the archive of a version for a platform the cache holds, and
+// its signature, else false: the cache holds what a fetch verified, so a
+// host of the same platform takes the archive the app already fetched
+// for another, with no download. A stale or unreadable entry is dropped.
+func Cached(version, goos, goarch string) ([]byte, string, bool) {
+	dir := cacheDir
+	if dir == "" {
+		return nil, "", false
+	}
+	name := cacheName(version, goos, goarch)
+	archive, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		return nil, "", false
+	}
+	sig, err := os.ReadFile(filepath.Join(dir, name+".sig"))
+	if err != nil {
+		return nil, "", false
+	}
+	if err := Verify(archive, version, goos, goarch, string(sig)); err != nil {
+		return nil, "", false
+	}
+	return archive, string(sig), true
+}
+
+// cache stores what a fetch verified, the archive and its signature, so
+// that the next host of the same platform takes them with no download. A
+// directory that cannot be made, or an entry already read, is left as it
+// is: the fetch succeeded, which the cache only shortens.
+func cache(version, goos, goarch string, archive []byte, sig string) {
+	dir := cacheDir
+	if dir == "" {
+		return
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return
+	}
+	name := cacheName(version, goos, goarch)
+	if err := os.WriteFile(filepath.Join(dir, name), archive, 0o644); err != nil {
+		return
+	}
+	os.WriteFile(filepath.Join(dir, name+".sig"), []byte(sig), 0o644)
 }
 
 // progress is a writer that calls on with the bytes read so far.
@@ -190,11 +252,15 @@ func Fetch(ctx context.Context, version, goos, goarch string, onProgress func(in
 
 // FetchWithSig is Fetch, with the signature the archive is signed with:
 // to upload the archive to a host that could not fetch it itself, the
-// host checks the signature it came with.
+// host checks the signature it came with. The archive the cache holds of
+// the version for the platform is taken as is, with no download.
 func FetchWithSig(ctx context.Context, version, goos, goarch string, onProgress func(int64)) ([]byte, string, error) {
 	version = strings.TrimPrefix(version, "v")
 	if !ValidVersion(version) {
 		return nil, "", fmt.Errorf("%q is not a version of Kero", version)
+	}
+	if archive, sig, ok := Cached(version, goos, goarch); ok {
+		return archive, sig, nil
 	}
 	name := Asset(version, goos, goarch)
 	archive, err := download(ctx, mirrored(URL(version, name)), maxArchive, onProgress)
@@ -208,5 +274,6 @@ func FetchWithSig(ctx context.Context, version, goos, goarch string, onProgress 
 	if err := Verify(archive, version, goos, goarch, string(sig)); err != nil {
 		return nil, "", err
 	}
+	cache(version, goos, goarch, archive, string(sig))
 	return archive, string(sig), nil
 }
