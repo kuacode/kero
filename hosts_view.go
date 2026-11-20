@@ -59,27 +59,27 @@ var (
 
 // osBrands are the colors of the marks of operating systems and
 // distributions, as their own: the logo of Linux, Apple and Windows, and
-// of the distributions Kero names.  Light then dark, as hostColors are;
-// the dark ones for the marks that are black on light, which would be
-// lost on the dark.
+// of the distributions Kero names, as Simple Icons serves them.  Light
+// then dark; the dark ones for the marks that are black on light, which
+// would be lost on the dark.
 var osBrands = map[string][2]ui.Color{
 	// Operating systems.
-	"linux":   {ui.Hex("#0f0f10"), ui.Hex("#b8b8bd")},
+	"linux":   {ui.Hex("#c9a227"), ui.Hex("#fcc624")},
 	"darwin":  {ui.Hex("#1a1a1c"), ui.Hex("#e6e6ea")},
 	"windows": {ui.Hex("#0078d4"), ui.Hex("#5ab4f5")},
 	// Distributions of Linux.
-	"debian":              {ui.Hex("#a81d33"), ui.Hex("#f06a7e")},
+	"debian":              {ui.Hex("#a81d33"), ui.Hex("#e8526a")},
 	"ubuntu":              {ui.Hex("#e95420"), ui.Hex("#ff8a50")},
-	"arch":                {ui.Hex("#1793d1"), ui.Hex("#5bc0f0")},
-	"archlinux":           {ui.Hex("#1793d1"), ui.Hex("#5bc0f0")},
+	"arch":                {ui.Hex("#1793d1"), ui.Hex("#4fb8ec")},
+	"archlinux":           {ui.Hex("#1793d1"), ui.Hex("#4fb8ec")},
 	"fedora":              {ui.Hex("#51a2da"), ui.Hex("#7cc0ef")},
-	"linuxmint":           {ui.Hex("#87cf3e"), ui.Hex("#a8e06c")},
-	"mint":                {ui.Hex("#87cf3e"), ui.Hex("#a8e06c")},
+	"linuxmint":           {ui.Hex("#86be43"), ui.Hex("#a8d86c")},
+	"mint":                {ui.Hex("#86be43"), ui.Hex("#a8d86c")},
 	"centos":              {ui.Hex("#262577"), ui.Hex("#8a8ad8")},
 	"opensuse":            {ui.Hex("#73ba25"), ui.Hex("#9cd85c")},
 	"opensuse-leap":       {ui.Hex("#73ba25"), ui.Hex("#9cd85c")},
 	"opensuse-tumbleweed": {ui.Hex("#73ba25"), ui.Hex("#9cd85c")},
-	"manjaro":             {ui.Hex("#35bf5c"), ui.Hex("#6fe58d")},
+	"manjaro":             {ui.Hex("#35bfa4"), ui.Hex("#5fdcc4")},
 	"kali":                {ui.Hex("#557c94"), ui.Hex("#8fb4cc")},
 	"kalilinux":           {ui.Hex("#557c94"), ui.Hex("#8fb4cc")},
 	"alpine":              {ui.Hex("#0d597f"), ui.Hex("#4aa8d8")},

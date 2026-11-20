@@ -48,20 +48,34 @@ func TestHostOriginColor(t *testing.T) {
 
 // A pane's program mark takes the program's brand: a coding agent's, a
 // script's runtime's, and the text's for the rest, faint once the pane
-// ended.
+// ended.  Each brand has a light color and one for the dark.
 func TestProgramColor(t *testing.T) {
-	// A coding agent's brand, where it has one.
-	for agent, want := range agentColors {
-		p := &proto.Pane{Agent: agent, Status: proto.Idle}
-		if got := programColor(&lightPalette, p); got != want {
-			t.Errorf("%s: agent mark is %v, want %v", agent, got, want)
+	agents := []string{"claude", "gemini", "codex", "opencode", "amp", "cursor-agent", "copilot", "qwen", "kimi", "cline"}
+	runtimes := []string{"node", "bun", "deno", "python", "python3", "vim", "nvim", "git", "docker"}
+	for _, name := range agents {
+		want, ok := programBrands[name]
+		if !ok {
+			t.Fatalf("no brand for agent %s", name)
+		}
+		p := &proto.Pane{Agent: name, Status: proto.Idle}
+		if got := programColor(&lightPalette, p); got != want[0] {
+			t.Errorf("%s: light agent mark is %v, want %v", name, got, want[0])
+		}
+		if got := programColor(&darkPalette, p); got != want[1] {
+			t.Errorf("%s: dark agent mark is %v, want %v", name, got, want[1])
 		}
 	}
-	// A script's runtime's brand, where it has one.
-	for proc, want := range programColors {
-		p := &proto.Pane{Process: proc, Status: proto.Idle}
-		if got := programColor(&lightPalette, p); got != want {
-			t.Errorf("%s: program mark is %v, want %v", proc, got, want)
+	for _, name := range runtimes {
+		want, ok := programBrands[name]
+		if !ok {
+			t.Fatalf("no brand for program %s", name)
+		}
+		p := &proto.Pane{Process: name, Status: proto.Idle}
+		if got := programColor(&lightPalette, p); got != want[0] {
+			t.Errorf("%s: light program mark is %v, want %v", name, got, want[0])
+		}
+		if got := programColor(&darkPalette, p); got != want[1] {
+			t.Errorf("%s: dark program mark is %v, want %v", name, got, want[1])
 		}
 	}
 	// An agent without a brand takes the text's, a program without one
