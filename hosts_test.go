@@ -48,11 +48,18 @@ func withHost(t *testing.T, a *App, name string) *host {
 // The mark before a host's name tells how the app reaches it: this
 // machine's own, an SSH host, a WSL distribution, or a host over HTTP(S).
 // A host's mark is its operating system's logo, the computer's when the
-// host has not told its OS yet.
+// host has not told its OS yet; a linux host's is its distribution's,
+// when it told one, as the user asked Debian and Ubuntu to read apart.
 func TestHostOriginIcon(t *testing.T) {
 	a := testApp(t)
-	if got, want := a.hostOriginIcon(a.local()), osIcons[runtime.GOOS]; got != want {
-		t.Errorf("this machine's mark is not its OS's")
+	want := osIcons[runtime.GOOS]
+	if runtime.GOOS == "linux" {
+		if ic, ok := distroIcons[remote.DistroID()]; ok {
+			want = ic
+		}
+	}
+	if got := a.hostOriginIcon(a.local()); got != want {
+		t.Errorf("this machine's mark is not its own: got %v want %v", got, want)
 	}
 	for _, scheme := range []string{"ssh", "wsl", "http", "https"} {
 		addr, err := remote.ParseAddr(scheme + "://build")
@@ -68,6 +75,27 @@ func TestHostOriginIcon(t *testing.T) {
 	h := &host{name: "build", info: proto.HostInfo{OS: "linux"}}
 	if got := a.hostOriginIcon(h); got != osIcons["linux"] {
 		t.Errorf("a linux host's mark is not linux's")
+	}
+	// A linux host that tells a distribution shows it, as the user asked.
+	for _, distro := range []string{"debian", "ubuntu", "arch", "fedora"} {
+		ic, ok := distroIcons[distro]
+		if !ok {
+			t.Fatalf("no mark for %s", distro)
+		}
+		h := &host{name: "build", info: proto.HostInfo{OS: "linux", Distro: distro}}
+		if got := a.hostOriginIcon(h); got != ic {
+			t.Errorf("a %s host's mark is not %s's", distro, distro)
+		}
+	}
+	// A linux host whose distro we have no mark for keeps the linux mark.
+	h = &host{name: "build", info: proto.HostInfo{OS: "linux", Distro: "gentoo"}}
+	if got := a.hostOriginIcon(h); got != osIcons["linux"] {
+		t.Errorf("a linux host of an unknown distro keeps linux's mark")
+	}
+	// A non-linux host ignores its distro.
+	h = &host{name: "build", info: proto.HostInfo{OS: "darwin", Distro: "debian"}}
+	if got := a.hostOriginIcon(h); got != osIcons["darwin"] {
+		t.Errorf("a darwin host's mark is not darwin's")
 	}
 }
 

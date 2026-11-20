@@ -129,6 +129,17 @@ func (h *host) os() string {
 	return h.info.OS
 }
 
+// distro is the Linux distribution of the host, /etc/os-release's ID as
+// its kerod told it (debian, ubuntu...), or "" for one it did not name:
+// the mark before the host's name shows the distro's, when it knows one,
+// as the user asked for Debian and Ubuntu to be told apart.
+func (h *host) distro() string {
+	if !h.remote() {
+		return remote.DistroID()
+	}
+	return h.info.Distro
+}
+
 // shortDir writes a directory of the host with ~ for its home.
 func (h *host) shortDir(dir string) string {
 	if !h.remote() {

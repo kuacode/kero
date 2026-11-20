@@ -68,6 +68,10 @@ type HostInfo struct {
 	Arch     string `json:"arch"`
 	User     string `json:"user,omitempty"`
 	Home     string `json:"home,omitempty"`
+	// Distro is the Linux distribution, as /etc/os-release's ID names it
+	// (debian, ubuntu, arch...): the sidebar shows the distro's mark for
+	// a linux host it knows. A host that tells none keeps the OS's.
+	Distro string `json:"distro,omitempty"`
 	// Kero is the version of Kero that answered, the bridge's or kerod's,
 	// and Version the protocol it speaks; kerod's own come with each
 	// stream's Welcome, as it may run an older Kero until it restarts.

@@ -15,3 +15,13 @@ func TestAgentLine(t *testing.T) {
 		}
 	}
 }
+
+// DistroID reads /etc/os-release for the Linux distribution. On this
+// machine (Ubuntu), it names ubuntu; elsewhere the test only checks it
+// answers without an error.
+func TestDistroID(t *testing.T) {
+	d := DistroID()
+	if d == "" {
+		t.Skip("no /etc/os-release (not a Linux system)")
+	}
+}

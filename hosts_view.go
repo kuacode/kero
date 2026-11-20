@@ -32,6 +32,29 @@ var (
 		"darwin":  glyph("si-apple"),
 		"windows": glyph("si-windows11"),
 	}
+
+	// distroIcons mark a linux host by its distribution, as the user asked
+	// for Debian and Ubuntu to read apart: /etc/os-release's ID names the
+	// distro, its kerod tells it, and one we have no mark for keeps the
+	// linux mark.
+	distroIcons = map[string]*ui.SVG{
+		"debian":              glyph("si-debian"),
+		"ubuntu":              glyph("si-ubuntu"),
+		"arch":                glyph("si-archlinux"),
+		"archlinux":           glyph("si-archlinux"),
+		"fedora":              glyph("si-fedora"),
+		"linuxmint":           glyph("si-linuxmint"),
+		"mint":                glyph("si-linuxmint"),
+		"centos":              glyph("si-centos"),
+		"opensuse":            glyph("si-opensuse"),
+		"opensuse-leap":       glyph("si-opensuse"),
+		"opensuse-tumbleweed": glyph("si-opensuse"),
+		"manjaro":             glyph("si-manjaro"),
+		"kali":                glyph("si-kalilinux"),
+		"kalilinux":           glyph("si-kalilinux"),
+		"alpine":              glyph("si-alpinelinux"),
+		"alpinelinux":         glyph("si-alpinelinux"),
+	}
 )
 
 // The sidebar heads a remote host, then its projects under it (see
@@ -271,10 +294,17 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 }
 
 // hostTip tells what a host is: its address, and Kero there.
-// hostOriginIcon is the mark before a host's name: the operating system's
-// logo, as the device is a computer and its OS names it; a host that has
-// not told its OS yet keeps the computer, for it may be another platform.
+// hostOriginIcon is the mark before a host's name: its distribution's
+// logo for a linux host that told one (as the user asked Debian and
+// Ubuntu to read apart), else its operating system's, else the
+// computer's. A host that has not told its OS yet keeps the computer,
+// for it may be another platform.
 func (a *App) hostOriginIcon(h *host) *ui.SVG {
+	if h.os() == "linux" {
+		if ic, ok := distroIcons[h.distro()]; ok {
+			return ic
+		}
+	}
 	if ic, ok := osIcons[h.os()]; ok {
 		return ic
 	}
