@@ -68,7 +68,12 @@ type Daemon struct {
 	cpuBusy, cpuTotal uint64
 	cpuSeen           bool
 	cpuPct            int
-	ending            bool
+	// The counters at the last push, whose busy fraction to now is the
+	// load since then: a window as long as the pushes, as a system
+	// monitor's, so one tick's jitter is not the header's number.
+	cpuPushBusy, cpuPushTotal uint64
+	cpuPushSeen               bool
+	ending                    bool
 	// restarting: kerod stops to start again, as a remote client asked
 	// (proto.KindRestart).
 	restarting bool
@@ -386,14 +391,10 @@ func (d *Daemon) tickLoop() {
 		}
 		idleFor := now.Sub(d.idleAt)
 		d.mu.Unlock()
-		// Sample the CPU counters cheaply each tick, no waiting, and its
-		// busy fraction over the tick, so the header does not read a
-		// moment's jitter as the load.
+		// Sample the CPU counters cheaply each tick, no waiting, so the
+		// push's busy fraction runs over the whole window, not one tick.
 		if busy, total, ok := readCPUTicks(); ok {
 			d.mu.Lock()
-			if d.cpuSeen && total > d.cpuTotal {
-				d.cpuPct = cpuPercent(d.cpuBusy, d.cpuTotal, busy, total)
-			}
 			d.cpuBusy, d.cpuTotal, d.cpuSeen = busy, total, true
 			d.mu.Unlock()
 		}
@@ -407,10 +408,16 @@ func (d *Daemon) tickLoop() {
 			d.changed()
 		}
 		// The sidebar's host header shows this machine's load; push it
-		// every couple of seconds, while an app is connected.
+		// every couple of seconds, while an app is connected. The CPU is
+		// the busy fraction over the window since the last push, as a
+		// system monitor's, so a tick's jitter does not read as the load.
 		d.mu.Lock()
 		if d.conns > 0 && now.Sub(d.lastLoad) >= 2*time.Second {
 			d.lastLoad = now
+			if d.cpuPushSeen && d.cpuSeen && d.cpuTotal > d.cpuPushTotal {
+				d.cpuPct = cpuPercent(d.cpuPushBusy, d.cpuPushTotal, d.cpuBusy, d.cpuTotal)
+			}
+			d.cpuPushBusy, d.cpuPushTotal, d.cpuPushSeen = d.cpuBusy, d.cpuTotal, d.cpuSeen
 			load := d.loadLocked()
 			d.broadcastLocked(proto.Message{Event: "system", System: &load})
 		}

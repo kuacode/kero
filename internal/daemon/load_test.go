@@ -71,3 +71,24 @@ func TestLoadLocked(t *testing.T) {
 		t.Errorf("memory %d of %d", l.MemUsed, l.MemTotal)
 	}
 }
+
+// The CPU the header shows is the busy fraction over the whole push
+// window, not one tick's: counters advance, and the push reads it.
+func TestCPUWindow(t *testing.T) {
+	d := &Daemon{
+		cpuPushBusy: 30, cpuPushTotal: 100, cpuPushSeen: true,
+		cpuBusy: 50, cpuTotal: 120, cpuSeen: true,
+	}
+	// The push's window advanced 20 busy ticks of 20 total: 100% busy.
+	d.cpuPct = cpuPercent(d.cpuPushBusy, d.cpuPushTotal, d.cpuBusy, d.cpuTotal)
+	if d.cpuPct != 100 {
+		t.Errorf("CPU %d over the window, want 100", d.cpuPct)
+	}
+	// A second window, half busy.
+	d.cpuPushBusy, d.cpuPushTotal = d.cpuBusy, d.cpuTotal
+	d.cpuBusy, d.cpuTotal = 60, 140
+	d.cpuPct = cpuPercent(d.cpuPushBusy, d.cpuPushTotal, d.cpuBusy, d.cpuTotal)
+	if d.cpuPct != 50 {
+		t.Errorf("CPU %d over the window, want 50", d.cpuPct)
+	}
+}
