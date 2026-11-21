@@ -172,8 +172,9 @@ func TestSidebarHosts(t *testing.T) {
 }
 
 // The sidebar is flat: a remote group carries its host's name, and the
-// host has a row of its own only while it wants the user, as when it can't
-// be reached; one with no sessions shows nowhere.
+// host has a row of its own while it wants the user — a host it can't
+// reach, or one it reaches but that holds nothing, whose header is the
+// only way to start a session there.
 func TestSidebarFlat(t *testing.T) {
 	a := testApp(t)
 	a.mergeState(a.local(), a.st)
@@ -192,11 +193,16 @@ func TestSidebarFlat(t *testing.T) {
 	if !ok || !ok2 || hdr.Y >= api.Y {
 		t.Errorf("build's header %+v is not above its group's name %+v", hdr, api)
 	}
-	// A host with no sessions shows nowhere, nor one connecting first.
-	if tt.HasText("empty") || tt.HasText("No sessions") {
-		t.Errorf("a host without sessions shows: %q", tt.Texts())
+	// A host the app reaches keeps its header with nothing under it, so
+	// its + is within reach. One still connecting shows nowhere.
+	if !tt.HasText("empty") {
+		t.Errorf("a reached host without sessions has no header: %q", tt.Texts())
 	}
 	empty.conn, empty.loaded = connConnecting, false
+	tt.Frame()
+	if tt.HasText("empty") {
+		t.Errorf("a host still connecting shows: %q", tt.Texts())
+	}
 	if a.hostNeedsRow(build) || a.hostNeedsRow(empty) {
 		t.Error("rows for hosts that want nothing")
 	}

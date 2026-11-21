@@ -33,9 +33,6 @@ type paletteState struct {
 	convs []hostConversation
 	only  bool
 	gen   int
-	// addingHost is the palette the device picker's Add a Host opened:
-	// it asks an address, showing the placeholder of one.
-	addingHost bool
 }
 
 // hostConversation is a conversation a host's kerod remembers.
@@ -381,9 +378,6 @@ func (a *App) paletteView(c *ui.Context, pal *palette) {
 
 	var chosen func()
 	label, placeholder, none := locales.PaletteLabel(), locales.PalettePlaceholder(), locales.PaletteNoMatches()
-	if a.pal.addingHost {
-		label, placeholder, none = locales.PaletteAddHost(), locales.SetHostAddressPlaceholder(), locales.PaletteNoMatches()
-	}
 	if a.pal.only {
 		label, placeholder = locales.PaletteConversationsLabel(), locales.PaletteConversationsPlaceholder()
 		if a.pal.query == "" {

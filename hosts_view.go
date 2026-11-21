@@ -157,12 +157,25 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		// shows them: the name and how far away the host is come first,
 		// and each project's header still counts its sessions.
 		stats := (a.set.ShowSystemLoad && h.hasLoad()) || h.hasRTT()
-		if a.set.SidebarCount && !stats {
-			ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").Margin(2, 0, 0, 0)
+		// A host with no session has nothing to count, and a bare zero
+		// reads as part of the name: it is left out until there is one.
+		if a.set.SidebarCount && !stats && count > 0 {
+			// The count keeps a chip of its own, as a tag does, so that it
+			// ends before the name does and the two cannot crowd. Its step
+			// is the tree's: treeGap from the name to the chip, and again
+			// to the fold. The fill is the palette's quiet one, the digits
+			// the muted text, which a faint one would lose on it.
+			ui.Row(c).Height(18).Padding(0, 5).Radius(5).AlignItems(ui.Center).Shrink(0).
+				Background(pal.chip).Margin(0, 0, 0, treeGap-hdrGap).
+				Children(func() {
+					ui.Textf(c, "%d", count).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
+				})
 		}
 		// The fold of a host's projects is read right after its count, as
 		// it is a property of the label, not of the row's far end.
-		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
+		// The fold keeps its width when a long name crowds the row: it is
+		// the name that gives way, as it has an ellipsis to say so.
+		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)

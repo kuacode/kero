@@ -379,7 +379,9 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	}
 	// The space between and below the rows moves the window, as the top
 	// bar does, and a double click there starts a session, as ⌘T does.
-	list := ui.Scroll(c.Key("sessions")).Grow(1).Padding(cardGap, rowInset, 16, rowInset).DragWindow()
+	// No inset of its own: each row keeps its own, so the tree starts
+	// where the top bar and the foot do, not a step further in.
+	list := ui.Scroll(c.Key("sessions")).Grow(1).Padding(cardGap, 0, 16, 0).DragWindow()
 	if list.WindowDoubleClicked() {
 		a.defer_(func() { a.newSession("") })
 	}
@@ -407,11 +409,14 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 				count += len(g.sessions)
 			}
 			if h.remote() {
+				// A host the app reaches keeps its header even with
+				// nothing under it, so its + is within reach; one it
+				// can't reach stays out until it wants the user.
 				if a.set.HideEmptyHosts {
 					if count == 0 && !a.hostNeedsRow(h) {
 						continue
 					}
-				} else if len(groups) == 0 && !a.hostNeedsRow(h) {
+				} else if len(groups) == 0 && !a.hostNeedsRow(h) && h.conn != connReady {
 					continue
 				}
 			} else if !h.loaded {
@@ -930,23 +935,25 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	}
 }
 
-// sidebarFooter is the sidebar's foot: the picker of the hosts shown, and
-// the buttons for projects, the palette and Settings.  It keeps the
-// window's actions only: what across the sessions wants a look the app
-// says in the title bar and the Dock's badge, and how the connection to
-// kerod is the host's own row in the sidebar shows.
+// sidebarFooter is the sidebar's foot, in two lines. The first holds the
+// window's own actions only -- a project to open, the palette, keeping the
+// awake, Settings: what across the sessions wants a look the app says in
+// the title bar, and how the connection to kerod is the host's own row in
+// the sidebar shows. The second is the picker of the hosts shown, across
+// the foot's whole width, as a filter of a list is; its panel hangs above
+// it, as wide as the button.
 func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
-	ui.Row(c).Height(36).Shrink(0).Padding(0, rowInset, 4, rowInset).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
+	foot := ui.Column(c).Shrink(0).Padding(0, rowInset, 6, rowInset).Gap(3).DragWindow()
+	foot.Children(func() {
 		if !a.titleBar() {
-			iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
-			iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-			iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
-			iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+			ui.Row(c).Height(26).Shrink(0).Gap(2).AlignItems(ui.Center).Children(func() {
+				iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
+				iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+				iconButton(c, "keep-awake", a.keepAwakeIcon(), locales.AwakeTitle(), pal, a.toggleKeepAwake)
+				iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+				ui.Spacer(c)
+			})
 		}
-		// The picker of the hosts shown stands at the foot's end, at the
-		// corner of the sidebar, as a device picker does: the panel hangs
-		// above it, lined up with the button.
-		ui.Spacer(c)
 		a.deviceFilterButton(c, pal)
 	})
 }

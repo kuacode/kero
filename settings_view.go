@@ -87,8 +87,11 @@ type settingsState struct {
 	scrolls         map[string]*ui.ScrollState // each page's, for its scroll edge
 	host            hostDraft                  // the Hosts page's form
 	hostEdit        hostDraft                  // a host's, as the user edits it
-	tailnet         tailnetLook                // this machine on the tailnet, for the Hosts page
-	confirm         *confirmation              // a question, asked in this window
+	// hostFormFocus asks the Hosts page's form to take the keyboard once,
+	// as the device picker's Add a Host opens it.
+	hostFormFocus bool
+	tailnet       tailnetLook   // this machine on the tailnet, for the Hosts page
+	confirm       *confirmation // a question, asked in this window
 	// preview is the Terminal page's sample terminal, made once
 	// previewLoad, which waits for terminal.Load off the main thread,
 	// gives its result; previewText is its text, for assistive technology.
@@ -111,6 +114,7 @@ func (a *App) openSettings(page string) {
 	if a.setWin != nil {
 		a.setWin.Show()
 		a.setWin.Focus()
+		a.setWin.Invalidate() // the page asked for, if it is not the one shown
 		return
 	}
 	a.ss.loginOpen = mygo.App.OpenAtLogin()

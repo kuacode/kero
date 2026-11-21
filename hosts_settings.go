@@ -44,7 +44,13 @@ func (a *App) hostsPage(c *ui.Context, pal *palette) {
 		d := &a.ss.host
 		ui.Row(c).Padding(10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
 			add := func() { a.addHost() }
-			textField(c, "host-addr", &d.addr, locales.SetHostAddressPlaceholder(), 0, pal).Font("monospace").OnSubmit(add)
+			addr := textField(c, "host-addr", &d.addr, locales.SetHostAddressPlaceholder(), 0, pal).Font("monospace").OnSubmit(add)
+			// The device picker's Add a Host comes here, and asks for the
+			// keyboard: the address is the one thing to type.
+			if a.ss.hostFormFocus {
+				a.ss.hostFormFocus = false
+				addr.AutoFocus()
+			}
 			textField(c, "host-name", &d.name, locales.SetHostNamePlaceholder(defaultHostName(d.addr)), 130, pal).OnSubmit(add)
 			if fieldButton(c, "host-add", locales.CommonAdd(), true, pal) {
 				add()
