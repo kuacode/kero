@@ -137,17 +137,11 @@ func (a *App) deviceFilterBar(c *ui.Context, pal *palette) {
 	})
 }
 
-// devicePickerMenu builds the panel of the picker: a header naming what
-// it lists, the All row, one row per host, and the way to add one.
+// devicePickerMenu builds the panel of the picker: the All row, one row
+// per host, and the way to add one. The panel needs no title of its own:
+// the button that opens it names what it shows, and a check on each row
+// says the rest.
 func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
-	// The panel's title and the hint of how it is used. Both are the panel's
-	// own words, so they take its own colors: the title as dark as an item's
-	// label, the hint as light as a subtitle. The panel is as wide as the
-	// sidebar's card, as its children show, and hangs above the button.
-	m.Item(locales.DevicePickerTitle()).Disabled(true).Content(func(x ui.MenuItemContent) {
-		ui.Text(x.Context, locales.DevicePickerTitle()).FontSize(11).FontWeight(600).TextColor(pal.text)
-		ui.Text(x.Context, locales.DevicePickerHint()).FontSize(11).TextColor(pal.textMuted)
-	})
 	// The All row shows every host.
 	if m.Item(locales.SidebarDeviceAll()).Checked(a.deviceAll()).ID("device-all").
 		Icon(menuIconOf(deviceIcon)).IconColor(pal.textMuted).
