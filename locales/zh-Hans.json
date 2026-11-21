@@ -119,8 +119,6 @@
       }
     }
   },
-  "devicePickerTitle": "主机与会话",
-  "devicePickerHint": "选择要显示的主机",
   "devicePickerSummary": "{total} 台主机 · {connected} 台已连接",
   "@devicePickerSummary": {
     "placeholders": {

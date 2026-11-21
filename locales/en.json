@@ -167,8 +167,6 @@
       }
     }
   },
-  "devicePickerTitle": "Hosts & Sessions",
-  "devicePickerHint": "Pick the hosts to show",
   "devicePickerSummary": "{total, plural, one {# host} other {# hosts}} · {connected, plural, one {# connected} other {# connected}}",
   "@devicePickerSummary": {
     "placeholders": {

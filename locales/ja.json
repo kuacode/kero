@@ -119,8 +119,6 @@
       }
     }
   },
-  "devicePickerTitle": "ホストとセッション",
-  "devicePickerHint": "表示するホストを選択",
   "devicePickerSummary": "{total} 台のホスト · {connected} 台接続中",
   "@devicePickerSummary": {
     "placeholders": {

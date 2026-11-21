@@ -1176,26 +1176,6 @@ func (msgs Messages) SidebarDevicePicked(count int) string {
 	return Catalog.Format(msgs.locale, "sidebarDevicePicked", map[string]any{"count": count})
 }
 
-// DevicePickerTitle says "Hosts & Sessions"
-// in the language the app shows.
-func DevicePickerTitle() string { return In(i18n.Locale()).DevicePickerTitle() }
-
-// DevicePickerTitle says "Hosts & Sessions"
-// in the language of msgs.
-func (msgs Messages) DevicePickerTitle() string {
-	return Catalog.Format(msgs.locale, "devicePickerTitle", nil)
-}
-
-// DevicePickerHint says "Pick the hosts to show"
-// in the language the app shows.
-func DevicePickerHint() string { return In(i18n.Locale()).DevicePickerHint() }
-
-// DevicePickerHint says "Pick the hosts to show"
-// in the language of msgs.
-func (msgs Messages) DevicePickerHint() string {
-	return Catalog.Format(msgs.locale, "devicePickerHint", nil)
-}
-
 // DevicePickerSummary says "{total, plural, one {# host} other {# hosts}} · {connected, plural, one {# connected} other {# connected}}"
 // in the language the app shows.
 func DevicePickerSummary(total int, connected int) string {
