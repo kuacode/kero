@@ -259,6 +259,19 @@ func (a *App) update(fn func()) {
 	}
 }
 
+// updateSync runs fn on the main thread and waits for it. Background loops
+// that read a.hosts into their own variables use this, not update: Update
+// posts fn asynchronously, so anything captured and read straight after
+// would still be empty when the loop looked at it. A test app has no window,
+// and runs fn right away.
+func (a *App) updateSync(fn func()) {
+	if a.win != nil {
+		mygo.RunOnMain(fn)
+	} else {
+		fn()
+	}
+}
+
 func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 	if h.cl != cl {
 		return

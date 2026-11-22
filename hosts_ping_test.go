@@ -6,7 +6,46 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+
+	"kero/internal/client"
 )
+
+// pingTargets must see the ready hosts straight away. This is the bug that
+// kept the sidebar from ever showing a round trip: reading the target slice
+// after an asynchronous update saw it empty, so nothing was ever measured.
+func TestPingTargets(t *testing.T) {
+	a := testApp(t)
+	local := a.local()
+	local.conn = connReady
+	sentinel := &client.Client{}
+	local.cl = sentinel
+	build := withHost(t, a, "build")
+	build.cl = &client.Client{}
+	// A host not connected, and one with no client, are not measured.
+	idle := withHost(t, a, "idle")
+	idle.conn = connFailed
+
+	targets, warming, degrade := a.pingTargets()
+	if len(targets) != 2 {
+		t.Fatalf("pingTargets saw %d hosts, want this machine and build: %v", len(targets), targets)
+	}
+	if !warming {
+		t.Error("hosts with no samples yet should be warming")
+	}
+	if degrade {
+		t.Error("hosts that have not answered are not degrading yet")
+	}
+	byName := map[string]*host{}
+	for _, tg := range targets {
+		byName[tg.h.name] = tg.h
+	}
+	if byName["build"] != build || byName[""] != local {
+		t.Errorf("the targets are not the ready hosts: %v", byName)
+	}
+	if local.cl != sentinel {
+		t.Error("the snapshot changed a host's client")
+	}
+}
 
 // A round trip reads in milliseconds, or seconds once it drags, and
 // under a millisecond with a sign that it is close.

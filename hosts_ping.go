@@ -37,33 +37,41 @@ const (
 	rttFar       = 400 * time.Millisecond // the SRTT past which it is far
 )
 
+// pingTarget is one ready host and the connection to measure its trip on.
+type pingTarget struct {
+	h  *host
+	cl *client.Client
+}
+
+// pingTargets snapshots the ready hosts on the main thread. This uses
+// updateSync, not update: update posts the fill to a later main-thread turn,
+// so reading targets the moment this returns would see an empty slice and
+// the app would never measure anyone. Waiting for the fill is what makes the
+// round trips actually happen.
+func (a *App) pingTargets() (targets []pingTarget, warming, degrade bool) {
+	a.updateSync(func() {
+		for _, h := range a.hosts {
+			if h.conn != connReady || h.cl == nil {
+				continue
+			}
+			targets = append(targets, pingTarget{h: h, cl: h.cl})
+			if h.rttSamples < pingWarm {
+				warming = true
+			}
+			if h.rttLost || (h.rttSamples > 0 && h.rtt >= rttSlow) {
+				degrade = true
+			}
+		}
+	})
+	return
+}
+
 // watchPing keeps the round trip to each host as the sidebar's header
 // shows it: it beats on every ready host, folds what comes into the host's
 // moving average, and lengthens or shortens the pause as the hosts read.
 func (a *App) watchPing() {
 	for {
-		type target struct {
-			h  *host
-			cl *client.Client
-		}
-		var (
-			targets          []target
-			warming, degrade bool
-		)
-		a.update(func() {
-			for _, h := range a.hosts {
-				if h.conn != connReady || h.cl == nil {
-					continue
-				}
-				targets = append(targets, target{h: h, cl: h.cl})
-				if h.rttSamples < pingWarm {
-					warming = true
-				}
-				if h.rttLost || (h.rttSamples > 0 && h.rtt >= rttSlow) {
-					degrade = true
-				}
-			}
-		})
+		targets, warming, degrade := a.pingTargets()
 		if len(targets) == 0 {
 			time.Sleep(pingSteady)
 			continue
@@ -71,7 +79,7 @@ func (a *App) watchPing() {
 		// Beat on every host at once, so that one far away, or gone,
 		// holds up no other; gather what came, and take it in one update.
 		type result struct {
-			t    target
+			t    pingTarget
 			d    time.Duration
 			lost bool
 		}
@@ -79,7 +87,7 @@ func (a *App) watchPing() {
 		var wg sync.WaitGroup
 		for i, t := range targets {
 			wg.Add(1)
-			go func(i int, t target) {
+			go func(i int, t pingTarget) {
 				defer wg.Done()
 				d, err := pingOnce(t.cl, pingTimeout)
 				results[i] = result{t: t, d: d, lost: err != nil}
