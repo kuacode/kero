@@ -6220,6 +6220,76 @@ func (msgs Messages) HostAddFieldNetwork() string {
 	return Catalog.Format(msgs.locale, "hostAddFieldNetwork", nil)
 }
 
+// HostAddFieldUser says "User"
+// in the language the app shows.
+func HostAddFieldUser() string { return In(i18n.Locale()).HostAddFieldUser() }
+
+// HostAddFieldUser says "User"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldUser() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldUser", nil)
+}
+
+// HostAddFieldPort says "Port"
+// in the language the app shows.
+func HostAddFieldPort() string { return In(i18n.Locale()).HostAddFieldPort() }
+
+// HostAddFieldPort says "Port"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldPort() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldPort", nil)
+}
+
+// HostAddFieldName says "Name"
+// in the language the app shows.
+func HostAddFieldName() string { return In(i18n.Locale()).HostAddFieldName() }
+
+// HostAddFieldName says "Name"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldName() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldName", nil)
+}
+
+// HostAddFieldPassword says "Password"
+// in the language the app shows.
+func HostAddFieldPassword() string { return In(i18n.Locale()).HostAddFieldPassword() }
+
+// HostAddFieldPassword says "Password"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldPassword() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldPassword", nil)
+}
+
+// HostAddUserPlaceholder says "root"
+// in the language the app shows.
+func HostAddUserPlaceholder() string { return In(i18n.Locale()).HostAddUserPlaceholder() }
+
+// HostAddUserPlaceholder says "root"
+// in the language of msgs.
+func (msgs Messages) HostAddUserPlaceholder() string {
+	return Catalog.Format(msgs.locale, "hostAddUserPlaceholder", nil)
+}
+
+// HostAddPortPlaceholder says "22"
+// in the language the app shows.
+func HostAddPortPlaceholder() string { return In(i18n.Locale()).HostAddPortPlaceholder() }
+
+// HostAddPortPlaceholder says "22"
+// in the language of msgs.
+func (msgs Messages) HostAddPortPlaceholder() string {
+	return Catalog.Format(msgs.locale, "hostAddPortPlaceholder", nil)
+}
+
+// HostAddPasswordPlaceholder says "••••••"
+// in the language the app shows.
+func HostAddPasswordPlaceholder() string { return In(i18n.Locale()).HostAddPasswordPlaceholder() }
+
+// HostAddPasswordPlaceholder says "••••••"
+// in the language of msgs.
+func (msgs Messages) HostAddPasswordPlaceholder() string {
+	return Catalog.Format(msgs.locale, "hostAddPasswordPlaceholder", nil)
+}
+
 // HostAddDetailSSH says "me@devbox or ssh://me@devbox:2222, the way ssh takes it, with your ~/.ssh/config for names."
 // in the language the app shows.
 func HostAddDetailSSH() string { return In(i18n.Locale()).HostAddDetailSSH() }

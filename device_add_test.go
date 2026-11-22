@@ -26,7 +26,7 @@ import (
 // would have found, so no test waits on a scan and none reads the real
 // ~/.ssh/config.
 func addDraftFor(d *hostAddDraft, kind hostKind, cands ...string) {
-	d.typed = map[hostKind][2]string{}
+	d.typed = map[hostKind]hostAddFields{}
 	d.shown = map[hostKind][]string{kind: cands}
 	d.looking = map[hostKind]bool{}
 	d.kind = kind
@@ -63,15 +63,13 @@ func TestDeviceAddWslPrefix(t *testing.T) {
 		{"http://devbox:7373", "http://devbox:7373"},
 		{"", ""},
 	} {
-		if got := hostAddAddrOf(kindWSL, tc.in); got != tc.want {
+		if got := hostAddAddrOf(kindWSL, tc.in, "", ""); got != tc.want {
 			t.Errorf("hostAddAddrOf(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
 	// The other kinds are taken exactly as typed: no prefix, no rewrite.
-	for _, k := range []hostKind{kindSSH, kindNetwork} {
-		if got := hostAddAddrOf(k, "devbox"); got != "devbox" {
-			t.Errorf("kind %d rewrote the address to %q", k, got)
-		}
+	if got := hostAddAddrOf(kindSSH, "devbox", "", ""); got != "devbox" {
+		t.Errorf("kind SSH rewrote the address to %q", got)
 	}
 }
 
@@ -118,17 +116,6 @@ func TestDeviceAddSubmit(t *testing.T) {
 		t.Errorf("Debian reads as %+v", w)
 	}
 
-	// A tailnet listener is typed whole.
-	d = &a.hostAdd
-	addDraftFor(d, kindNetwork)
-	d.addr, d.name = "http://devbox:7373", "kerod"
-	if !a.hostAddSubmit(d) {
-		t.Fatalf("network submit failed: %s", d.err)
-	}
-	if w := a.set.Host("kerod"); w == nil || w.Addr != "http://devbox:7373" {
-		t.Errorf("kerod reads as %+v", w)
-	}
-
 	// A name already taken is said, not overwritten.
 	d = &a.hostAdd
 	addDraftFor(d, kindSSH)
@@ -139,7 +126,7 @@ func TestDeviceAddSubmit(t *testing.T) {
 	if want := locales.SetHostNameTaken("devbox"); d.err != want {
 		t.Errorf("a taken name said %q, want %q", d.err, want)
 	}
-	if len(a.set.Hosts) != 3 {
+	if len(a.set.Hosts) != 2 {
 		t.Errorf("a refused name changed the hosts: %v", a.set.Hosts)
 	}
 
@@ -245,12 +232,6 @@ func TestDeviceAddCompletesTheShortestMatch(t *testing.T) {
 	if d.addr != "devbox" {
 		t.Errorf("a second Tab changed %q", d.addr)
 	}
-	// A kind the finder has nothing for never completes.
-	addDraftFor(d, kindNetwork)
-	d.addr = "http://dev"
-	if got := hostAddComplete(d.addr, d.cands); got != "" {
-		t.Errorf("the tailnet kind completed to %q", got)
-	}
 }
 
 func TestDeviceAddKeepsEachKindForm(t *testing.T) {
@@ -267,12 +248,12 @@ func TestDeviceAddKeepsEachKindForm(t *testing.T) {
 	}
 	// Along the rail to the next kind and back: the address stays put.
 	d.store()
-	d.kind = kindNetwork
+	d.kind = kindWSL
 	d.fieldsOf(d.kind)
 	if d.addr != "" {
-		t.Errorf("the tailnet form opened with %q", d.addr)
+		t.Errorf("the WSL form opened with %q", d.addr)
 	}
-	d.addr = "http://devbox:7373"
+	d.addr = "Debian"
 	d.store()
 	d.kind = kindSSH
 	d.fieldsOf(d.kind)
@@ -287,9 +268,9 @@ func TestDeviceAddKeepsEachKindForm(t *testing.T) {
 	if !a.hostAddSubmit(d) {
 		t.Fatalf("submit failed: %s", d.err)
 	}
-	d.fieldsOf(kindNetwork)
-	if d.addr != "http://devbox:7373" {
-		t.Errorf("adding an SSH host cleared the tailnet form: %q", d.addr)
+	d.fieldsOf(kindWSL)
+	if d.addr != "Debian" {
+		t.Errorf("adding an SSH host cleared the WSL form: %q", d.addr)
 	}
 }
 

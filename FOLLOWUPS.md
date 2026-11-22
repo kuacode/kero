@@ -23,16 +23,9 @@
 - 明确不做：Skip host key verification 复选框。sheprd 有，我们不抄——
   信任主机密钥的安全决策应留在终端里完成（与现有 HostAuthHint 口径一致）。
 
-## 2. Network 标签没有候选来源
+## 2. Network 标签已移除
 
-- 现状：SSH 有 `~/.ssh/config` 别名、WSL 有 `wsl.exe -l -v`，Network
-  只有一段 kerod 监听地址的说明文字。
-- 原因：`internal/tailscale` 的 `statusResponse`（`tailscale.go:180-191`）
-  只解析 `Self`，不带 Peer。
-- 下一步：解析 localAPI("status") 返回的 `Peer`（`Prefixes`/`DNSName`/
-  `Online`），把在线 peer 的 MagicDNS 名列为候选。这比 sheprd 的 Bonjour
-  扫描更贴 kero——kero 自己就用 tailnet。缓存 TTL 参照
-  `sshCandidateTTL`（30s）。
+- 本轮已删除 `kindNetwork` 常量及相关分支（`device_add.go`、`device_add_test.go`、locale keys 保留为孤儿键）。rail 现在只剩 SSH 和 WSL 两项。
 
 ## 3. 判重只按名字
 
