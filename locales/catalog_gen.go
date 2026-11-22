@@ -6180,6 +6180,26 @@ func (msgs Messages) HostAddKindWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddKindWSL", nil)
 }
 
+// HostAddKindNetwork says "Network"
+// in the language the app shows.
+func HostAddKindNetwork() string { return In(i18n.Locale()).HostAddKindNetwork() }
+
+// HostAddKindNetwork says "Network"
+// in the language of msgs.
+func (msgs Messages) HostAddKindNetwork() string {
+	return Catalog.Format(msgs.locale, "hostAddKindNetwork", nil)
+}
+
+// HostAddFieldSSH says "SSH target"
+// in the language the app shows.
+func HostAddFieldSSH() string { return In(i18n.Locale()).HostAddFieldSSH() }
+
+// HostAddFieldSSH says "SSH target"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldSSH", nil)
+}
+
 // HostAddFieldWSL says "Distribution"
 // in the language the app shows.
 func HostAddFieldWSL() string { return In(i18n.Locale()).HostAddFieldWSL() }
@@ -6190,11 +6210,21 @@ func (msgs Messages) HostAddFieldWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddFieldWSL", nil)
 }
 
-// HostAddDetailSSH says "The machine's name, or one from your ~/.ssh/config. User and port may be left blank."
+// HostAddFieldNetwork says "Listener"
+// in the language the app shows.
+func HostAddFieldNetwork() string { return In(i18n.Locale()).HostAddFieldNetwork() }
+
+// HostAddFieldNetwork says "Listener"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldNetwork() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldNetwork", nil)
+}
+
+// HostAddDetailSSH says "me@devbox or ssh://me@devbox:2222, the way ssh takes it, with your ~/.ssh/config for names."
 // in the language the app shows.
 func HostAddDetailSSH() string { return In(i18n.Locale()).HostAddDetailSSH() }
 
-// HostAddDetailSSH says "The machine's name, or one from your ~/.ssh/config. User and port may be left blank."
+// HostAddDetailSSH says "me@devbox or ssh://me@devbox:2222, the way ssh takes it, with your ~/.ssh/config for names."
 // in the language of msgs.
 func (msgs Messages) HostAddDetailSSH() string {
 	return Catalog.Format(msgs.locale, "hostAddDetailSSH", nil)
@@ -6208,6 +6238,16 @@ func HostAddDetailWSL() string { return In(i18n.Locale()).HostAddDetailWSL() }
 // in the language of msgs.
 func (msgs Messages) HostAddDetailWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddDetailWSL", nil)
+}
+
+// HostAddDetailNetwork says "http://devbox:7373 or https://devbox.tail1234.ts.net, where kerod listens on your tailnet."
+// in the language the app shows.
+func HostAddDetailNetwork() string { return In(i18n.Locale()).HostAddDetailNetwork() }
+
+// HostAddDetailNetwork says "http://devbox:7373 or https://devbox.tail1234.ts.net, where kerod listens on your tailnet."
+// in the language of msgs.
+func (msgs Messages) HostAddDetailNetwork() string {
+	return Catalog.Format(msgs.locale, "hostAddDetailNetwork", nil)
 }
 
 // HostAddFoundSSH says "From your SSH config"
@@ -6230,6 +6270,16 @@ func (msgs Messages) HostAddFoundWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddFoundWSL", nil)
 }
 
+// HostAddSourceSSH says "SSH config"
+// in the language the app shows.
+func HostAddSourceSSH() string { return In(i18n.Locale()).HostAddSourceSSH() }
+
+// HostAddSourceSSH says "SSH config"
+// in the language of msgs.
+func (msgs Messages) HostAddSourceSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddSourceSSH", nil)
+}
+
 // HostAddDefault says "default"
 // in the language the app shows.
 func HostAddDefault() string { return In(i18n.Locale()).HostAddDefault() }
@@ -6248,76 +6298,6 @@ func HostAddWSLPlaceholder() string { return In(i18n.Locale()).HostAddWSLPlaceho
 // in the language of msgs.
 func (msgs Messages) HostAddWSLPlaceholder() string {
 	return Catalog.Format(msgs.locale, "hostAddWSLPlaceholder", nil)
-}
-
-// HostAddHost says "Host"
-// in the language the app shows.
-func HostAddHost() string { return In(i18n.Locale()).HostAddHost() }
-
-// HostAddHost says "Host"
-// in the language of msgs.
-func (msgs Messages) HostAddHost() string {
-	return Catalog.Format(msgs.locale, "hostAddHost", nil)
-}
-
-// HostAddHostPlaceholder says "devbox or an alias"
-// in the language the app shows.
-func HostAddHostPlaceholder() string { return In(i18n.Locale()).HostAddHostPlaceholder() }
-
-// HostAddHostPlaceholder says "devbox or an alias"
-// in the language of msgs.
-func (msgs Messages) HostAddHostPlaceholder() string {
-	return Catalog.Format(msgs.locale, "hostAddHostPlaceholder", nil)
-}
-
-// HostAddUser says "User"
-// in the language the app shows.
-func HostAddUser() string { return In(i18n.Locale()).HostAddUser() }
-
-// HostAddUser says "User"
-// in the language of msgs.
-func (msgs Messages) HostAddUser() string {
-	return Catalog.Format(msgs.locale, "hostAddUser", nil)
-}
-
-// HostAddUserPlaceholder says "me"
-// in the language the app shows.
-func HostAddUserPlaceholder() string { return In(i18n.Locale()).HostAddUserPlaceholder() }
-
-// HostAddUserPlaceholder says "me"
-// in the language of msgs.
-func (msgs Messages) HostAddUserPlaceholder() string {
-	return Catalog.Format(msgs.locale, "hostAddUserPlaceholder", nil)
-}
-
-// HostAddPort says "Port"
-// in the language the app shows.
-func HostAddPort() string { return In(i18n.Locale()).HostAddPort() }
-
-// HostAddPort says "Port"
-// in the language of msgs.
-func (msgs Messages) HostAddPort() string {
-	return Catalog.Format(msgs.locale, "hostAddPort", nil)
-}
-
-// HostAddPortPlaceholder says "22"
-// in the language the app shows.
-func HostAddPortPlaceholder() string { return In(i18n.Locale()).HostAddPortPlaceholder() }
-
-// HostAddPortPlaceholder says "22"
-// in the language of msgs.
-func (msgs Messages) HostAddPortPlaceholder() string {
-	return Catalog.Format(msgs.locale, "hostAddPortPlaceholder", nil)
-}
-
-// HostAddName says "Name"
-// in the language the app shows.
-func HostAddName() string { return In(i18n.Locale()).HostAddName() }
-
-// HostAddName says "Name"
-// in the language of msgs.
-func (msgs Messages) HostAddName() string {
-	return Catalog.Format(msgs.locale, "hostAddName", nil)
 }
 
 // SetHostAddressPlaceholder says "me@devbox"

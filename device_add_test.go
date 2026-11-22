@@ -26,15 +26,15 @@ import (
 // would have found, so no test waits on a scan and none reads the real
 // ~/.ssh/config.
 func addDraftFor(d *hostAddDraft, kind hostKind, cands ...string) {
-	d.typed = map[hostKind]hostAddFields{}
+	d.typed = map[hostKind][2]string{}
 	d.shown = map[hostKind][]string{kind: cands}
 	d.looking = map[hostKind]bool{}
 	d.kind = kind
-	d.kindSel = hostKindID(kind)
 	d.open = true
 	d.fieldsOf(kind)
 	d.cands = slices.Clone(cands)
 	d.sshAt, d.wslAt = time.Now(), time.Now()
+	d.sshN, d.wslN = len(cands), len(cands)
 }
 
 // addTerminals gives the test app's panes real terminals, so their handles
@@ -51,31 +51,26 @@ func addTerminals(t *testing.T, a *App) {
 	}
 }
 
-func TestDeviceAddComposedAddress(t *testing.T) {
-	for _, tc := range []struct {
-		kind                   hostKind
-		host, user, port, want string
-	}{
-		// A bare host is the whole address.
-		{kindSSH, "devbox", "", "", "devbox"},
-		// The parts make ssh's own destination, in its order.
-		{kindSSH, "devbox", "me", "", "me@devbox"},
-		{kindSSH, "devbox", "", "2222", "devbox:2222"},
-		{kindSSH, "devbox", "me", "2222", "me@devbox:2222"},
-		{kindSSH, " [::1] ", "", "2222", "[::1]:2222"},
-		// An address typed whole is left as it was typed, its own scheme
+func TestDeviceAddWslPrefix(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		// A bare distribution takes the scheme its kind stands for.
+		{"Ubuntu", "wsl://Ubuntu"},
+		{"Debian", "wsl://Debian"},
+		// Anything already naming a scheme is left as it was typed, case
 		// included: remote.ParseAddr reads the scheme whatever its case.
-		{kindSSH, "ssh://me@other:22", "me", "2222", "ssh://me@other:22"},
-		{kindSSH, "HTTP://devbox:7373", "", "", "HTTP://devbox:7373"},
-		// A distribution takes the scheme its kind stands for.
-		{kindWSL, "Ubuntu", "", "", "wsl://Ubuntu"},
-		{kindWSL, "wsl://Debian", "", "", "wsl://Debian"},
-		{kindWSL, "WSL://Debian", "", "", "WSL://Debian"},
-		{kindWSL, "", "", "", ""},
+		{"wsl://Debian", "wsl://Debian"},
+		{"WSL://Debian", "WSL://Debian"},
+		{"http://devbox:7373", "http://devbox:7373"},
+		{"", ""},
 	} {
-		if got := hostAddAddrOf(tc.kind, tc.host, tc.user, tc.port); got != tc.want {
-			t.Errorf("hostAddAddrOf(%d, %q, %q, %q) = %q, want %q",
-				tc.kind, tc.host, tc.user, tc.port, got, tc.want)
+		if got := hostAddAddrOf(kindWSL, tc.in); got != tc.want {
+			t.Errorf("hostAddAddrOf(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+	// The other kinds are taken exactly as typed: no prefix, no rewrite.
+	for _, k := range []hostKind{kindSSH, kindNetwork} {
+		if got := hostAddAddrOf(k, "devbox"); got != "devbox" {
+			t.Errorf("kind %d rewrote the address to %q", k, got)
 		}
 	}
 }
@@ -112,20 +107,6 @@ func TestDeviceAddSubmit(t *testing.T) {
 		t.Error("the dialog stayed open after a host was added")
 	}
 
-	// The parts make the address, and an empty name takes the host's.
-	d = &a.hostAdd
-	addDraftFor(d, kindSSH)
-	d.addr, d.user, d.port = "gitcode.com", "me", "2222"
-	if !a.hostAddSubmit(d) {
-		t.Fatalf("parted submit failed: %s", d.err)
-	}
-	if g := a.set.Host("gitcode"); g == nil || g.Addr != "me@gitcode.com:2222" {
-		t.Errorf("gitcode reads as %+v", g)
-	}
-	if d.addr != "" || d.user != "" || d.port != "" || d.name != "" {
-		t.Errorf("the form kept %q, %q, %q, %q", d.addr, d.user, d.port, d.name)
-	}
-
 	// A distribution keeps its own scheme, and its name.
 	d = &a.hostAdd
 	addDraftFor(d, kindWSL, "Debian")
@@ -135,6 +116,17 @@ func TestDeviceAddSubmit(t *testing.T) {
 	}
 	if w := a.set.Host("Debian"); w == nil || w.Addr != "wsl://Debian" {
 		t.Errorf("Debian reads as %+v", w)
+	}
+
+	// A tailnet listener is typed whole.
+	d = &a.hostAdd
+	addDraftFor(d, kindNetwork)
+	d.addr, d.name = "http://devbox:7373", "kerod"
+	if !a.hostAddSubmit(d) {
+		t.Fatalf("network submit failed: %s", d.err)
+	}
+	if w := a.set.Host("kerod"); w == nil || w.Addr != "http://devbox:7373" {
+		t.Errorf("kerod reads as %+v", w)
 	}
 
 	// A name already taken is said, not overwritten.
@@ -253,9 +245,11 @@ func TestDeviceAddCompletesTheShortestMatch(t *testing.T) {
 	if d.addr != "devbox" {
 		t.Errorf("a second Tab changed %q", d.addr)
 	}
-	// A query no candidate starts with completes to nothing.
-	if got := hostAddComplete("devb", []string{"gitcode.com", "home-server"}); got != "" {
-		t.Errorf("a stranger completed to %q", got)
+	// A kind the finder has nothing for never completes.
+	addDraftFor(d, kindNetwork)
+	d.addr = "http://dev"
+	if got := hostAddComplete(d.addr, d.cands); got != "" {
+		t.Errorf("the tailnet kind completed to %q", got)
 	}
 }
 
@@ -271,35 +265,31 @@ func TestDeviceAddKeepsEachKindForm(t *testing.T) {
 	if d.addr != "me@devbox" {
 		t.Fatalf("typed %q", d.addr)
 	}
-	d.user, d.port = "me", "2222"
-	d.name = "devbox"
-	// Along to WSL and back: the SSH form is where it was left.
+	// Along the rail to the next kind and back: the address stays put.
 	d.store()
-	d.kind = kindWSL
+	d.kind = kindNetwork
 	d.fieldsOf(d.kind)
-	if d.addr != "" || d.user != "" || d.port != "" {
-		t.Errorf("the WSL form opened with %q, %q, %q", d.addr, d.user, d.port)
+	if d.addr != "" {
+		t.Errorf("the tailnet form opened with %q", d.addr)
 	}
-	d.addr = "Debian"
+	d.addr = "http://devbox:7373"
 	d.store()
 	d.kind = kindSSH
 	d.fieldsOf(d.kind)
-	if d.addr != "me@devbox" || d.user != "me" || d.port != "2222" || d.name != "devbox" {
-		t.Errorf("back to SSH reads %q, %q, %q, %q", d.addr, d.user, d.port, d.name)
+	if d.addr != "me@devbox" {
+		t.Errorf("back to SSH reads %q, want the typed address", d.addr)
 	}
 	if d.armed != "" {
 		t.Errorf("a new kind came with armed %q", d.armed)
 	}
 	// An added host clears only the form it came from.
+	d.name = "devbox"
 	if !a.hostAddSubmit(d) {
 		t.Fatalf("submit failed: %s", d.err)
 	}
-	if h := a.set.Host("devbox"); h == nil || h.Addr != "me@devbox:2222" {
-		t.Fatalf("devbox reads as %+v", h)
-	}
-	d.fieldsOf(kindWSL)
-	if d.addr != "Debian" {
-		t.Errorf("adding an SSH host cleared the WSL form: %q", d.addr)
+	d.fieldsOf(kindNetwork)
+	if d.addr != "http://devbox:7373" {
+		t.Errorf("adding an SSH host cleared the tailnet form: %q", d.addr)
 	}
 }
 
@@ -324,8 +314,8 @@ func TestDeviceAddOpensFromThePickerAndClosesToTheTerminal(t *testing.T) {
 	if a.setWin != nil {
 		t.Error("Add a Host opened Settings")
 	}
-	if !tt.HasText(locales.HostAddHost()) {
-		t.Errorf("the form never showed %q: %v", locales.HostAddHost(), tt.Texts())
+	if !tt.HasText(locales.HostAddFieldSSH()) {
+		t.Errorf("the form never showed %q: %v", locales.HostAddFieldSSH(), tt.Texts())
 	}
 	if !tt.HasText("devbox") {
 		t.Errorf("the finder's rows never showed: %v", tt.Texts())
@@ -378,70 +368,30 @@ func TestDeviceAddClosesFromTheHeader(t *testing.T) {
 	if d.open {
 		t.Error("Escape left the dialog open")
 	}
-	// Cancel is the third, and the pointer's.
-	a.openHostAdd()
-	tt.Frame()
-	tt.Click(locales.CommonCancel())
-	tt.Frame()
-	if d.open {
-		t.Error("Cancel left the dialog open")
-	}
 }
 
-func TestDeviceAddKindSwitch(t *testing.T) {
+func TestDeviceAddBadgeCounts(t *testing.T) {
 	a := testApp(t)
 	d := &a.hostAdd
-	addDraftFor(d, kindSSH, "devbox")
+	addDraftFor(d, kindSSH, "devbox", "build")
+	d.distros = []remote.Distro{{Name: "Debian", Default: true}, {Name: "kiri"}}
+	d.wslN = len(d.distros)
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
-
-	// WSL is a choice only where a distribution can be started at all.
+	// The rail quotes each scan's count, so a badge says what the finder
+	// holds before anyone opens it. The badge is a label of its own, so
+	// the count is looked for whole, not as a fragment of some other text.
+	if !slices.Contains(tt.Texts(), "2") {
+		t.Errorf("the SSH badge never showed its count: %v", tt.Texts())
+	}
+	// WSL has a rail row, and a badge of its own, only where a
+	// distribution can be started at all.
 	if runtime.GOOS == "windows" {
-		if !tt.HasText(locales.HostAddKindWSL()) {
-			t.Errorf("the kind switch never offered WSL: %v", tt.Texts())
+		if !slices.Contains(tt.Texts(), locales.HostAddKindWSL()) {
+			t.Errorf("the WSL row is missing from the rail: %v", tt.Texts())
 		}
-	} else if tt.HasText(locales.HostAddKindWSL()) {
-		t.Error("the kind switch offered WSL where it cannot run")
-	}
-
-	tt.Type("me@devbox")
-	tt.Frame()
-	d.user, d.port = "me", "2222"
-	// The switch keeps the form it leaves behind and takes back the one it
-	// opens, and the field of the form in hand takes the focus.
-	a.hostAddSwitch(d, kindWSL)
-	if d.kind != kindWSL || d.kindSel != "wsl" {
-		t.Errorf("the switch left kind %d, choice %q", d.kind, d.kindSel)
-	}
-	if d.addr != "" || d.user != "" || d.port != "" {
-		t.Errorf("the WSL form opened with %q, %q, %q", d.addr, d.user, d.port)
-	}
-	if !d.refocus {
-		t.Error("the field was never asked for the focus back")
-	}
-	a.hostAddSwitch(d, kindSSH)
-	if d.addr != "me@devbox" || d.user != "me" || d.port != "2222" {
-		t.Errorf("back to SSH reads %q, %q, %q", d.addr, d.user, d.port)
-	}
-	if d.kindSel != "ssh" {
-		t.Errorf("the switch came back as %q", d.kindSel)
-	}
-}
-
-func TestDeviceAddPickTakesTheUser(t *testing.T) {
-	a := testApp(t)
-	d := &a.hostAdd
-	addDraftFor(d, kindSSH, "me@devbox")
-	tt := ui.NewTester(a.view, 1100, 700)
-	tt.Frame()
-
-	// A row written as user@host fills both rows, so the user is not typed
-	// over again; the finder's field keeps the host half, which is what it
-	// filters by.
-	tt.Key(0, ui.KeyDown)
-	tt.Frame()
-	if d.addr != "devbox" || d.user != "me" || d.armed != "devbox" {
-		t.Errorf("Down left host %q, user %q, armed %q", d.addr, d.user, d.armed)
+	} else if slices.Contains(tt.Texts(), locales.HostAddKindWSL()) {
+		t.Error("the rail offered WSL where it cannot run")
 	}
 }
 

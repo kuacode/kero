@@ -10,7 +10,7 @@
 - 现状：传输层以 `SSH_ASKPASS_REQUIRE=never` 运行 ssh(1)
   （`internal/remote/transport.go:310`），`sshArgs` 的注释写明
   "It never asks anything"；带密码的地址被 `remote.ParseAddr` 直接拒绝
-  （`internal/remote/addr.go:60-66`）。对话框在 `device_add.go:624-628`
+  （`internal/remote/addr.go:60-66`）。对话框在 `device_add.go:612-616`
   留了带注释的插入点，没有放假控件。
 - 方案（oracle 评估结论）：路线 (a) —— `SSH_ASKPASS` +
   `SSH_ASKPASS_REQUIRE=force`。Windows OpenSSH 8.4+ 全面支持（本机
@@ -23,21 +23,20 @@
 - 明确不做：Skip host key verification 复选框。sheprd 有，我们不抄——
   信任主机密钥的安全决策应留在终端里完成（与现有 HostAuthHint 口径一致）。
 
-## 2. Network 标签已移除
+## 2. Network 标签没有候选来源
 
-- 现状：quick-add 只剩 SSH 与（Windows 上的）WSL 两种；`kindNetwork`
-  连同它的 rail 行、表单文案和测试都已删除。Settings › Hosts 页仍可手输
-  `http://`/`https://` 地址，那条路不受影响。
-- 移除原因：SSH 有 `~/.ssh/config` 别名、WSL 有 `wsl.exe -l -v`，Network
-  没有候选来源，只能给一段说明；用户要求"去掉网络类型的连接"。
-- 如果以后恢复：`internal/tailscale` 的 `statusResponse`
-  （`tailscale.go:180-191`）目前只解析 `Self`，需解析 localAPI("status")
-  的 `Peer`（`Prefixes`/`DNSName`/`Online`），把在线 peer 的 MagicDNS 名
-  列为候选。缓存 TTL 参照 `sshCandidateTTL`（30s）。
+- 现状：SSH 有 `~/.ssh/config` 别名、WSL 有 `wsl.exe -l -v`，Network
+  只有一段 kerod 监听地址的说明文字。
+- 原因：`internal/tailscale` 的 `statusResponse`（`tailscale.go:180-191`）
+  只解析 `Self`，不带 Peer。
+- 下一步：解析 localAPI("status") 返回的 `Peer`（`Prefixes`/`DNSName`/
+  `Online`），把在线 peer 的 MagicDNS 名列为候选。这比 sheprd 的 Bonjour
+  扫描更贴 kero——kero 自己就用 tailnet。缓存 TTL 参照
+  `sshCandidateTTL`（30s）。
 
 ## 3. 判重只按名字
 
-- 现状：`a.set.Host(h.Name)`（`hosts_settings.go:329`、`device_add.go:615`）
+- 现状：`a.set.Host(h.Name)`（`hosts_settings.go:329`、`device_add.go:607`）
   只看 name 是否重名。
 - sheprd 的思路值得抄：同一个目标不管写成 SSH 别名、`user@address` 还是
   `ssh://` 形式，都应认出是同一台机器。kero 不需要 `ssh -G`，对
@@ -53,8 +52,7 @@
 ## 5. 云供应商绿点
 
 sheprd 的 rail 给已配置的云供应商画绿点。kero 没有云供应商概念，本轮
-不做；若做，形态应是"该 kind 下已有主机"的小圆点，挂在顶部的 kind
-切换控件上。
+不做；若做，形态应是"该 kind 下已有主机"的小圆点，挂在 rail 行上。
 
 ## 6. 已知环境噪音（与 quick-add 无关）
 
