@@ -15,12 +15,12 @@ func TestRTTText(t *testing.T) {
 		d    time.Duration
 		want string
 	}{
-		{300 * time.Microsecond, "<1 ms"},
-		{7 * time.Millisecond, "7 ms"},
-		{1499 * time.Microsecond, "1 ms"},
-		{999 * time.Millisecond, "999 ms"},
-		{1200 * time.Millisecond, "1.2 s"},
-		{2 * time.Second, "2.0 s"},
+		{300 * time.Microsecond, "<1ms"},
+		{7 * time.Millisecond, "7ms"},
+		{1499 * time.Microsecond, "1ms"},
+		{999 * time.Millisecond, "999ms"},
+		{1200 * time.Millisecond, "1.2s"},
+		{2 * time.Second, "2.0s"},
 	} {
 		if got := rttText(c.d); got != c.want {
 			t.Errorf("%v reads %q, want %q", c.d, got, c.want)
@@ -65,8 +65,8 @@ func TestRTTColor(t *testing.T) {
 		d    time.Duration
 		want ui.Color
 	}{
-		{20 * time.Millisecond, lightPalette.textMuted},
-		{rttSlow - time.Millisecond, lightPalette.textMuted},
+		{20 * time.Millisecond, lightPalette.good},
+		{rttSlow - time.Millisecond, lightPalette.good},
 		{rttSlow, lightPalette.attention},
 		{rttFar - time.Millisecond, lightPalette.attention},
 		{rttFar, lightPalette.danger},
@@ -78,14 +78,19 @@ func TestRTTColor(t *testing.T) {
 	}
 }
 
-// Only a remote host the app read a round trip on shows one: this
-// machine's, and a remote's that has not answered yet, show none.
+// Every host shows a round trip once one was read on its present
+// connection, this machine included; one that has not answered shows none.
 func TestHasRTT(t *testing.T) {
 	if (&host{name: ""}).hasRTT() {
-		t.Error("this machine shows a round trip")
+		t.Error("this machine shows a round trip it has not read")
 	}
 	if (&host{name: "build"}).hasRTT() {
 		t.Error("a host not measured shows a round trip")
+	}
+	local := &host{name: ""}
+	local.observeRTT(time.Millisecond)
+	if !local.hasRTT() {
+		t.Error("a measured this machine shows no round trip")
 	}
 	h := &host{name: "build"}
 	h.observeRTT(18 * time.Millisecond)
@@ -102,12 +107,12 @@ func TestSidebarHostLatency(t *testing.T) {
 	h.observeRTT(18 * time.Millisecond)
 	h.observeRTT(20 * time.Millisecond)
 	tt := ui.NewTester(a.view, 1100, 700)
-	// 18 and 20 ms fold to 18.25, which reads as 18.
-	if _, ok := tt.Find("18 ms"); !ok {
+	// 18 and 20 ms fold to 18.25, which reads as 18ms.
+	if _, ok := tt.Find("18ms"); !ok {
 		t.Fatalf("the header does not read the smoothed round trip; texts %q", tt.Texts())
 	}
 	tip := a.hostTip(h)
-	if !strings.Contains(tip, "Latency 18 ms") || !strings.Contains(tip, "jitter 7 ms") {
+	if !strings.Contains(tip, "Latency 18ms") || !strings.Contains(tip, "jitter 7ms") {
 		t.Errorf("the tip does not name the round trip and its jitter: %q", tip)
 	}
 }

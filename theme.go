@@ -51,6 +51,7 @@ type palette struct {
 	done      ui.Color // the filled check
 	onDone    ui.Color
 	danger    ui.Color
+	good      ui.Color // a quick round trip
 	accent    ui.Color
 
 	overlay   ui.Color // behind dialogs
@@ -88,6 +89,7 @@ var lightPalette = palette{
 	done:      ui.Hex("#1d1d1f"),
 	onDone:    ui.Hex("#ffffff"),
 	danger:    ui.Hex("#d93a35"),
+	good:      ui.Hex("#3a8f47"),
 	accent:    ui.Hex("#3b6cf6"),
 
 	overlay:   ui.RGBA(10, 10, 30, 0.12),
@@ -128,6 +130,7 @@ var darkPalette = palette{
 	done:      ui.Hex("#ececf0"),
 	onDone:    ui.Hex("#161618"),
 	danger:    ui.Hex("#ff6961"),
+	good:      ui.Hex("#6fd27c"),
 	accent:    ui.Hex("#6b93ff"),
 
 	overlay:   ui.RGBA(0, 0, 0, 0.35),

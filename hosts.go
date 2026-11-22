@@ -78,8 +78,8 @@ type host struct {
 }
 
 // hasRTT reports whether the app read a round trip on the host's present
-// connection.
-func (h *host) hasRTT() bool { return h.remote() && h.rttSamples > 0 }
+// connection: this machine's socket, or a remote host's multiplexed one.
+func (h *host) hasRTT() bool { return h.rttSamples > 0 }
 
 // observeRTT folds a round trip into the host's moving average, as RFC
 // 6298 has TCP keep its SRTT and RTTVAR: the first sample seeds both, the

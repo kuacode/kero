@@ -525,8 +525,8 @@ func (a *App) deviceShown(h *host) bool {
 }
 
 // toggleDevice adds a host to, or takes it from, the hidden set, so the
-// picker's check (shown) turns off and on. The host of the session shown
-// stays listed even when hidden, as the sidebar draws it all the same.
+// picker's check (shown) turns off and on. The sidebar hides the host at
+// once, even when it holds the session open in the pane.
 func (a *App) toggleDevice(h *host) {
 	key := hostFilterKey(h)
 	filter := slices.Clone(a.prefs.DeviceFilter)

@@ -399,9 +399,11 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 		// nothing to show stays out, unless something there wants the user
 		// (hostNeedsRow); HideEmptyHosts leaves out a host with no sessions.
 		for _, h := range a.hosts {
-			// A host the filter leaves out stays, while it holds the
-			// session shown, so the selection never leaves the view.
-			if !a.deviceShown(h) && a.hostOf(a.selected) != h {
+			// A host the filter leaves out is hidden, even the machine this
+			// app runs on: an uncheck in the picker means out of the sidebar.
+			// The session it held stays selected and open in the pane, just
+			// no longer listed.
+			if !a.deviceShown(h) {
 				continue
 			}
 			groups := a.hostGroups(h)

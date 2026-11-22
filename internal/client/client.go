@@ -283,6 +283,18 @@ func (c *Client) Call(method string, params, out any) error {
 	return nil
 }
 
+// Ping measures the round trip to this machine's kerod, timing the lightest
+// call the socket answers. The app shows it as this machine's latency beside
+// the remote hosts', whose round trips ride their own connections.
+func (c *Client) Ping() (time.Duration, error) {
+	start := time.Now()
+	var out any
+	if err := c.Call("clients", nil, &out); err != nil {
+		return 0, err
+	}
+	return time.Since(start), nil
+}
+
 // Go calls a method without waiting for its result, reporting an error to
 // fn when set.
 func (c *Client) Go(method string, params any, fn func(error)) {

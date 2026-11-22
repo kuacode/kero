@@ -179,6 +179,13 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
+		if h.hasRTT() {
+			// The round trip reads first of the figures, as how far the
+			// host is comes before how busy it is: the same client-to-kerod
+			// measure for this machine and for a remote one.
+			ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
+				Tooltip(a.rttTip(h))
+		}
 		if h.busy == "update" && h.progress > 0 {
 			// The update's progress, in place of the load's gauges: a
 			// bar as far as the archive has come, fetched or sent.
@@ -191,12 +198,6 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			})
 		} else if a.set.ShowSystemLoad {
 			a.hostLoad(c, pal, h)
-		}
-		if h.hasRTT() {
-			// A remote host's round trip, as watchPing measures it, so that
-			// how far away it is reads before the state chip.
-			ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
-				Tooltip(a.rttTip(h))
 		}
 		a.hostState(c, pal, h)
 		// Opening a project is always offered, on the row's far end.
@@ -233,11 +234,11 @@ func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(3).AlignItems(ui.Center).Tooltip(a.loadTip(h))
 	row.Children(func() {
 		cpu := float64(load.CPU)
-		a.loadGauge(c, pal, float32(cpu)/100, a.loadColor(pal, pal.hostColor(h), cpu, cpuWarn))
-		ui.Text(c, fmt.Sprintf("%d%%", load.CPU)).FontSize(10.5).TextColor(a.loadColor(pal, pal.textMuted, cpu, cpuWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
+		a.loadGauge(c, pal, float32(cpu)/100, a.loadColor(pal, pal.good, cpu, cpuWarn))
+		ui.Text(c, fmt.Sprintf("%d%%", load.CPU)).FontSize(10.5).TextColor(a.loadColor(pal, pal.good, cpu, cpuWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
 		if mem >= 0 {
-			a.loadGauge(c, pal, float32(mem), a.loadColor(pal, pal.textMuted, mem*100, memWarn))
-			ui.Text(c, fmt.Sprintf("%d%%", int(mem*100))).FontSize(10.5).TextColor(a.loadColor(pal, pal.textMuted, mem*100, memWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
+			a.loadGauge(c, pal, float32(mem), a.loadColor(pal, pal.good, mem*100, memWarn))
+			ui.Text(c, fmt.Sprintf("%d%%", int(mem*100))).FontSize(10.5).TextColor(a.loadColor(pal, pal.good, mem*100, memWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
 	})
 }
@@ -292,15 +293,15 @@ func (a *App) loadTip(h *host) string {
 func rttText(d time.Duration) string {
 	switch {
 	case d < time.Millisecond:
-		return "<1 ms"
+		return "<1ms"
 	case d < time.Second:
-		return fmt.Sprintf("%d ms", int(math.Round(float64(d)/float64(time.Millisecond))))
+		return fmt.Sprintf("%dms", int(math.Round(float64(d)/float64(time.Millisecond))))
 	}
-	return fmt.Sprintf("%.1f s", d.Seconds())
+	return fmt.Sprintf("%.1fs", d.Seconds())
 }
 
-// rttColor grades the smoothed round trip: the muted text while it is
-// quick, the palette's warning once it drags, its danger once it is far.
+// rttColor grades the smoothed round trip green, yellow, red: good while
+// it is quick, the palette's warning once it drags, its danger once far.
 func (a *App) rttColor(pal *palette, h *host) ui.Color {
 	switch {
 	case h.rtt >= rttFar:
@@ -308,7 +309,7 @@ func (a *App) rttColor(pal *palette, h *host) ui.Color {
 	case h.rtt >= rttSlow:
 		return pal.attention
 	}
-	return pal.textMuted
+	return pal.good
 }
 
 // rttTip names the round trip and, once a variance came of it, the jitter
