@@ -183,16 +183,28 @@ func (a *App) hostAddView(c *ui.Context, pal *palette) {
 func (a *App) hostAddPanel(c *ui.Context, d *hostAddDraft, pal *palette, panel ui.Element) {
 	floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.popover), pal).Clip()
 
-	// The header's close follows the window's controls style (an apple
-	// light, a windows block or a Kero rounded X), but acts on the dialog:
-	// it overlays the window, so it holds no minimize or maximize.
+	// The close sits where this window style puts its controls: apple's
+	// red light at the left, builtin's and windows' close at the right.
+	// It only closes the dialog — a dialog overlays the window and holds
+	// none of the window's own minimize or maximize.
 	header := ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center)
-	header.Children(func() {
-		ui.Icon(c, plusIcon).Size(14, 14).TextColor(pal.accent)
-		ui.Text(c, locales.SetHostAdd()).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
-		ui.Spacer(c)
-		dialogClose(c, pal, a.controlsMode(), &d.open)
-	})
+	mode := a.controlsMode()
+	if mode == "apple" {
+		header.Children(func() {
+			dialogClose(c, pal, mode, &d.open)
+			ui.Box(c).Width(8).Shrink(0)
+			ui.Icon(c, plusIcon).Size(14, 14).TextColor(pal.accent)
+			ui.Text(c, locales.SetHostAdd()).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
+			ui.Spacer(c)
+		})
+	} else {
+		header.Children(func() {
+			ui.Icon(c, plusIcon).Size(14, 14).TextColor(pal.accent)
+			ui.Text(c, locales.SetHostAdd()).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
+			ui.Spacer(c)
+			dialogClose(c, pal, mode, &d.open)
+		})
+	}
 	ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 
 	body := ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch)
