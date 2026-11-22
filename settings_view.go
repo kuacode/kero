@@ -603,6 +603,11 @@ func (a *App) generalPage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.AwakeTitle(), locales.AwakeDetail(), func() {
 			popup(c, "keep-awake", &s.KeepAwake, settings.KeepAwakeModes, awakeModeName, 200, pal)
 		})
+		if awakeDisplay && s.KeepAwake != awakeOff {
+			settingRow(c, pal, locales.AwakeDisplay(), locales.AwakeDisplayDetail(), func() {
+				toggle(c.Key("keep-display-on"), &s.KeepDisplayOn, pal)
+			})
+		}
 	})
 	// Windows and Linux always show the icon, in the notification area.
 	if runtime.GOOS == "darwin" {
@@ -808,7 +813,9 @@ func themesDirFor(goos, xdg, localappdata, home string) string {
 		dir = filepath.Join(home, ".config")
 	}
 	path := filepath.Join(dir, "ghostty", "themes")
-	if home != "" && strings.HasPrefix(path, home) {
+	// The home goes as ~, but only when the path is under it: a sibling
+	// directory that starts with the same letters is not under it.
+	if home != "" && (path == home || strings.HasPrefix(path, home+string(filepath.Separator))) {
 		path = "~" + strings.TrimPrefix(path, home)
 	}
 	return path
@@ -1456,10 +1463,15 @@ func (a *App) ensureConfig() {
 	}
 }
 
-// openConfig opens the configuration in the user's text editor.
+// openConfig opens the configuration in the user's text editor. It is
+// the Settings window's own toast that says when it could not: the
+// button that asks is there, and the main window's toast is not shown
+// in it.
 func (a *App) openConfig() {
 	a.ensureConfig()
-	openTextFile(settings.Path())
+	if err := openTextFile(settings.Path()); err != nil {
+		a.ss.toast = locales.ToastOpenConfigFailed(err.Error())
+	}
 }
 
 // toastIn shows a short message in the window c is of.
@@ -1605,7 +1617,10 @@ func (a *App) recordKey(act actions.Action, mods ui.Modifiers, key ui.Key) bool 
 	if !ok {
 		return false // a modifier alone, or a key menus can't take
 	}
-	if mods&(ui.Super|ui.Ctrl|ui.Alt) == 0 && !strings.HasPrefix(name, "F") {
+	// A shortcut needs a modifier, unless it is a function key: the
+	// letter F is not one, and a shortcut of it would take the plain F
+	// keypress everywhere, as a menu's accelerator does.
+	if mods&(ui.Super|ui.Ctrl|ui.Alt) == 0 && (key < ui.KeyF1 || key > ui.KeyF12) {
 		a.ss.notice = shortcutNeeds()
 		return true
 	}

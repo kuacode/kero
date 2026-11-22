@@ -82,12 +82,17 @@ func (a *App) openProjectOn(h *host) {
 		}()
 		return
 	}
-	a.picker = folderPicker{open: true, host: h}
+	gen := a.picker.gen
+	a.picker = folderPicker{open: true, host: h, gen: gen}
 	a.pickerGo("~")
 }
 
-// pickerGo lists a folder of the picker's host, or, for This PC on
-// Windows, the host's drives.
+func (a *App) resetPicker() {
+	gen := a.picker.gen + 1
+	a.picker = folderPicker{gen: gen}
+}
+
+// pickerGo lists a folder of the picker's host.
 func (a *App) pickerGo(dir string) {
 	p := &a.picker
 	p.gen++
@@ -326,7 +331,7 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 		a.pickerGo(goTo)
 	}
 	if !p.open {
-		a.picker = folderPicker{}
+		a.resetPicker()
 		if openDir == "" {
 			a.focusTerminal()
 		}

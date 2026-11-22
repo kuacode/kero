@@ -64,6 +64,32 @@ func TestRemoteRepoPath(t *testing.T) {
 	if _, err := repoPath("/srv/app", "/etc/passwd", true); err == nil {
 		t.Error("a path outside the worktree passes")
 	}
+	// The worktree itself is every file of it, as it is of this machine.
+	for _, root := range []string{"/srv/app", `C:\srv\app`} {
+		got, err := repoPath(root, root, true)
+		if err != nil || got != "" {
+			t.Errorf("repoPath(%q, %q) = %q, %v; want the empty path", root, root, got, err)
+		}
+	}
+	// A Windows host's worktree root has backslashes, and a path given of
+	// it may be a Windows one.
+	for in, want := range map[string]string{
+		`src\a.go`:            "src/a.go",
+		`C:\srv\app\src\a.go`: "src/a.go",
+		`C:/srv/app/src/a.go`: "src/a.go",
+	} {
+		got, err := repoPath(`C:\srv\app`, in, true)
+		if err != nil || got != want {
+			t.Errorf("repoPath(%q) = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	// A Windows path of another tree is absolute as any other, and is
+	// not of the worktree.
+	for _, in := range []string{`C:\etc\passwd`, "C:/etc/passwd", `D:\srv\app\src\a.go`} {
+		if got, err := repoPath(`C:\srv\app`, in, true); err == nil {
+			t.Errorf("repoPath(%q) = %q, no error; want an error", in, got)
+		}
+	}
 }
 
 // Inside a pane, $KERO_HOST, which a profile may set, gives way to the

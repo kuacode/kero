@@ -738,6 +738,18 @@ func (msgs Messages) ToastSaveSettingsFailed(error string) string {
 	return Catalog.Format(msgs.locale, "toastSaveSettingsFailed", map[string]any{"error": error})
 }
 
+// ToastOpenConfigFailed says "Couldn’t open the configuration: {error}"
+// in the language the app shows.
+func ToastOpenConfigFailed(error string) string {
+	return In(i18n.Locale()).ToastOpenConfigFailed(error)
+}
+
+// ToastOpenConfigFailed says "Couldn’t open the configuration: {error}"
+// in the language of msgs.
+func (msgs Messages) ToastOpenConfigFailed(error string) string {
+	return Catalog.Format(msgs.locale, "toastOpenConfigFailed", map[string]any{"error": error})
+}
+
 // ToastPasteImageFailed says "Couldn’t paste the image: {error}. Try again, or drop the image file on the pane."
 // in the language the app shows.
 func ToastPasteImageFailed(error string) string {
@@ -2622,16 +2634,6 @@ func (msgs Messages) AwakeAgents() string {
 	return Catalog.Format(msgs.locale, "awakeAgents", nil)
 }
 
-// AwakeDetail says "Kero keeps this computer from sleeping as long as it runs, or while an agent on it works. Closing a Mac’s lid still…"
-// in the language the app shows.
-func AwakeDetail() string { return In(i18n.Locale()).AwakeDetail() }
-
-// AwakeDetail says "Kero keeps this computer from sleeping as long as it runs, or while an agent on it works. Closing a Mac’s lid still…"
-// in the language of msgs.
-func (msgs Messages) AwakeDetail() string {
-	return Catalog.Format(msgs.locale, "awakeDetail", nil)
-}
-
 // AwakeEnable says "Turn on awake"
 // in the language the app shows.
 func AwakeEnable() string { return In(i18n.Locale()).AwakeEnable() }
@@ -2650,6 +2652,36 @@ func AwakeDisable() string { return In(i18n.Locale()).AwakeDisable() }
 // in the language of msgs.
 func (msgs Messages) AwakeDisable() string {
 	return Catalog.Format(msgs.locale, "awakeDisable", nil)
+}
+
+// AwakeDetail says "Kero keeps this computer from sleeping as long as it runs, or while an agent on it works. On battery, closing a Mac…"
+// in the language the app shows.
+func AwakeDetail() string { return In(i18n.Locale()).AwakeDetail() }
+
+// AwakeDetail says "Kero keeps this computer from sleeping as long as it runs, or while an agent on it works. On battery, closing a Mac…"
+// in the language of msgs.
+func (msgs Messages) AwakeDetail() string {
+	return Catalog.Format(msgs.locale, "awakeDetail", nil)
+}
+
+// AwakeDisplay says "Keep display on"
+// in the language the app shows.
+func AwakeDisplay() string { return In(i18n.Locale()).AwakeDisplay() }
+
+// AwakeDisplay says "Keep display on"
+// in the language of msgs.
+func (msgs Messages) AwakeDisplay() string {
+	return Catalog.Format(msgs.locale, "awakeDisplay", nil)
+}
+
+// AwakeDisplayDetail says "While Kero keeps this computer awake, the display stays on too, for agents that look at the screen."
+// in the language the app shows.
+func AwakeDisplayDetail() string { return In(i18n.Locale()).AwakeDisplayDetail() }
+
+// AwakeDisplayDetail says "While Kero keeps this computer awake, the display stays on too, for agents that look at the screen."
+// in the language of msgs.
+func (msgs Messages) AwakeDisplayDetail() string {
+	return Catalog.Format(msgs.locale, "awakeDisplayDetail", nil)
 }
 
 // TrayOpen says "Open {app}"

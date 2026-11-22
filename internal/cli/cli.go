@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -63,7 +64,8 @@ Usage:
                                 stops working, then print its screen
   kero read [target] [-a] [-n lines]
                                 print the screen (-a with the scrollback)
-  kero wait [target] [--for idle,waiting,error,exited] [--timeout 10m]
+  kero wait [target] [--for idle,working,waiting,error,exited]
+                                [--timeout 10m]
                                 wait until the pane stops working (or
                                 reaches one of the statuses), print it
       -x, --exit                  instead wait for the command it started
@@ -444,7 +446,10 @@ func run(args []string, host string) error {
 				dir = d
 			}
 		}
-		ratio, _ := strconv.ParseFloat(f.vals["ratio"], 64)
+		ratio, err := parseRatio(f.vals["ratio"])
+		if err != nil {
+			return err
+		}
 		command := append(f.pos[min(1, len(f.pos)):], f.rest...)
 		if f.set["wait"] && len(command) == 0 {
 			return usageErr("kero split --wait needs a command: kero split --wait -- cmd…")
@@ -554,7 +559,10 @@ func run(args []string, host string) error {
 		if err != nil {
 			return err
 		}
-		lines, _ := strconv.Atoi(f.vals["lines"])
+		lines, err := parseLines(f.vals["lines"])
+		if err != nil {
+			return err
+		}
 		var res proto.ReadResult
 		if err := c.Call("read", proto.ReadParams{ID: t.ref(), Scrollback: f.set["all"], Lines: lines}, &res); err != nil {
 			return err
@@ -577,11 +585,13 @@ func run(args []string, host string) error {
 			}
 			return waitExit(c, t.ref(), f.vals["timeout"])
 		}
-		var want []proto.Status
-		for _, w := range strings.Split(f.vals["for"], ",") {
-			if w = strings.TrimSpace(w); w != "" {
-				want = append(want, proto.Status(w))
-			}
+		statuses, err := parseStatuses("wait", f.vals["for"])
+		if err != nil {
+			return err
+		}
+		want := make([]proto.Status, len(statuses))
+		for i, s := range statuses {
+			want[i] = proto.Status(s)
 		}
 		timeout, err := parseTimeout(f.vals["timeout"])
 		if err != nil {
@@ -818,18 +828,11 @@ func run(args []string, host string) error {
 		if err != nil {
 			return err
 		}
-		ref := f.vals["target"]
-		if ref == "" {
-			ref = current()
-		}
-		if ref == "" {
-			return usageErr("which pane? run it in Kero, or give --session")
-		}
-		t, err := find(st, ref)
+		t, body, err := notifyTarget(st, f)
 		if err != nil {
 			return err
 		}
-		return c.Call("notify", proto.NotifyParams{ID: t.ref(), Title: f.vals["title"], Body: strings.Join(append(f.pos, f.rest...), " ")}, nil)
+		return c.Call("notify", proto.NotifyParams{ID: t.ref(), Title: f.vals["title"], Body: body}, nil)
 	}
 	return usageErr("unknown command %q (see kero help)", cmd)
 }
@@ -912,13 +915,19 @@ func repoPath(root, p string, remote bool) (string, error) {
 		return "", nil
 	}
 	if remote {
+		// A Windows host's worktree root has backslashes, as a path
+		// given of it may: write both as slashes before comparing them.
 		p = strings.ReplaceAll(p, `\`, "/")
-		if strings.HasPrefix(p, "/") {
-			rel, ok := strings.CutPrefix(p, strings.TrimSuffix(root, "/")+"/")
-			if !ok {
-				return "", fmt.Errorf("%s is not in the worktree %s", p, root)
-			}
+		root = strings.TrimSuffix(strings.ReplaceAll(root, `\`, "/"), "/")
+		if p == root {
+			return "", nil // the worktree itself: every file of it
+		}
+		if rel, ok := strings.CutPrefix(p, root+"/"); ok {
 			p = rel
+		} else if strings.HasPrefix(p, "/") || drivePath(p) {
+			// An absolute path of another machine is of its own tree,
+			// and the worktree's root is the only one here.
+			return "", fmt.Errorf("%s is not in the worktree %s", p, root)
 		}
 		return strings.TrimPrefix(path.Clean("/"+p), "/"), nil
 	}
@@ -934,6 +943,13 @@ func repoPath(root, p string, remote bool) (string, error) {
 		return "", nil
 	}
 	return filepath.ToSlash(rel), nil
+}
+
+// drivePath tells whether a path is of a Windows drive, as "C:/x" is:
+// an absolute path of a Windows machine, which is not of the worktree
+// unless it is under it.
+func drivePath(p string) bool {
+	return len(p) >= 2 && p[1] == ':'
 }
 
 // current is the pane a command runs in, inside kero.
@@ -958,6 +974,33 @@ func findOrCurrent(st proto.State, pos []string) (target, error) {
 	return target{}, usageErr("which session? (outside kero, name one)")
 }
 
+// notifyTarget is the pane a notification is for, and the message it
+// carries: the target given, or the first word naming a session or a
+// pane, else the pane the command runs in.
+func notifyTarget(st proto.State, f *flags) (target, string, error) {
+	body := strings.Join(append(f.pos, f.rest...), " ")
+	if ref := f.vals["target"]; ref != "" {
+		t, err := find(st, ref)
+		return t, body, err
+	}
+	// A first word naming a session or a pane is the target, as the help
+	// says, and the message is what follows it. A word naming none is
+	// part of the message, as it is with no target at all; so is a word
+	// alone, which would leave the message empty, and which may be a
+	// session's name a message happens to spell.
+	if len(f.pos) > 1 {
+		if t, err := find(st, f.pos[0]); err == nil {
+			return t, strings.Join(append(f.pos[1:], f.rest...), " "), nil
+		}
+	}
+	ref := current()
+	if ref == "" {
+		return target{}, "", usageErr("which pane? run it in Kero, or give --session")
+	}
+	t, err := find(st, ref)
+	return t, body, err
+}
+
 func daemonCmd(args []string, host string) error {
 	sub := "status"
 	if len(args) > 0 {
@@ -974,14 +1017,20 @@ func daemonCmd(args []string, host string) error {
 			fmt.Println("kerod is not running")
 		} else {
 			defer c.Close()
+			running := fmt.Sprintf("kerod %d running (Kero %s, pid %d) for %s", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
+				time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second))
 			var st proto.State
-			c.Call("state", nil, &st)
-			panes := 0
-			for _, s := range st.Sessions {
-				panes += len(s.Panes)
+			if err := c.Call("state", nil, &st); err != nil {
+				// No state is no sessions: saying of none would tell
+				// the user their sessions were gone.
+				fmt.Printf("%s\nits state: %v\n", running, err)
+			} else {
+				panes := 0
+				for _, s := range st.Sessions {
+					panes += len(s.Panes)
+				}
+				fmt.Printf("%s: %d sessions, %d panes\n", running, len(st.Sessions), panes)
 			}
-			fmt.Printf("kerod %d running (Kero %s, pid %d) for %s: %d sessions, %d panes\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
-				time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second), len(st.Sessions), panes)
 		}
 		fmt.Println("socket:", proto.SocketPath())
 		if svc.Installed {
@@ -1217,7 +1266,7 @@ func findConversation(list []proto.Conversation, ref string) (proto.Conversation
 	case 1:
 		return found[0], nil
 	}
-	return proto.Conversation{}, fmt.Errorf("%q could be %d conversations: give more of its id (see kero history)", ref, len(found))
+	return proto.Conversation{}, fmt.Errorf("%w: %q could be %d conversations: give more of its id (see kero history)", errNotFound, ref, len(found))
 }
 
 func listConversations(st proto.State, list []proto.Conversation) {
@@ -1301,6 +1350,10 @@ func orDash(s string) string {
 	return s
 }
 
+// parseTimeout is a timeout in milliseconds: a duration ("5s", "1m30s"),
+// or a number of seconds. A timeout of less than none is a usage error:
+// the daemon takes a timeout of none for "wait till it ends", so a
+// negative one would wait for ever, which is no timeout at all.
 func parseTimeout(s string) (int64, error) {
 	if s == "" {
 		return 0, nil
@@ -1313,7 +1366,64 @@ func parseTimeout(s string) (int64, error) {
 		}
 		d = time.Duration(n) * time.Second
 	}
+	if d < 0 {
+		return 0, usageErr("bad timeout %q: less than none", s)
+	}
 	return d.Milliseconds(), nil
+}
+
+// parseLines is a count of lines: a number, and not fewer than none.
+// A count that is no number is a usage error: taken for none, it read
+// the pane whole, as though the count had been said.
+func parseLines(s string) (int, error) {
+	if s == "" {
+		return 0, nil
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 {
+		return 0, usageErr("kero read -n takes a count of lines, not %q", s)
+	}
+	return n, nil
+}
+
+// parseRatio is a share of the space: a number between none and all, as
+// the help says. A ratio that is no number is a usage error, and one out
+// of the room's share too: kerod takes either for half the room, and
+// splits it as though the ratio had been said. NaN is neither less than
+// none nor more than all, and is no share of anything.
+func parseRatio(s string) (float64, error) {
+	if s == "" {
+		return 0, nil
+	}
+	r, err := strconv.ParseFloat(s, 64)
+	if err != nil || math.IsNaN(r) || r <= 0 || r >= 1 {
+		return 0, usageErr("kero split -r takes a ratio between 0 and 1, not %q", s)
+	}
+	return r, nil
+}
+
+// parseStatuses are the statuses a wait is for: the ones a pane has, and
+// none other. A status that is none of them is a usage error: kerod
+// waits for a pane to have it, and a pane never has it, so the wait
+// never ends.
+func parseStatuses(cmd, v string) ([]string, error) {
+	valid := []proto.Status{proto.Idle, proto.Working, proto.Waiting, proto.Failed, proto.Exited}
+	var want []string
+	for _, w := range strings.Split(v, ",") {
+		w = strings.TrimSpace(w)
+		if w == "" {
+			continue
+		}
+		ok := false
+		for _, s := range valid {
+			ok = ok || string(s) == w
+		}
+		if !ok {
+			return nil, usageErr("kero %s: no status %q (idle, working, waiting, error, exited)", cmd, w)
+		}
+		want = append(want, w)
+	}
+	return want, nil
 }
 
 func printJSON(v any) error {
