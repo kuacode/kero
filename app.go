@@ -148,6 +148,8 @@ type App struct {
 	find    findState
 	confirm *confirmation
 	wtAsk   *worktreeAsk
+	// hostAdd is the draft of the picker's quick Add a Host (device_add.go).
+	hostAdd hostAddDraft
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Kero's skill (ended.go).
 	endedAll     bool

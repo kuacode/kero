@@ -166,13 +166,15 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 			a.toggleDevice(h)
 		}
 	}
-	// Adding a host: Settings' Hosts page takes the address, the form the
-	// app's own, and the keyboard with it.
+	// Adding a host is a quick action of its own: the draft opens as a
+	// small dialog right here, rather than dropping the user into
+	// Settings, where the rest of the program's configuration would get
+	// in the way of one address. The dialog offers the same three kinds
+	// of host Settings does, and saves the host the same way.
 	m.Separator()
 	if m.Item(locales.SetHostAdd()).Icon(menuIconOf(plusIcon)).IconColor(pal.accent).
 		Subtitle(locales.DevicePickerAddDetail()).Chosen() {
-		a.ss.hostFormFocus = true
-		a.openSettings("hosts")
+		a.openHostAdd()
 	}
 }
 

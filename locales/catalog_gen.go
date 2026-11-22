@@ -1188,11 +1188,11 @@ func (msgs Messages) DevicePickerSummary(total int, connected int) string {
 	return Catalog.Format(msgs.locale, "devicePickerSummary", map[string]any{"total": total, "connected": connected})
 }
 
-// DevicePickerAddDetail says "An SSH host or a WSL distribution"
+// DevicePickerAddDetail says "An SSH host, a WSL distribution, or a tailnet address"
 // in the language the app shows.
 func DevicePickerAddDetail() string { return In(i18n.Locale()).DevicePickerAddDetail() }
 
-// DevicePickerAddDetail says "An SSH host or a WSL distribution"
+// DevicePickerAddDetail says "An SSH host, a WSL distribution, or a tailnet address"
 // in the language of msgs.
 func (msgs Messages) DevicePickerAddDetail() string {
 	return Catalog.Format(msgs.locale, "devicePickerAddDetail", nil)
@@ -6158,6 +6158,146 @@ func SetHostAddDetail() string { return In(i18n.Locale()).SetHostAddDetail() }
 // in the language of msgs.
 func (msgs Messages) SetHostAddDetail() string {
 	return Catalog.Format(msgs.locale, "setHostAddDetail", nil)
+}
+
+// HostAddKindSSH says "SSH"
+// in the language the app shows.
+func HostAddKindSSH() string { return In(i18n.Locale()).HostAddKindSSH() }
+
+// HostAddKindSSH says "SSH"
+// in the language of msgs.
+func (msgs Messages) HostAddKindSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddKindSSH", nil)
+}
+
+// HostAddKindWSL says "WSL"
+// in the language the app shows.
+func HostAddKindWSL() string { return In(i18n.Locale()).HostAddKindWSL() }
+
+// HostAddKindWSL says "WSL"
+// in the language of msgs.
+func (msgs Messages) HostAddKindWSL() string {
+	return Catalog.Format(msgs.locale, "hostAddKindWSL", nil)
+}
+
+// HostAddKindNetwork says "Network"
+// in the language the app shows.
+func HostAddKindNetwork() string { return In(i18n.Locale()).HostAddKindNetwork() }
+
+// HostAddKindNetwork says "Network"
+// in the language of msgs.
+func (msgs Messages) HostAddKindNetwork() string {
+	return Catalog.Format(msgs.locale, "hostAddKindNetwork", nil)
+}
+
+// HostAddFieldSSH says "SSH target"
+// in the language the app shows.
+func HostAddFieldSSH() string { return In(i18n.Locale()).HostAddFieldSSH() }
+
+// HostAddFieldSSH says "SSH target"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldSSH", nil)
+}
+
+// HostAddFieldWSL says "Distribution"
+// in the language the app shows.
+func HostAddFieldWSL() string { return In(i18n.Locale()).HostAddFieldWSL() }
+
+// HostAddFieldWSL says "Distribution"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldWSL() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldWSL", nil)
+}
+
+// HostAddFieldNetwork says "Listener"
+// in the language the app shows.
+func HostAddFieldNetwork() string { return In(i18n.Locale()).HostAddFieldNetwork() }
+
+// HostAddFieldNetwork says "Listener"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldNetwork() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldNetwork", nil)
+}
+
+// HostAddDetailSSH says "me@devbox or ssh://me@devbox:2222, the way ssh takes it, with your ~/.ssh/config for names."
+// in the language the app shows.
+func HostAddDetailSSH() string { return In(i18n.Locale()).HostAddDetailSSH() }
+
+// HostAddDetailSSH says "me@devbox or ssh://me@devbox:2222, the way ssh takes it, with your ~/.ssh/config for names."
+// in the language of msgs.
+func (msgs Messages) HostAddDetailSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddDetailSSH", nil)
+}
+
+// HostAddDetailWSL says "A distribution name, or wsl://Ubuntu. Kero installs itself inside it on the first session."
+// in the language the app shows.
+func HostAddDetailWSL() string { return In(i18n.Locale()).HostAddDetailWSL() }
+
+// HostAddDetailWSL says "A distribution name, or wsl://Ubuntu. Kero installs itself inside it on the first session."
+// in the language of msgs.
+func (msgs Messages) HostAddDetailWSL() string {
+	return Catalog.Format(msgs.locale, "hostAddDetailWSL", nil)
+}
+
+// HostAddDetailNetwork says "http://devbox:7373 or https://devbox.tail1234.ts.net, where kerod listens on your tailnet."
+// in the language the app shows.
+func HostAddDetailNetwork() string { return In(i18n.Locale()).HostAddDetailNetwork() }
+
+// HostAddDetailNetwork says "http://devbox:7373 or https://devbox.tail1234.ts.net, where kerod listens on your tailnet."
+// in the language of msgs.
+func (msgs Messages) HostAddDetailNetwork() string {
+	return Catalog.Format(msgs.locale, "hostAddDetailNetwork", nil)
+}
+
+// HostAddFoundSSH says "From your SSH config"
+// in the language the app shows.
+func HostAddFoundSSH() string { return In(i18n.Locale()).HostAddFoundSSH() }
+
+// HostAddFoundSSH says "From your SSH config"
+// in the language of msgs.
+func (msgs Messages) HostAddFoundSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddFoundSSH", nil)
+}
+
+// HostAddFoundWSL says "Installed distributions"
+// in the language the app shows.
+func HostAddFoundWSL() string { return In(i18n.Locale()).HostAddFoundWSL() }
+
+// HostAddFoundWSL says "Installed distributions"
+// in the language of msgs.
+func (msgs Messages) HostAddFoundWSL() string {
+	return Catalog.Format(msgs.locale, "hostAddFoundWSL", nil)
+}
+
+// HostAddSourceSSH says "SSH config"
+// in the language the app shows.
+func HostAddSourceSSH() string { return In(i18n.Locale()).HostAddSourceSSH() }
+
+// HostAddSourceSSH says "SSH config"
+// in the language of msgs.
+func (msgs Messages) HostAddSourceSSH() string {
+	return Catalog.Format(msgs.locale, "hostAddSourceSSH", nil)
+}
+
+// HostAddDefault says "default"
+// in the language the app shows.
+func HostAddDefault() string { return In(i18n.Locale()).HostAddDefault() }
+
+// HostAddDefault says "default"
+// in the language of msgs.
+func (msgs Messages) HostAddDefault() string {
+	return Catalog.Format(msgs.locale, "hostAddDefault", nil)
+}
+
+// HostAddWSLPlaceholder says "Ubuntu"
+// in the language the app shows.
+func HostAddWSLPlaceholder() string { return In(i18n.Locale()).HostAddWSLPlaceholder() }
+
+// HostAddWSLPlaceholder says "Ubuntu"
+// in the language of msgs.
+func (msgs Messages) HostAddWSLPlaceholder() string {
+	return Catalog.Format(msgs.locale, "hostAddWSLPlaceholder", nil)
 }
 
 // SetHostAddressPlaceholder says "me@devbox"
