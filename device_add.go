@@ -183,15 +183,15 @@ func (a *App) hostAddView(c *ui.Context, pal *palette) {
 func (a *App) hostAddPanel(c *ui.Context, d *hostAddDraft, pal *palette, panel ui.Element) {
 	floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.popover), pal).Clip()
 
-	// The header is the dialog's own: a title at the left, a close at the
-	// right. The dialog overlays the window, so it holds none of the
-	// window's controls — only its own close button.
+	// The header's close follows the window's controls style (an apple
+	// light, a windows block or a Kero rounded X), but acts on the dialog:
+	// it overlays the window, so it holds no minimize or maximize.
 	header := ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center)
 	header.Children(func() {
 		ui.Icon(c, plusIcon).Size(14, 14).TextColor(pal.accent)
 		ui.Text(c, locales.SetHostAdd()).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
 		ui.Spacer(c)
-		dialogClose(c, pal, &d.open)
+		dialogClose(c, pal, a.controlsMode(), &d.open)
 	})
 	ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 
@@ -202,18 +202,40 @@ func (a *App) hostAddPanel(c *ui.Context, d *hostAddDraft, pal *palette, panel u
 	})
 }
 
-// dialogClose is the dialog's one close button, at its header's right. It
-// takes the size and the danger hover of the window controls' close, but
-// acts on the dialog: a dialog overlays the window, so it does not close
-// that.
-func dialogClose(c *ui.Context, pal *palette, open *bool) {
-	b := ui.ButtonBase(c.Key("close-dialog")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
-	if b.Hovered() || b.Pressed() {
-		b.Background(pal.danger).TextColor(ui.RGB(255, 255, 255))
-	}
-	b.Children(func() { ui.Icon(c, closeIcon).Size(16, 16) })
-	if b.Clicked() {
-		*open = false
+// dialogClose is the dialog's one close button, at its header's right, in
+// the window's controls style: an apple light, a windows block or a Kero
+// rounded X. It only closes the dialog: the dialog overlays the window, so
+// none of the window's own controls come on it.
+func dialogClose(c *ui.Context, pal *palette, mode string, open *bool) {
+	switch mode {
+	case "apple":
+		// A single red light, as the close of the traffic lights, at the
+		// right of the header.
+		b := ui.ButtonBase(c.Key("close-dialog")).Size(14, 14).Radius(7).Center().Background(ui.RGB(255, 95, 86)).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
+		if b.Clicked() {
+			*open = false
+		}
+	case "windows":
+		// A windows block: a rounded X over the header's height, red on
+		// hover, as the window's own close is.
+		b := ui.ButtonBase(c.Key("close-dialog")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
+		if b.Hovered() || b.Pressed() {
+			b.Background(pal.danger).TextColor(ui.RGB(255, 255, 255))
+		}
+		b.Children(func() { ui.Icon(c, closeIcon).Size(16, 16) })
+		if b.Clicked() {
+			*open = false
+		}
+	default:
+		// Kero's own rounded X.
+		b := ui.ButtonBase(c.Key("close-dialog")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
+		if b.Hovered() || b.Pressed() {
+			b.Background(pal.danger).TextColor(ui.RGB(255, 255, 255))
+		}
+		b.Children(func() { ui.Icon(c, closeIcon).Size(16, 16) })
+		if b.Clicked() {
+			*open = false
+		}
 	}
 }
 
