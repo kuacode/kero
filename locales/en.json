@@ -898,8 +898,43 @@
   },
   "hostInstall": "Install Kero…",
   "hostInstalling": "Installing Kero on {host}…",
+  "hostInstallingDownload": "Downloading Kero for {host}…",
   "hostProgressStarting": "Starting…",
+  "hostProgressDownload": "From {url} · {pct}",
+  "hostUpdatingDownload": "Downloading Kero for {host}…",
+  "hostUpdatingUpload": "Uploading Kero to {host}…",
   "@hostInstalling": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@hostInstallingDownload": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@hostProgressDownload": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "@hostUpdatingDownload": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@hostUpdatingUpload": {
     "placeholders": {
       "host": {
         "type": "String"

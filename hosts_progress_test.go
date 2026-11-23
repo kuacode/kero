@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"testing"
 
 	"kero/internal/settings"
@@ -37,6 +39,56 @@ func TestSetProgress(t *testing.T) {
 	}
 }
 
+// setStage names the leg of an update and the address a download comes
+// from; clearProgress ends both, along with the figure.
+func TestProgressStage(t *testing.T) {
+	a := testApp(t)
+	h := a.local()
+	a.setStage(h, "download", "https://gh-proxy.com/archive.tar.gz")
+	if h.progressStage != "download" || h.progressURL != "https://gh-proxy.com/archive.tar.gz" {
+		t.Errorf("setStage did not stick: stage=%q url=%q", h.progressStage, h.progressURL)
+	}
+	a.setProgress(h, 45, 100)
+	a.clearProgress(h)
+	if h.progress != 0 || h.progressStage != "" || h.progressURL != "" {
+		t.Errorf("clearProgress left stage=%q url=%q progress=%d", h.progressStage, h.progressURL, h.progress)
+	}
+}
+
+// uploadProgress counts the bytes read from an archive as the install
+// command consumes its standard input, reporting them as it goes rather
+// than one figure at the end.
+func TestUploadProgress(t *testing.T) {
+	archive := []byte("0123456789")
+	var reports [][2]int64
+	u := &uploadProgress{
+		r:          bytes.NewReader(archive),
+		total:      int64(len(archive)),
+		onProgress: func(sent, total int64) { reports = append(reports, [2]int64{sent, total}) },
+	}
+	buf := make([]byte, 4)
+	for {
+		n, err := u.Read(buf)
+		if n > 0 {
+			if last := reports[len(reports)-1]; last[1] != int64(len(archive)) {
+				t.Errorf("report total %d, want %d", last[1], len(archive))
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(reports) < 3 {
+		t.Fatalf("read in %d chunks, want progress per chunk", len(reports))
+	}
+	if reports[len(reports)-1][0] != int64(len(archive)) {
+		t.Errorf("last report sent %d, want %d", reports[len(reports)-1][0], len(archive))
+	}
+}
+
 // The note under a host's installing or updating header reads the real
 // percent once it is known, and that the work started before a size can
 // be measured, rather than a misleading zero.
@@ -50,6 +102,32 @@ func TestHostProgressDetail(t *testing.T) {
 	h.progress = -1
 	if got := hostProgressDetail(h); got != locales.HostProgressStarting() {
 		t.Errorf("no total reads %q, want %q", got, locales.HostProgressStarting())
+	}
+
+	// A download names the address it waits on, beside its figure.
+	h.progressStage = "download"
+	h.progressURL = "https://gh-proxy.com/archive.tar.gz"
+	h.progress = 45
+	if got := hostProgressDetail(h); got != locales.HostProgressDownload(h.progressURL, "45%") {
+		t.Errorf("download detail reads %q, want the URL and percent", got)
+	}
+}
+
+// The note's title names the leg in progress, so a download and an upload
+// are told apart instead of both reading "Updating".
+func TestHostBusyTitle(t *testing.T) {
+	h := &host{name: "build", busy: "update"}
+	h.progressStage = "download"
+	if got := hostBusyTitle(h); got != locales.HostUpdatingDownload(h.name) {
+		t.Errorf("download title %q, want %q", got, locales.HostUpdatingDownload(h.name))
+	}
+	h.progressStage = "upload"
+	if got := hostBusyTitle(h); got != locales.HostUpdatingUpload(h.name) {
+		t.Errorf("upload title %q, want %q", got, locales.HostUpdatingUpload(h.name))
+	}
+	h.progressStage = ""
+	if got := hostBusyTitle(h); got != locales.HostUpdating(h.name) {
+		t.Errorf("plain update title %q, want %q", got, locales.HostUpdating(h.name))
 	}
 }
 

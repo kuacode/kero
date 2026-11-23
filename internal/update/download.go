@@ -250,6 +250,13 @@ func backoff(attempt int) time.Duration {
 	return time.Duration(attempt) * 400 * time.Millisecond
 }
 
+// ArchiveURL is where an archive of a version for a platform is fetched
+// from, through the mirror when one is set: the address a download of a
+// host's Kero goes to, shown in the sidebar while it runs.
+func ArchiveURL(version, goos, goarch string) string {
+	return mirrored(URL(version, Asset(version, goos, goarch)))
+}
+
 // Fetch is the verified archive of a version for a platform, downloaded
 // through the mirror with resume and retry, reporting the bytes received
 // and the whole size to onProgress as it goes.

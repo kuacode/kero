@@ -452,10 +452,10 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 		var title, detail string
 		switch {
 		case h.busy == "install":
-			title = locales.HostInstalling(h.name)
+			title = hostBusyTitle(h)
 			detail = hostProgressDetail(h)
 		case h.busy == "update":
-			title = locales.HostUpdating(h.name)
+			title = hostBusyTitle(h)
 			detail = hostProgressDetail(h)
 		case h.busy == "restart":
 			title = locales.HostRestarting(h.name)
@@ -498,12 +498,34 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 // hostProgressDetail is the figure under a host's installing or updating
 // note. A real percent reads as "45%"; before the response names a size
 // the work has begun but cannot be measured, and the user is told that
-// rather than shown a misleading zero or a spinner.
+// rather than shown a misleading zero. A download also names the address
+// it comes from, so a stalled fetch says where it waited.
 func hostProgressDetail(h *host) string {
+	pct := locales.HostProgressStarting()
 	if h.progress >= 0 {
-		return fmt.Sprintf("%d%%", h.progress)
+		pct = fmt.Sprintf("%d%%", h.progress)
 	}
-	return locales.HostProgressStarting()
+	if h.progressStage == "download" && h.progressURL != "" {
+		return locales.HostProgressDownload(h.progressURL, pct)
+	}
+	return pct
+}
+
+// hostBusyTitle is the note's title while a host is being changed: it
+// names the leg in progress, so a download and an upload are told apart.
+func hostBusyTitle(h *host) string {
+	switch {
+	case h.busy == "update" && h.progressStage == "download":
+		return locales.HostUpdatingDownload(h.name)
+	case h.busy == "update" && h.progressStage == "upload":
+		return locales.HostUpdatingUpload(h.name)
+	case h.busy == "update":
+		return locales.HostUpdating(h.name)
+	case h.busy == "install" && h.progressStage == "download":
+		return locales.HostInstallingDownload(h.name)
+	default:
+		return locales.HostInstalling(h.name)
+	}
 }
 
 // smallButton is a button for a sidebar's note.
@@ -803,26 +825,56 @@ func (a *App) hostRequest(h *host, what string) {
 		defer cancel()
 		var err error
 		if what == "update" {
-			// The app downloads the archive through the mirror, where the
-			// host itself could not, and uploads it: the host's kerod
-			// replaces its install with what the stream holds. A host of
-			// another platform, or an app not of a release, updates as
-			// the host does (KindUpdate, which fetches it itself). Should
-			// the app's fetch fail, the host may still fetch it: let it.
+			// Two ways to update, and the setting picks which:
+			//  - local download, then upload: the app fetches the archive
+			//    through the mirror, where the host could not, and sends
+			//    it to the install script. That script checks the version
+			//    itself and accepts a dev release like 2.1.36.3, which an
+			//    older kerod on the host rejects; so this path also lifts
+			//    a host onto dev versions. A restart below runs the new
+			//    kerod.
+			//  - remote download: the host's kerod fetches it itself.
 			platform := h.info.OS + "/" + h.info.Arch
+			goos, goarch := h.info.OS, h.info.Arch
+			if a.set.LocalDownload {
+				if platform == "" {
+					// A host whose platform is not known yet (it may have
+					// no kerod) tells it with a command of its own.
+					if g, ga, perr := remote.Platform(h.addr, true); perr == nil {
+						goos, goarch, platform = g, ga, g+"/"+ga
+					}
+				}
+			}
 			if a.set.LocalDownload && platform != "" && slices.Contains(update.Platforms, platform) {
 				update.SetMirror(a.set.DownloadMirror)
+				update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
+				a.setStage(h, "download", update.ArchiveURL(version, goos, goarch))
 				download := func(got, total int64) { a.setProgress(h, got, total) }
-				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, download)
-				if ferr == nil {
-					// What the app fetched, the app now sends: the host's
-					// kerod replaces its install with it.
-					upload := func(sent, total int64) { a.setProgress(h, sent, total) }
-					err = rc.Upload(ctx, version, h.info.OS, h.info.Arch, sig, archive, upload)
-				} else {
+				archive, sig, ferr := update.FetchWithSig(ctx, version, goos, goarch, download)
+				if ferr != nil {
+					// The app could not fetch: let the host try itself.
 					err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
+				} else {
+					cmd, cerr := remote.InstallArchiveCommand(h.addr, version, true)
+					if cerr != nil {
+						// No install script here (e.g. a Windows host):
+						// the kerod upload path is the other way.
+						a.setStage(h, "upload", "")
+						upload := func(sent, total int64) { a.setProgress(h, sent, total) }
+						err = rc.Upload(ctx, version, goos, goarch, sig, archive, upload)
+					} else {
+						cmd.Stdin = &uploadProgress{
+							r:          bytes.NewReader(archive),
+							total:      int64(len(archive)),
+							onProgress: func(sent, total int64) { a.setProgress(h, sent, total) },
+						}
+						a.setStage(h, "upload", "")
+						_, err = cmd.CombinedOutput()
+					}
 				}
 			} else {
+				// Remote download, or a platform this app has no archive
+				// for: the host's kerod fetches and installs it.
 				err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
 			}
 		}
@@ -832,6 +884,8 @@ func (a *App) hostRequest(h *host, what string) {
 		a.update(func() {
 			h.busy = ""
 			h.progress = 0
+			h.progressStage = ""
+			h.progressURL = ""
 			if !slices.Contains(a.hosts, h) {
 				return
 			}
@@ -852,6 +906,30 @@ func (a *App) hostRequest(h *host, what string) {
 	}()
 }
 
+// setStage says which leg of a host's update the progress figure is for,
+// and, for a download, the address it comes from. Synchronous, like
+// setProgress, so a stage set just before a fetch is seen by the note.
+func (a *App) setStage(h *host, stage, url string) {
+	a.updateSync(func() {
+		if slices.Contains(a.hosts, h) {
+			h.progressStage = stage
+			h.progressURL = url
+		}
+	})
+}
+
+// clearProgress ends an update's progress: the note stops naming a phase
+// or a figure once the work is over.
+func (a *App) clearProgress(h *host) {
+	a.updateSync(func() {
+		if slices.Contains(a.hosts, h) {
+			h.progress = 0
+			h.progressStage = ""
+			h.progressURL = ""
+		}
+	})
+}
+
 // setProgress tells how far the app's fetch or upload of a host's archive
 // has gone, for the note under its header. A total gives a real percent;
 // before the response names one the fetch has begun but cannot be measured
@@ -869,6 +947,23 @@ func (a *App) setProgress(h *host, got, total int64) {
 			h.progress = pct
 		}
 	})
+}
+
+// uploadProgress counts the bytes of an archive written to a host as the
+// SSH/WSL command reads them from its standard input, so the note shows
+// the upload climbing rather than one figure at the end.
+type uploadProgress struct {
+	r          *bytes.Reader
+	sent       int64
+	total      int64
+	onProgress func(int64, int64)
+}
+
+func (u *uploadProgress) Read(b []byte) (int, error) {
+	n, err := u.r.Read(b)
+	u.sent += int64(n)
+	u.onProgress(u.sent, u.total)
+	return n, err
 }
 
 // openRemotePath opens what a path printed in a remote pane names, which

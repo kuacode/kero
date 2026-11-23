@@ -65,8 +65,13 @@ type host struct {
 	loadAt time.Time
 	// progress is how far the update of the host has gone, 0..100, as
 	// the app fetches the archive to upload it, then uploads it, when
-	// busy is update.
-	progress int
+	// busy is update. progressStage says which of those the figure is
+	// for, so the note can name the phase instead of one bare percent.
+	progress      int
+	progressStage string // "download", "upload", or ""
+	// progressURL is the address the app downloads a host's archive from,
+	// shown while it fetches so the user sees where a stalled fetch goes.
+	progressURL string
 	// rtt is the smoothed round trip to a remote host (its SRTT), rttVar
 	// its variance (RTTVAR, the jitter), as watchPing folds each heartbeat
 	// in, and rttSamples how many it took.  A host shows a figure once one
