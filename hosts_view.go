@@ -293,7 +293,8 @@ func (a *App) loadTip(h *host) string {
 func rttText(d time.Duration) string {
 	switch {
 	case d < time.Millisecond:
-		return "<1ms"
+		// 精度到到毫秒，不必 < 1ms
+		return "1ms"
 	case d < time.Second:
 		return fmt.Sprintf("%dms", int(math.Round(float64(d)/float64(time.Millisecond))))
 	}
