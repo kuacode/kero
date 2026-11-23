@@ -411,6 +411,8 @@
   "setShowSystemLoadDetail": "A host's header shows its CPU and memory load, as its daemon reports them.",
   "setDownloadMirror": "Download mirror",
   "setDownloadMirrorDetail": "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL.",
+  "setLocalDownload": "Download on this machine, then upload",
+  "setLocalDownloadDetail": "This app fetches a remote host's Kero archive through the mirror, with resume and retries, and sends it to the host, instead of the host downloading it over its own connection.",
   "setFocusFollowsMouse": "Focus follows mouse",
   "setFocusFollowsMouseDetail": "A pane takes the focus when the pointer moves into it, without a click.",
   "setAskBeforeClosing": "Ask before closing a running program",
@@ -896,6 +898,7 @@
   },
   "hostInstall": "Install Kero…",
   "hostInstalling": "Installing Kero on {host}…",
+  "hostProgressStarting": "Starting…",
   "@hostInstalling": {
     "placeholders": {
       "host": {

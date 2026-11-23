@@ -728,6 +728,9 @@ func (a *App) updatesGroup(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetDownloadMirror(), locales.SetDownloadMirrorDetail(), func() {
 			textField(c, "download-mirror", &s.DownloadMirror, "https://gh-proxy.com", 0, pal).Font("monospace")
 		})
+		settingRow(c, pal, locales.SetLocalDownload(), locales.SetLocalDownloadDetail(), func() {
+			toggle(c.Key("local-download"), &s.LocalDownload, pal)
+		})
 	})
 }
 

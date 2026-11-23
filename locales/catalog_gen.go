@@ -2388,6 +2388,26 @@ func (msgs Messages) SetDownloadMirrorDetail() string {
 	return Catalog.Format(msgs.locale, "setDownloadMirrorDetail", nil)
 }
 
+// SetLocalDownload says "Download on this machine, then upload"
+// in the language the app shows.
+func SetLocalDownload() string { return In(i18n.Locale()).SetLocalDownload() }
+
+// SetLocalDownload says "Download on this machine, then upload"
+// in the language of msgs.
+func (msgs Messages) SetLocalDownload() string {
+	return Catalog.Format(msgs.locale, "setLocalDownload", nil)
+}
+
+// SetLocalDownloadDetail says "This app fetches a remote host's Kero archive through the mirror, with resume and retries, and sends it to the host, …"
+// in the language the app shows.
+func SetLocalDownloadDetail() string { return In(i18n.Locale()).SetLocalDownloadDetail() }
+
+// SetLocalDownloadDetail says "This app fetches a remote host's Kero archive through the mirror, with resume and retries, and sends it to the host, …"
+// in the language of msgs.
+func (msgs Messages) SetLocalDownloadDetail() string {
+	return Catalog.Format(msgs.locale, "setLocalDownloadDetail", nil)
+}
+
 // SetFocusFollowsMouse says "Focus follows mouse"
 // in the language the app shows.
 func SetFocusFollowsMouse() string { return In(i18n.Locale()).SetFocusFollowsMouse() }
@@ -5790,6 +5810,16 @@ func HostInstalling(host string) string { return In(i18n.Locale()).HostInstallin
 // in the language of msgs.
 func (msgs Messages) HostInstalling(host string) string {
 	return Catalog.Format(msgs.locale, "hostInstalling", map[string]any{"host": host})
+}
+
+// HostProgressStarting says "Starting…"
+// in the language the app shows.
+func HostProgressStarting() string { return In(i18n.Locale()).HostProgressStarting() }
+
+// HostProgressStarting says "Starting…"
+// in the language of msgs.
+func (msgs Messages) HostProgressStarting() string {
+	return Catalog.Format(msgs.locale, "hostProgressStarting", nil)
 }
 
 // HostInstalled says "Installed Kero on {host}"

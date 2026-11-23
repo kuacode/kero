@@ -96,20 +96,28 @@ func cache(version, goos, goarch string, archive []byte, sig string) {
 	os.WriteFile(filepath.Join(dir, name+".sig"), []byte(sig), 0o644)
 }
 
-// progress is a writer that calls on with the bytes read so far.
-type progress struct{ on func(int64) }
+// progress reports a download as it arrives. The download knows the total
+// from the response; the writer counts the bytes of this piece that came
+// in, on top of what earlier pieces (a resume) already held.
+type progress struct {
+	base  int64
+	total int64
+	on    func(got, total int64)
+	got   int64
+}
 
-func (p progress) Write(b []byte) (int, error) {
+func (p *progress) Write(b []byte) (int, error) {
+	p.got += int64(len(b))
 	if p.on != nil {
-		p.on(int64(len(b)))
+		p.on(p.base+p.got, p.total)
 	}
 	return len(b), nil
 }
 
 // download fetches a URL into memory, resuming a fetch cut short (Range)
 // and retrying a link that failed, calling onProgress with the bytes
-// received as it goes. max bounds it.
-func download(ctx context.Context, url string, max int64, onProgress func(int64)) ([]byte, error) {
+// received and the whole size as it goes. max bounds it.
+func download(ctx context.Context, url string, max int64, onProgress func(got, total int64)) ([]byte, error) {
 	const tries = 3
 	var buf bytes.Buffer
 	var total int64
@@ -158,12 +166,12 @@ func download(ctx context.Context, url string, max int64, onProgress func(int64)
 			}
 			return nil, fmt.Errorf("%s: %s", url, resp.Status)
 		}
-		p := progress{onProgress}
+		p := &progress{base: off, total: total, on: onProgress}
 		n, err := io.Copy(io.MultiWriter(&buf, p), io.LimitReader(resp.Body, max+1-off))
 		resp.Body.Close()
 		off += n
 		if onProgress != nil {
-			onProgress(off)
+			onProgress(off, total)
 		}
 		if int64(buf.Len()) > max {
 			return nil, fmt.Errorf("%s: too large", url)
@@ -244,8 +252,8 @@ func backoff(attempt int) time.Duration {
 
 // Fetch is the verified archive of a version for a platform, downloaded
 // through the mirror with resume and retry, reporting the bytes received
-// to onProgress as it goes.
-func Fetch(ctx context.Context, version, goos, goarch string, onProgress func(int64)) ([]byte, error) {
+// and the whole size to onProgress as it goes.
+func Fetch(ctx context.Context, version, goos, goarch string, onProgress func(got, total int64)) ([]byte, error) {
 	archive, _, err := FetchWithSig(ctx, version, goos, goarch, onProgress)
 	return archive, err
 }
@@ -254,7 +262,7 @@ func Fetch(ctx context.Context, version, goos, goarch string, onProgress func(in
 // to upload the archive to a host that could not fetch it itself, the
 // host checks the signature it came with. The archive the cache holds of
 // the version for the platform is taken as is, with no download.
-func FetchWithSig(ctx context.Context, version, goos, goarch string, onProgress func(int64)) ([]byte, string, error) {
+func FetchWithSig(ctx context.Context, version, goos, goarch string, onProgress func(got, total int64)) ([]byte, string, error) {
 	version = strings.TrimPrefix(version, "v")
 	if !ValidVersion(version) {
 		return nil, "", fmt.Errorf("%q is not a version of Kero", version)

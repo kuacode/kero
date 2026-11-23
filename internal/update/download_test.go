@@ -82,8 +82,10 @@ func TestDownloadResumesAndRetries(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	var got int64
-	b, err := download(context.Background(), srv.URL, maxArchive, func(n int64) { got = n })
+	var got, totalSeen int64
+	b, err := download(context.Background(), srv.URL, maxArchive, func(gotSoFar, total int64) {
+		got, totalSeen = gotSoFar, total
+	})
 	if err != nil {
 		t.Fatalf("download: %v", err)
 	}
@@ -92,6 +94,9 @@ func TestDownloadResumesAndRetries(t *testing.T) {
 	}
 	if got != int64(len(body)) {
 		t.Errorf("the last progress is %d bytes, want %d", got, len(body))
+	}
+	if totalSeen != int64(len(body)) {
+		t.Errorf("the progress's total is %d, want %d", totalSeen, len(body))
 	}
 	if n := atomic.LoadInt32(&tries); n != 2 {
 		t.Errorf("the server was asked %d times, want 2", n)

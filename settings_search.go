@@ -44,6 +44,7 @@ func settingsIndex() []searchEntry {
 		{"general", locales.SetAutoCheck(), "updates automatic background daily"},
 		{"general", locales.SetAutoInstall(), "updates automatic install download"},
 		{"general", locales.SetDownloadMirror(), "updates mirror proxy download mirror gh-proxy release fetch resume"},
+		{"general", locales.SetLocalDownload(), "updates host remote install upload fetch locally mirror"},
 
 		{"appearance", locales.SetAppearance(), "window-theme dark light mode system"},
 		{"appearance", locales.SetLanguage(), "language locale translation chinese english 语言 中文"},

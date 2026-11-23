@@ -408,6 +408,7 @@ var keys = []key{
 		}},
 	boolKey("remote-updates", "let Kero on another machine that connects update the Kero app here to its version, which restarts it", func(s *Settings) *bool { return &s.RemoteUpdates }),
 	stringKey("download-mirror", "a proxy the downloads of releases go through, as gh-proxy's", func(s *Settings) *string { return &s.DownloadMirror }),
+	boolKey("local-download", "the app fetches a host's Kero archive and uploads it, with the mirror and resume, rather than the host fetching it itself", func(s *Settings) *bool { return &s.LocalDownload }),
 	boolKey("git-status", "show the git branch and changes of each session", func(s *Settings) *bool { return &s.GitStatus }),
 	choiceKey("worktree-base", "what a session's own git worktree branches from: the repository's default branch, or the branch of the session you're in", func(s *Settings) *string { return &s.WorktreeBase }, "default", "current"),
 	stringKey("worktree-dir", "where sessions' own git worktrees go, each under its repository's name; empty for .kero/worktrees in the repository", func(s *Settings) *string { return &s.WorktreeDir }),

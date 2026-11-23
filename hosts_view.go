@@ -186,17 +186,10 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
 				Tooltip(a.rttTip(h))
 		}
-		if h.busy == "update" && h.progress > 0 {
-			// The update's progress, in place of the load's gauges: a
-			// bar as far as the archive has come, fetched or sent.
-			ui.Box(c).Size(46, 5).Radius(2.5).Background(pal.chip).Shrink(0).Children(func() {
-				w := float32(46 * h.progress / 100)
-				if w < 2 {
-					w = 2
-				}
-				ui.Box(c).Size(w, 5).Radius(2.5).Background(pal.hostColor(h))
-			})
-		} else if a.set.ShowSystemLoad {
+		// The load's gauges stay in the header during an update too: the
+		// download's progress now reads in the note under the header,
+		// where there is room to name it, instead of a second bar here.
+		if a.set.ShowSystemLoad {
 			a.hostLoad(c, pal, h)
 		}
 		a.hostState(c, pal, h)
@@ -342,8 +335,6 @@ func (a *App) hostTag(c *ui.Context, pal *palette, h *host) {
 // a chip when Kero there wants updating or kerod restarting.
 func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 	switch {
-	case h.busy != "":
-		ui.Spinner(c).Size(12, 12)
 	case h.conn == connConnecting && h.loaded:
 		a.hostDot(c, pal, pal.attention, locales.HostReconnecting())
 	case h.conn == connConnecting:
@@ -462,11 +453,10 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 		switch {
 		case h.busy == "install":
 			title = locales.HostInstalling(h.name)
+			detail = hostProgressDetail(h)
 		case h.busy == "update":
 			title = locales.HostUpdating(h.name)
-			if h.progress > 0 {
-				detail = fmt.Sprintf("%d%%", h.progress)
-			}
+			detail = hostProgressDetail(h)
 		case h.busy == "restart":
 			title = locales.HostRestarting(h.name)
 		case h.conn == connVersion:
@@ -503,6 +493,17 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 			}
 		})
 	})
+}
+
+// hostProgressDetail is the figure under a host's installing or updating
+// note. A real percent reads as "45%"; before the response names a size
+// the work has begun but cannot be measured, and the user is told that
+// rather than shown a misleading zero or a spinner.
+func hostProgressDetail(h *host) string {
+	if h.progress >= 0 {
+		return fmt.Sprintf("%d%%", h.progress)
+	}
+	return locales.HostProgressStarting()
 }
 
 // smallButton is a button for a sidebar's note.
@@ -637,14 +638,15 @@ func (a *App) install(h *host) {
 			platform = gos + "/" + garch
 		}
 	}
-	if platform != "" && slices.Contains(update.Platforms, platform) && version != "" {
+	if a.set.LocalDownload && platform != "" && slices.Contains(update.Platforms, platform) && version != "" {
 		update.SetMirror(a.set.DownloadMirror)
 		update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
 		h.busy = "install"
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
-			archive, _, ferr := update.FetchWithSig(ctx, version, goos, goarch, nil)
+			download := func(got, total int64) { a.setProgress(h, got, total) }
+			archive, _, ferr := update.FetchWithSig(ctx, version, goos, goarch, download)
 			if ferr != nil {
 				a.installFromScript(h, version)
 				return
@@ -808,9 +810,9 @@ func (a *App) hostRequest(h *host, what string) {
 			// the host does (KindUpdate, which fetches it itself). Should
 			// the app's fetch fail, the host may still fetch it: let it.
 			platform := h.info.OS + "/" + h.info.Arch
-			if platform != "" && slices.Contains(update.Platforms, platform) {
+			if a.set.LocalDownload && platform != "" && slices.Contains(update.Platforms, platform) {
 				update.SetMirror(a.set.DownloadMirror)
-				download := func(n int64) { a.setProgress(h, n, 0) }
+				download := func(got, total int64) { a.setProgress(h, got, total) }
 				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, download)
 				if ferr == nil {
 					// What the app fetched, the app now sends: the host's
@@ -850,17 +852,19 @@ func (a *App) hostRequest(h *host, what string) {
 	}()
 }
 
-// setProgress tells how far the update of a host has gone, for its
-// header: a fraction of the archive the app fetched (total 0) or sent.
+// setProgress tells how far the app's fetch or upload of a host's archive
+// has gone, for the note under its header. A total gives a real percent;
+// before the response names one the fetch has begun but cannot be measured
+// yet, which is -1, the note says the work started without a figure.
 func (a *App) setProgress(h *host, got, total int64) {
-	pct := 0
+	pct := -1
 	if total > 0 {
 		pct = int(100 * got / total)
-	} else if h.loadAt.IsZero() {
-		// Fetching: no total until the server says.
-		pct = -1
+		if pct > 100 {
+			pct = 100
+		}
 	}
-	a.update(func() {
+	a.updateSync(func() {
 		if slices.Contains(a.hosts, h) {
 			h.progress = pct
 		}

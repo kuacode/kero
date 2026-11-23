@@ -32,6 +32,7 @@ type Settings struct {
 	HideEmptyHosts    bool   `json:"hideEmptyHosts"`    // the sidebar leaves out remote hosts with no sessions
 	ShowSystemLoad    bool   `json:"showSystemLoad"`    // a host's header shows its CPU and memory load
 	DownloadMirror    string `json:"downloadMirror"`    // a proxy the downloads of releases go through, as gh-proxy's
+	LocalDownload     bool   `json:"localDownload"`     // the app fetches a host's archive and uploads it, instead of the host fetching it itself
 	FocusFollowsMouse bool   `json:"focusFollowsMouse"` // a pane the pointer enters takes the focus
 	ConfirmClose      bool   `json:"confirmClose"`      // before closing a pane a program runs in
 	RestoreSessions   bool   `json:"restoreSessions"`   // after kerod restarts, as after a reboot
@@ -165,6 +166,7 @@ func Default() Settings {
 		SidebarRows:     "detailed",
 		SidebarCount:    true,
 		ShowSystemLoad:  true,
+		LocalDownload:   true,
 		ConfirmClose:    true,
 		RestoreSessions: true,
 		ResumeAgents:    true,
