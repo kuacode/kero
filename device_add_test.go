@@ -95,18 +95,18 @@ func TestDeviceAddWslPickFillsBothFields(t *testing.T) {
 
 		tt.Key(0, ui.KeyDown)
 		tt.Frame()
-		if d.addr != "Ubuntu" || d.name != "Ubuntu" {
-			t.Errorf("Down left addr %q, name %q, want both Ubuntu", d.addr, d.name)
+		if d.addr != "wsl://Ubuntu" || d.name != "Ubuntu" {
+			t.Errorf("Down left addr %q, name %q, want wsl://Ubuntu and Ubuntu", d.addr, d.name)
 		}
 		tt.Key(0, ui.KeyDown)
 		tt.Frame()
-		if d.addr != "Debian" || d.name != "Debian" {
-			t.Errorf("second Down left addr %q, name %q, want both Debian", d.addr, d.name)
+		if d.addr != "wsl://Debian" || d.name != "Debian" {
+			t.Errorf("second Down left addr %q, name %q, want wsl://Debian and Debian", d.addr, d.name)
 		}
 		tt.Key(0, ui.KeyUp)
 		tt.Frame()
-		if d.addr != "Ubuntu" || d.name != "Ubuntu" {
-			t.Errorf("Up left addr %q, name %q, want both Ubuntu", d.addr, d.name)
+		if d.addr != "wsl://Ubuntu" || d.name != "Ubuntu" {
+			t.Errorf("Up left addr %q, name %q, want wsl://Ubuntu and Ubuntu", d.addr, d.name)
 		}
 	})
 
@@ -124,8 +124,8 @@ func TestDeviceAddWslPickFillsBothFields(t *testing.T) {
 			t.Fatalf("clicking the Debian row: %v", err)
 		}
 		tt.Frame()
-		if d.addr != "Debian" || d.name != "Debian" {
-			t.Errorf("click left addr %q, name %q, want both Debian", d.addr, d.name)
+		if d.addr != "wsl://Debian" || d.name != "Debian" {
+			t.Errorf("click left addr %q, name %q, want wsl://Debian and Debian", d.addr, d.name)
 		}
 		if !a.hostAddSubmit(d) {
 			t.Fatalf("wsl submit failed: %s", d.err)

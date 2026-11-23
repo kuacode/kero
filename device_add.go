@@ -467,7 +467,7 @@ func (a *App) hostAddAddrField(c *ui.Context, d *hostAddDraft, pal *palette, nam
 	// answers to the pointer.
 	addr.OnShortcut(0, ui.KeyTab, func() {
 		shown := hostAddShown(d)
-		if m := hostAddComplete(d.addr, shown); m != "" {
+		if m := hostAddComplete(hostAddBare(d, d.addr), shown); m != "" {
 			a.hostAddPick(d, addr, name, shown, max(slices.Index(shown, m), 0))
 		}
 	})
@@ -502,7 +502,6 @@ func hostAddNext(d *hostAddDraft, n, step int) int {
 // 不会出现，保留以防 SSH 侧调用）。
 func (a *App) hostAddPick(d *hostAddDraft, addr, name ui.Element, shown []string, hi int) {
 	s := shown[hi]
-	d.armed, d.err = s, ""
 	d.hi, d.reveal = hi, true
 	// A candidate that carries a user keeps it in its own field, so the
 	// host field stays clean and the user field is filled in alongside.
@@ -512,9 +511,13 @@ func (a *App) hostAddPick(d *hostAddDraft, addr, name ui.Element, shown []string
 			d.user, host = s[:at], s[at+1:]
 		}
 	}
-	if d.addr != host {
-		addr.ReplaceText(0, math.MaxInt, host)
-		d.addr = host
+	// A WSL row writes its scheme into the field, so the address reads
+	// wsl://Debian rather than a bare distro name.
+	text := hostAddCandText(d, host)
+	d.armed, d.err = text, ""
+	if d.addr != text {
+		addr.ReplaceText(0, math.MaxInt, text)
+		d.addr = text
 	}
 	// WSL：选择发行版时把名称一并填成发行版名。和地址字段一样，这是
 	// 用户主动选择的直接结果，键盘连续浏览时名称与地址始终同步。name
@@ -525,12 +528,31 @@ func (a *App) hostAddPick(d *hostAddDraft, addr, name ui.Element, shown []string
 	}
 }
 
+// hostAddBare is the distro or host a field's text names, without the scheme
+// a WSL address carries: the rows under the field are bare names.
+func hostAddBare(d *hostAddDraft, s string) string {
+	if d.kind == kindWSL {
+		return strings.TrimPrefix(s, "wsl://")
+	}
+	return s
+}
+
+// hostAddCandText is what a picked row writes into the address field: a WSL
+// address reads as wsl://<distro>, the way a host's address does, rather than
+// as a bare distro name.
+func hostAddCandText(d *hostAddDraft, s string) string {
+	if d.kind == kindWSL {
+		return "wsl://" + s
+	}
+	return s
+}
+
 // hostAddShown lists the rows the finder draws for what the field says:
 // every candidate while the field still reads like one of them, and the
 // ones holding its text as a part of it after that.
 func hostAddShown(d *hostAddDraft) []string {
-	q := strings.TrimSpace(d.addr)
-	if q == "" || q == d.armed {
+	q := strings.TrimSpace(hostAddBare(d, d.addr))
+	if q == "" || q == strings.TrimSpace(hostAddBare(d, d.armed)) {
 		return d.cands
 	}
 	keep := []string{}
@@ -563,13 +585,14 @@ func hostAddCandidates(c *ui.Context, d *hostAddDraft, pal *palette, addr, name 
 		for i, s := range shown {
 			row := ui.Row(c.Key(i)).Height(28).Padding(0, 10).Gap(8).AlignItems(ui.Center).Radius(7)
 			// A row reads as picked only while the field says exactly that.
-			if i == d.hi && s == d.armed {
+			if i == d.hi && s == hostAddBare(d, d.armed) {
 				row.Background(pal.accent.Alpha(0.12))
 			} else if row.Hovered() {
 				row.Background(pal.rowHover)
 			}
 			if row.Clicked() {
-				d.addr, d.armed = s, s
+				text := hostAddCandText(d, s)
+				d.addr, d.armed = text, text
 				d.hi, d.reveal = i, true
 				d.err = ""
 				d.refocus = true
