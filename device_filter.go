@@ -167,9 +167,6 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 		it := m.Item(name).Checked(a.deviceShown(h)).ID("device-" + hostFilterKey(h)).
 			Icon(menuIconOf(a.hostOriginIcon(h))).IconColor(a.hostOriginColor(pal, h)).
 			Subtitle(a.deviceSubtitle(h))
-		if h.hasRTT() {
-			it = it.Trailing(rttText(h.rtt))
-		}
 		// Content replaces the item's label and subtitle in a drawn menu,
 		// so devicePickerRow draws them again, with the quick actions.
 		// The item keeps its name for the keys, assistive technology and
@@ -192,21 +189,25 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 	}
 }
 
-// devicePickerRow draws a host's name and subtitle, then the two quick
+// devicePickerRow draws a host's name and subtitle, then the quick
 // actions, inside the item's Content. A control in Content takes its own
 // presses, so a tap on a button acts on that host without choosing the row
-// and hiding the device from the sidebar. The buttons are kept beside the
-// text, ahead of the RTT: a picker panel is narrow, and the trailing
-// figure belongs at the very end of the row. There is no code here to
-// close the menu after a press: the confirmation opens over it, and
-// leaving it up lets the user act on several hosts in one visit.
+// and hiding the device from the sidebar. The RTT and buttons sit at the
+// end of the row, past the text: a picker panel is narrow, so the name and
+// subtitle yield first. There is no code here to close the menu after a
+// press: the confirmation opens over it, and leaving it up lets the user
+// act on several hosts in one visit.
 func (a *App) devicePickerRow(c *ui.Context, pal *palette, x ui.MenuItemContent, h *host) {
 	fs := x.Context.Theme().FontSize
-	ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Children(func() {
 			ui.Text(c, a.hostName(h)).FontSize(fs).SingleLine().Ellipsis("…").TextColor(x.Text)
 			ui.Text(c, a.deviceSubtitle(h)).FontSize(fs - 1).SingleLine().Ellipsis("…").TextColor(x.Muted)
 		})
+		if h.hasRTT() {
+			ui.Text(c, rttText(h.rtt)).FontSize(fs - 2).SingleLine().Shrink(0).
+				FontFeatures("tnum").TextColor(a.rttColor(pal, h))
+		}
 		name := a.hostName(h)
 		ui.Row(c).Gap(2).Shrink(0).AlignItems(ui.Center).Children(func() {
 			// A host the app cannot reach has no service to restart; one
