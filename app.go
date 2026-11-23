@@ -140,6 +140,9 @@ type App struct {
 	idleTime func() time.Duration
 	// keepAwakeRelease releases the keep-awake hold (awake.go); nil when none.
 	keepAwakeRelease func()
+	// keepAwakeDisplay is whether that hold keeps the display on, as it was
+	// acquired: a change to Keep display on re-acquires the hold with it.
+	keepAwakeDisplay bool
 
 	renaming        string
 	renamingProject string

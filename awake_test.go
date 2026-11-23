@@ -67,6 +67,29 @@ func TestKeepDisplayOnRow(t *testing.T) {
 	}
 }
 
+// A change of Keep display on under a hold that stays taken must be acted
+// on: the hold is let go and taken again with the new setting, rather than
+// skipped because the hold itself did not change.
+func TestKeepAwakeAction(t *testing.T) {
+	for _, c := range []struct {
+		name                    string
+		hold, held              bool
+		curDisplay, wantDisplay bool
+		want                    bool
+	}{
+		{"off, nothing held", false, false, false, false, false},
+		{"on, nothing held", true, false, false, false, true},
+		{"off, a hold held", false, true, false, false, true},
+		{"on, held, display unchanged", true, true, true, true, false},
+		{"on, held, display turned on", true, true, false, true, true},
+		{"on, held, display turned off", true, true, true, false, true},
+	} {
+		if got := keepAwakeAction(c.hold, c.held, c.curDisplay, c.wantDisplay); got != c.want {
+			t.Errorf("%s: keepAwakeAction = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
 // The tray's Keep display on is ticked as the setting is, and can't be
 // picked while no mode keeps the computer awake.
 func TestAwakeTrayDisplay(t *testing.T) {

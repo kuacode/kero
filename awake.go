@@ -32,7 +32,10 @@ func (a *App) keepAwake() {
 		hold = anyWorking(a.st.Sessions, func(id string) bool { return !a.hostOf(id).remote() })
 	}
 
-	if hold == (a.keepAwakeRelease != nil) {
+	// A hold already in place holds unless the display setting under it
+	// changed: then it is let go and taken again, so an edit of Keep display
+	// on reaches the system without first turning keep awake off and on.
+	if !keepAwakeAction(hold, a.keepAwakeRelease != nil, a.keepAwakeDisplay, a.set.KeepDisplayOn) {
 		return
 	}
 	if a.keepAwakeRelease != nil {
@@ -43,7 +46,18 @@ func (a *App) keepAwake() {
 		// Keep display on only when asked: mygo's Power takes a display
 		// argument, so this host's own hold covers the setting main added.
 		a.keepAwakeRelease = mygo.Power.KeepAwake("Kero", a.set.KeepDisplayOn)
+		a.keepAwakeDisplay = a.set.KeepDisplayOn
 	}
+}
+
+// keepAwakeAction says whether keepAwake must change what is held: the
+// wanted hold differs from the one in place, or the display setting under an
+// unchanged hold has changed and the hold must be taken again with it.
+func keepAwakeAction(hold, held, curDisplay, wantDisplay bool) bool {
+	if hold != held {
+		return true
+	}
+	return hold && curDisplay != wantDisplay
 }
 
 // keepAwakeIcon is the toolbar icon of Keep computer awake: the one on
