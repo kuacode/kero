@@ -131,6 +131,8 @@
     }
   },
   "devicePickerAddDetail": "一个 SSH 主机、一个 WSL 发行版，或一个 tailnet 地址",
+  "devicePickerRestartTip": "重启 {host} 的服务",
+  "devicePickerRedownloadTip": "重新下载 {host} 的 Kero",
   "deviceOnline": "在线",
   "sidebarCollapse": "折叠",
   "sidebarExpand": "展开",

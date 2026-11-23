@@ -131,6 +131,8 @@
     }
   },
   "devicePickerAddDetail": "SSH ホスト、WSL ディストリビューション、tailnet のアドレス",
+  "devicePickerRestartTip": "{host} のサービスを再起動",
+  "devicePickerRedownloadTip": "{host} の Kero を再ダウンロード",
   "deviceOnline": "オンライン",
   "sidebarCollapse": "折りたたむ",
   "sidebarExpand": "展開",

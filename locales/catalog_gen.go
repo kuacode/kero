@@ -1200,6 +1200,30 @@ func (msgs Messages) DevicePickerAddDetail() string {
 	return Catalog.Format(msgs.locale, "devicePickerAddDetail", nil)
 }
 
+// DevicePickerRestartTip says "Restart service on {host}"
+// in the language the app shows.
+func DevicePickerRestartTip(host string) string {
+	return In(i18n.Locale()).DevicePickerRestartTip(host)
+}
+
+// DevicePickerRestartTip says "Restart service on {host}"
+// in the language of msgs.
+func (msgs Messages) DevicePickerRestartTip(host string) string {
+	return Catalog.Format(msgs.locale, "devicePickerRestartTip", map[string]any{"host": host})
+}
+
+// DevicePickerRedownloadTip says "Re-download Kero on {host}"
+// in the language the app shows.
+func DevicePickerRedownloadTip(host string) string {
+	return In(i18n.Locale()).DevicePickerRedownloadTip(host)
+}
+
+// DevicePickerRedownloadTip says "Re-download Kero on {host}"
+// in the language of msgs.
+func (msgs Messages) DevicePickerRedownloadTip(host string) string {
+	return Catalog.Format(msgs.locale, "devicePickerRedownloadTip", map[string]any{"host": host})
+}
+
 // DeviceOnline says "online"
 // in the language the app shows.
 func DeviceOnline() string { return In(i18n.Locale()).DeviceOnline() }

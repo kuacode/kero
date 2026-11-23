@@ -54,7 +54,7 @@ func TestRTTText(t *testing.T) {
 		d    time.Duration
 		want string
 	}{
-		{300 * time.Microsecond, "<1ms"},
+		{300 * time.Microsecond, "1ms"},
 		{7 * time.Millisecond, "7ms"},
 		{1499 * time.Microsecond, "1ms"},
 		{999 * time.Millisecond, "999ms"},

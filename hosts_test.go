@@ -324,6 +324,108 @@ func TestSidebarDeviceFilter(t *testing.T) {
 	}
 }
 
+// Every host's row in the picker has quick actions to restart it and to
+// re-download its Kero. They act on that host without choosing the row,
+// which would hide the device from the sidebar.
+func TestSidebarDevicePickerActions(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	build := withHost(t, a, "build")
+	gpu := withHost(t, a, "gpu")
+	build.rc, gpu.rc = &remote.Conn{}, &remote.Conn{}
+	gpu.info.Updates = true // this one can be updated from the picker
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.Click(locales.SidebarDeviceAll()); err != nil {
+		t.Fatalf("no picker: %v", err)
+	}
+	// The actions are on this machine's row too: its Kero is this app.
+	for _, h := range a.hosts {
+		name := a.hostName(h)
+		for _, tip := range []string{locales.DevicePickerRestartTip(name), locales.DevicePickerRedownloadTip(name)} {
+			if _, ok := tt.Find(tip); !ok {
+				t.Errorf("no %q by %s: %q", tip, name, tt.Texts())
+			}
+		}
+	}
+	shown := make(map[*host]bool, len(a.hosts))
+	for _, h := range a.hosts {
+		shown[h] = a.deviceShown(h)
+	}
+	checkNoToggle := func(what string) {
+		t.Helper()
+		for h, want := range shown {
+			if got := a.deviceShown(h); got != want {
+				t.Errorf("%s hid or showed %s: got %v want %v", what, h.name, got, want)
+			}
+		}
+	}
+	// The confirmation covers the picker, so answer it before the next
+	// action, and open the picker again if the focus change closed it.
+	dismiss := func() {
+		t.Helper()
+		if a.confirm == nil {
+			return
+		}
+		if err := tt.Click(locales.CommonCancel()); err != nil {
+			t.Fatalf("no cancel: %v", err)
+		}
+		tt.Frame()
+	}
+	pick := func() {
+		t.Helper()
+		tt.Frame()
+		if len(tt.Menu()) > 0 {
+			return
+		}
+		if err := tt.Click(locales.SidebarDeviceAll()); err != nil {
+			t.Fatalf("no picker: %v", err)
+		}
+	}
+	act := func(tip, title string, devToast bool) {
+		t.Helper()
+		dismiss()
+		pick()
+		if err := tt.Click(tip); err != nil {
+			t.Fatalf("no %s: %v", tip, err)
+		}
+		if a.confirm == nil {
+			// A development build tells the user to update from the
+			// release instead of asking to install one.
+			if devToast && !released(mygo.App.Version()) && tt.HasText(locales.HostUpdateDev()) {
+				checkNoToggle(tip)
+				return
+			}
+			t.Fatalf("%s did nothing (toast %q)", tip, a.pendingToast)
+		}
+		if a.confirm.title != title {
+			t.Errorf("%s asked about %q, want %q", tip, a.confirm.title, title)
+		}
+		checkNoToggle(tip)
+	}
+	// Restarting a reachable host asks first, on that host, and does not
+	// choose the row it sits in.
+	act(locales.DevicePickerRestartTip("build"), locales.HostRestartTitle("build"), false)
+	// A host that has no Kero yet is offered an install instead.
+	gpu.errKind = remote.ErrNotInstalled
+	act(locales.DevicePickerRedownloadTip("gpu"), locales.HostInstallTitle("gpu"), false)
+	// Re-downloading a host that runs Kero asks about updating it. On a
+	// development build there is no release to offer, so it says so.
+	gpu.errKind = nil
+	act(locales.DevicePickerRedownloadTip("gpu"), locales.HostUpdateTitle("gpu", mygo.App.Version()), true)
+	// A host the app cannot reach has nothing to restart or download.
+	build.rc = nil
+	dismiss()
+	pick()
+	if _, ok := tt.Find(locales.DevicePickerRestartTip("build")); !ok {
+		t.Fatal("unreachable host's row disappeared")
+	}
+	tt.Click(locales.DevicePickerRestartTip("build")) // still on the row, but inert
+	if a.confirm != nil {
+		t.Error("disabled restart asked anyway")
+	}
+}
+
 // The plus at a host's header opens the picker of its folders, which
 // opens a project there; it does not start a session at once.
 func TestHostHeaderPlusOpensPicker(t *testing.T) {

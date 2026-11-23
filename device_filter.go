@@ -1,12 +1,16 @@
 package main
 
 import (
+	"errors"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
+
+	"kero/internal/remote"
 	"kero/locales"
 )
 
@@ -32,6 +36,10 @@ func menuIconOf(s *ui.SVG) *mygo.MenuIcon {
 // menuIconCache holds the menu icons the app's menus show, by the SVG
 // each is of, so an icon is drawn once.
 var menuIconCache sync.Map // *ui.SVG -> *mygo.MenuIcon
+
+// downloadIcon is the tray of the picker's re-download action. No other
+// control needs one, so it lives beside the helpers that use it.
+var downloadIcon = glyph("lucide-download")
 
 // deviceFilterButton is the sidebar footer's picker of the hosts shown: a
 // control across the foot's whole width that names the hosts shown, or All,
@@ -162,6 +170,12 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 		if h.hasRTT() {
 			it = it.Trailing(rttText(h.rtt))
 		}
+		// Content replaces the item's label and subtitle in a drawn menu,
+		// so devicePickerRow draws them again, with the quick actions.
+		// The item keeps its name for the keys, assistive technology and
+		// the system's menus.
+		host := h // Content runs on each rebuild, past this loop.
+		it.Content(func(x ui.MenuItemContent) { a.devicePickerRow(c, pal, x, host) })
 		if it.Chosen() {
 			a.toggleDevice(h)
 		}
@@ -176,6 +190,70 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 		Subtitle(locales.DevicePickerAddDetail()).Chosen() {
 		a.openHostAdd()
 	}
+}
+
+// devicePickerRow draws a host's name and subtitle, then the two quick
+// actions, inside the item's Content. A control in Content takes its own
+// presses, so a tap on a button acts on that host without choosing the row
+// and hiding the device from the sidebar. The buttons are kept beside the
+// text, ahead of the RTT: a picker panel is narrow, and the trailing
+// figure belongs at the very end of the row. There is no code here to
+// close the menu after a press: the confirmation opens over it, and
+// leaving it up lets the user act on several hosts in one visit.
+func (a *App) devicePickerRow(c *ui.Context, pal *palette, x ui.MenuItemContent, h *host) {
+	fs := x.Context.Theme().FontSize
+	ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+			ui.Text(c, a.hostName(h)).FontSize(fs).SingleLine().Ellipsis("…").TextColor(x.Text)
+			ui.Text(c, a.deviceSubtitle(h)).FontSize(fs - 1).SingleLine().Ellipsis("…").TextColor(x.Muted)
+		})
+		name := a.hostName(h)
+		ui.Row(c).Gap(2).Shrink(0).AlignItems(ui.Center).Children(func() {
+			// A host the app cannot reach has no service to restart; one
+			// that is installing or updating is left alone until it ends.
+			devicePickerIconButton(c, pal, x, "picker-restart-"+hostFilterKey(h),
+				locales.DevicePickerRestartTip(name), reloadIcon,
+				h.busy != "" || (h.remote() && h.rc == nil),
+				func() { a.offerHostRestart(h) })
+			missing := errors.Is(h.errKind, remote.ErrNotInstalled)
+			devicePickerIconButton(c, pal, x, "picker-redownload-"+hostFilterKey(h),
+				locales.DevicePickerRedownloadTip(name), downloadIcon,
+				h.busy != "" || (h.remote() && h.rc == nil && !missing),
+				func() {
+					switch {
+					case !h.remote():
+						// This machine's Kero is the app itself: its own
+						// updater, as Settings › General offers, fetches it.
+						updater.CheckForUpdates()
+					case missing:
+						a.installOnHost(h) // no Kero there yet: install it
+					default:
+						a.offerHostUpdate(h)
+					}
+				})
+		})
+	})
+}
+
+// devicePickerIconButton is one of the picker's small icon buttons. It
+// takes the row's highlight colors, so it reads the same on a row the
+// pointer is on, and shows no more than a chip under the pointer. A
+// disabled button says the host is busy or out of reach.
+func devicePickerIconButton(c *ui.Context, pal *palette, x ui.MenuItemContent, key, tip string, svg *ui.SVG, disabled bool, onClick func()) {
+	b := ui.ButtonBase(c.Key(key)).Size(20, 20).Radius(5).Center().Shrink(0).
+		Label(tip).Tooltip(tip).Disabled(disabled).OnClick(onClick)
+	fg, bg := x.Muted, ui.Transparent
+	switch {
+	case disabled:
+		fg = x.Muted.Alpha(0.45)
+	case b.Pressed():
+		bg, fg = pal.rowHover.Alpha(0.12), x.Text
+	case b.Hovered():
+		bg, fg = pal.rowHover, x.Text
+	}
+	b.Background(bg).TextColor(fg).Children(func() {
+		ui.Icon(c, svg).Size(12, 12).TextColor(fg)
+	})
 }
 
 // deviceAll reports whether the sidebar shows every host.

@@ -179,6 +179,22 @@
     }
   },
   "devicePickerAddDetail": "An SSH host, a WSL distribution, or a tailnet address",
+  "devicePickerRestartTip": "Restart service on {host}",
+  "@devicePickerRestartTip": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "devicePickerRedownloadTip": "Re-download Kero on {host}",
+  "@devicePickerRedownloadTip": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "deviceOnline": "online",
   "sidebarCollapse": "Collapse",
   "sidebarExpand": "Expand",
