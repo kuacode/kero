@@ -60,6 +60,29 @@ func TestInstallArchiveCommandWindows(t *testing.T) {
 	}
 }
 
+// wslInstallArchiveArgs puts the distro in the command and streams the
+// archive on wsl.exe's standard input, as ssh does: no archive name in the
+// script, because the host installs the one the app sends.
+func TestWslInstallArchiveArgs(t *testing.T) {
+	args := wslInstallArchiveArgs(Addr{Scheme: "wsl", Host: "Debian"}, "2.1.0")
+	if len(args) < 5 || args[0] != "-d" || args[1] != "Debian" ||
+		args[2] != "--exec" || args[3] != "sh" || args[4] != "-c" {
+		t.Fatalf("wsl archive args do not name the distro: %q", args)
+	}
+	run := args[5]
+	if !strings.Contains(run, "cat >") || !strings.Contains(run, "--archive ") || !strings.Contains(run, "2.1.0") {
+		t.Errorf("wsl install does not stream an archive: %s", run)
+	}
+	if strings.Contains(run, "kero-server-2.1.0-linux-amd64.tar.gz") {
+		t.Errorf("the distro still downloads the archive: %s", run)
+	}
+	// A distro-less address starts the default one.
+	bare := wslInstallArchiveArgs(Addr{Scheme: "wsl"}, "2.1.0")
+	if bare[0] != "--exec" {
+		t.Errorf("a default distro still passed -d: %q", bare)
+	}
+}
+
 // exe is the test's executable, the ssh the tests fake.
 func exe(t *testing.T) string {
 	t.Helper()

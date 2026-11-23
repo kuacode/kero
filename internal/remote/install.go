@@ -95,8 +95,8 @@ func parsePlatform(out string) (string, string, error) {
 }
 
 // InstallArchiveCommand is the command that installs the server build of
-// Kero, of version, on a host reached over SSH, from an archive the app
-// fetched and verified: the archive is written to the host, which
+// Kero, of version, on a host reached over SSH or WSL, from an archive the
+// app fetched and verified: the archive is written to the host, which
 // installs it with install-server.sh --archive, with no download of its
 // own. Only sh hosts: Windows has no archive of the app's (install.go's
 // InstallCommand still runs the script there, which downloads).
@@ -105,6 +105,7 @@ func InstallArchiveCommand(a Addr, version string, batch bool) (*exec.Cmd, error
 	if !update.ValidVersion(version) {
 		return nil, errors.New(version + " is not a version of Kero")
 	}
+	var cmd *exec.Cmd
 	switch a.Scheme {
 	case "ssh":
 		if Windows(a) {
@@ -114,13 +115,32 @@ func InstallArchiveCommand(a Addr, version string, batch bool) (*exec.Cmd, error
 		// it, and the host writes it to a temp file before it installs, as
 		// a download cut short could stop it anywhere.
 		run := "sh -c " + shellQuote(shInstallArchive(version))
-		cmd := exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
+		cmd = exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
 		cmd.Env = sshEnv()
-		hideWindow(cmd)
-		return cmd, nil
+	case "wsl":
+		if runtime.GOOS != "windows" {
+			return nil, errors.New("wsl:// addresses are of Windows")
+		}
+		// wsl.exe forwards its standard input to the distro's shell, so
+		// the archive the app fetched streams in just as it does over
+		// ssh: the distro installs it without a download of its own.
+		cmd = exec.Command("wsl.exe", wslInstallArchiveArgs(a, version)...)
 	default:
 		return nil, errors.New("Kero installs itself on a host over SSH or WSL: install it there with the script of its releases")
 	}
+	hideWindow(cmd)
+	return cmd, nil
+}
+
+// wslInstallArchiveArgs is wsl.exe's arguments for an install that streams
+// the archive on standard input. It is kept apart from the platform guard
+// so the command can be checked where there is no wsl.exe.
+func wslInstallArchiveArgs(a Addr, version string) []string {
+	args := []string{}
+	if a.Host != "" {
+		args = append(args, "-d", a.Host)
+	}
+	return append(args, "--exec", "sh", "-c", shInstallArchive(version))
 }
 
 // shInstallArchive is the script of sh that installs Kero from an archive
