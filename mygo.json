@@ -1,14 +1,14 @@
 {
   "name": "Kero",
   "identifier": "sh.kero",
-  "version": "2.1.36",
+  "version": "2.1.37",
   "out": "build",
   "i18n": {
     "dir": "locales",
     "source": "en"
   },
   "updates": {
-    "publicKey": "NQcIBW+mHFZDA4coUfarTy43yfwYUM8ZuLd6CID/nQI=",
+    "publicKey": "BOzgsnMWIS4zW5z4Bq/j0SaRej/P+AZpGq8VbBwRLKU=",
     "github": "kuacode/kero"
   },
   "macos": {
