@@ -66,7 +66,7 @@ func TestVerify(t *testing.T) {
 }
 
 func TestVersions(t *testing.T) {
-	for v, ok := range map[string]bool{"2.1.0": true, "2.1.0-beta.1": true, "10.0.12": true, "2.1": false, "../2.1.0": false, "2.1.0/x": false, "v2.1.0": false, "": false} {
+	for v, ok := range map[string]bool{"2.1.0": true, "2.1.0-beta.1": true, "2.1.36.1": true, "10.0.12": true, "2.1": false, "../2.1.0": false, "2.1.0/x": false, "v2.1.0": false, "": false} {
 		if ValidVersion(v) != ok {
 			t.Errorf("ValidVersion(%q) = %v", v, !ok)
 		}
@@ -82,6 +82,10 @@ func TestVersions(t *testing.T) {
 		// update as older.
 		{"2.1.0-beta.10", "2.1.0-beta.2", 1}, {"2.1.0-beta.9", "2.1.0-beta.10", -1},
 		{"2.1.0-beta.2", "2.1.0-beta.11", -1}, {"2.1.0-1", "2.1.0-beta", -1},
+		// A dev release's fourth number makes it newer than the main
+		// release it builds on.
+		{"2.1.36.1", "2.1.36", 1}, {"2.1.36", "2.1.36.1", -1},
+		{"2.1.36.2", "2.1.36.1", 1},
 	} {
 		if got := Compare(c.a, c.b); got != c.want {
 			t.Errorf("Compare(%s, %s) = %d", c.a, c.b, got)

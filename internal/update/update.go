@@ -159,10 +159,13 @@ func InstallDir() string {
 	return filepath.Dir(exe)
 }
 
-var versionRe = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$`)
+// versionRe accepts a version of Kero: three numbers as in 2.1.0, or four
+// as in 2.1.36.1, the dev releases of a version main has published, with
+// an optional prerelease suffix as in 2.1.0-beta.1.
+var versionRe = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$`)
 
 // ValidVersion reports whether v is a version of Kero, as 2.1.0 or
-// 2.1.0-beta.1.
+// 2.1.36.1, or 2.1.0-beta.1.
 func ValidVersion(v string) bool { return versionRe.MatchString(v) }
 
 // Compare compares two versions as semantic versions: -1, 0 or 1. A
