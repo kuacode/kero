@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"io"
 	"testing"
 
 	"kero/internal/settings"
@@ -52,40 +50,6 @@ func TestProgressStage(t *testing.T) {
 	a.clearProgress(h)
 	if h.progress != 0 || h.progressStage != "" || h.progressURL != "" {
 		t.Errorf("clearProgress left stage=%q url=%q progress=%d", h.progressStage, h.progressURL, h.progress)
-	}
-}
-
-// uploadProgress counts the bytes read from an archive as the install
-// command consumes its standard input, reporting them as it goes rather
-// than one figure at the end.
-func TestUploadProgress(t *testing.T) {
-	archive := []byte("0123456789")
-	var reports [][2]int64
-	u := &uploadProgress{
-		r:          bytes.NewReader(archive),
-		total:      int64(len(archive)),
-		onProgress: func(sent, total int64) { reports = append(reports, [2]int64{sent, total}) },
-	}
-	buf := make([]byte, 4)
-	for {
-		n, err := u.Read(buf)
-		if n > 0 {
-			if last := reports[len(reports)-1]; last[1] != int64(len(archive)) {
-				t.Errorf("report total %d, want %d", last[1], len(archive))
-			}
-		}
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	if len(reports) < 3 {
-		t.Fatalf("read in %d chunks, want progress per chunk", len(reports))
-	}
-	if reports[len(reports)-1][0] != int64(len(archive)) {
-		t.Errorf("last report sent %d, want %d", reports[len(reports)-1][0], len(archive))
 	}
 }
 

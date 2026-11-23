@@ -828,53 +828,24 @@ func (a *App) hostRequest(h *host, what string) {
 			// Two ways to update, and the setting picks which:
 			//  - local download, then upload: the app fetches the archive
 			//    through the mirror, where the host could not, and sends
-			//    it to the install script. That script checks the version
-			//    itself and accepts a dev release like 2.1.36.3, which an
-			//    older kerod on the host rejects; so this path also lifts
-			//    a host onto dev versions. A restart below runs the new
-			//    kerod.
+			//    the whole thing to the host's kerod, which installs it.
 			//  - remote download: the host's kerod fetches it itself.
 			platform := h.info.OS + "/" + h.info.Arch
-			goos, goarch := h.info.OS, h.info.Arch
-			if a.set.LocalDownload {
-				if platform == "" {
-					// A host whose platform is not known yet (it may have
-					// no kerod) tells it with a command of its own.
-					if g, ga, perr := remote.Platform(h.addr, true); perr == nil {
-						goos, goarch, platform = g, ga, g+"/"+ga
-					}
-				}
-			}
 			if a.set.LocalDownload && platform != "" && slices.Contains(update.Platforms, platform) {
 				update.SetMirror(a.set.DownloadMirror)
-				update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
-				a.setStage(h, "download", update.ArchiveURL(version, goos, goarch))
+				a.setStage(h, "download", update.ArchiveURL(version, h.info.OS, h.info.Arch))
 				download := func(got, total int64) { a.setProgress(h, got, total) }
-				archive, sig, ferr := update.FetchWithSig(ctx, version, goos, goarch, download)
-				if ferr != nil {
-					// The app could not fetch: let the host try itself.
-					err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
+				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, download)
+				if ferr == nil {
+					// What the app fetched, the app now sends: the host's
+					// kerod replaces its install with it.
+					upload := func(sent, total int64) { a.setProgress(h, sent, total) }
+					a.setStage(h, "upload", "")
+					err = rc.Upload(ctx, version, h.info.OS, h.info.Arch, sig, archive, upload)
 				} else {
-					cmd, cerr := remote.InstallArchiveCommand(h.addr, version, true)
-					if cerr != nil {
-						// No install script here (e.g. a Windows host):
-						// the kerod upload path is the other way.
-						a.setStage(h, "upload", "")
-						upload := func(sent, total int64) { a.setProgress(h, sent, total) }
-						err = rc.Upload(ctx, version, goos, goarch, sig, archive, upload)
-					} else {
-						cmd.Stdin = &uploadProgress{
-							r:          bytes.NewReader(archive),
-							total:      int64(len(archive)),
-							onProgress: func(sent, total int64) { a.setProgress(h, sent, total) },
-						}
-						a.setStage(h, "upload", "")
-						_, err = cmd.CombinedOutput()
-					}
+					err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
 				}
 			} else {
-				// Remote download, or a platform this app has no archive
-				// for: the host's kerod fetches and installs it.
 				err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version})
 			}
 		}
@@ -947,23 +918,6 @@ func (a *App) setProgress(h *host, got, total int64) {
 			h.progress = pct
 		}
 	})
-}
-
-// uploadProgress counts the bytes of an archive written to a host as the
-// SSH/WSL command reads them from its standard input, so the note shows
-// the upload climbing rather than one figure at the end.
-type uploadProgress struct {
-	r          *bytes.Reader
-	sent       int64
-	total      int64
-	onProgress func(int64, int64)
-}
-
-func (u *uploadProgress) Read(b []byte) (int, error) {
-	n, err := u.r.Read(b)
-	u.sent += int64(n)
-	u.onProgress(u.sent, u.total)
-	return n, err
 }
 
 // openRemotePath opens what a path printed in a remote pane names, which
