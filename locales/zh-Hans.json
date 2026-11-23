@@ -631,6 +631,7 @@
   "hostAddKindNetwork": "网络",
   "hostAddFieldSSH": "SSH 目标",
   "hostAddFieldWSL": "发行版",
+  "hostAddFieldRemote": "远程地址",
   "hostAddFieldNetwork": "监听地址",
   "hostAddFieldUser": "用户",
   "hostAddFieldPort": "端口",

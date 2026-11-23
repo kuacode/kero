@@ -349,12 +349,13 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 		ui.Text(c, hostAddDetail(d.kind)).FontSize(12.5).TextColor(pal.textMuted).LineHeight(1.4).Shrink(0)
 
 		// The fields sit on a soft panel, as Settings' groups do.
-		var addr ui.Element
+		// addr 承载查找器（候选列表、键盘导航），name 在选择发行版时一并填入。
+		var addr, name ui.Element
 		groupRows = 0
 		ui.Column(c).Radius(12).Background(pal.chip).Padding(4, 16).Gap(0).Children(func() {
 			// Name first
 			hostAddFieldRow(c, pal, locales.HostAddFieldName(), func() {
-				name := textField(c, "host-add-name", &d.name,
+				name = textField(c, "host-add-name", &d.name,
 					locales.SetHostNamePlaceholder(defaultHostName(strings.TrimSpace(d.addr))), 0, pal)
 				name.OnSubmit(func() { a.hostAddSubmit(d) })
 			})
@@ -363,7 +364,7 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			if d.kind == kindSSH {
 				hostAddFieldRow(c, pal, locales.HostAddFieldSSH(), func() {
 					ui.Row(c).Gap(8).Children(func() {
-						addr = a.hostAddAddrField(c, d, pal)
+						addr = a.hostAddAddrField(c, d, pal, name)
 						addr.OnSubmit(func() { a.hostAddSubmit(d) })
 						// Port field on the same row, smaller
 						port := textField(c, "host-add-port", &d.port, locales.HostAddPortPlaceholder(), 0, pal)
@@ -380,11 +381,17 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 						password.OnSubmit(func() { a.hostAddSubmit(d) })
 					})
 				})
+			} else {
+				// WSL 的远程地址字段：承载发行版查找器，选择后同时填入名称。
+				hostAddFieldRow(c, pal, locales.HostAddFieldRemote(), func() {
+					addr = a.hostAddAddrField(c, d, pal, name)
+					addr.OnSubmit(func() { a.hostAddSubmit(d) })
+				})
 			}
 		})
 
 		if hostAddWants(d.kind) {
-			hostAddCandidates(c, d, pal, addr)
+			hostAddCandidates(c, d, pal, addr, name)
 		}
 
 		if d.err != "" {
@@ -412,8 +419,9 @@ func hostAddFieldRow(c *ui.Context, pal *palette, label string, control func()) 
 }
 
 // hostAddAddrField is the field the whole dialog turns on: it filters the
-// list below it, completes from it, and is what Enter adds.
-func (a *App) hostAddAddrField(c *ui.Context, d *hostAddDraft, pal *palette) ui.Element {
+// list below it, completes from it, and is what Enter adds. name 是名称
+// 字段，WSL 选择发行版时一并填入；SSH 侧由 kindWSL 守卫不会触碰它。
+func (a *App) hostAddAddrField(c *ui.Context, d *hostAddDraft, pal *palette, name ui.Element) ui.Element {
 	addr := textField(c, "host-add-addr", &d.addr, hostAddPlaceholder(d.kind), 0, pal).Font("monospace")
 	// The field is what the dialog opens on. AutoFocus answers only in the
 	// frame a node is born in, which is the frame the dialog is.
@@ -444,14 +452,14 @@ func (a *App) hostAddAddrField(c *ui.Context, d *hostAddDraft, pal *palette) ui.
 		if len(shown) == 0 {
 			return
 		}
-		a.hostAddPick(d, addr, shown, hostAddNext(d, len(shown), 1))
+		a.hostAddPick(d, addr, name, shown, hostAddNext(d, len(shown), 1))
 	})
 	addr.OnShortcut(0, ui.KeyUp, func() {
 		shown := hostAddShown(d)
 		if len(shown) == 0 {
 			return
 		}
-		a.hostAddPick(d, addr, shown, hostAddNext(d, len(shown), -1))
+		a.hostAddPick(d, addr, name, shown, hostAddNext(d, len(shown), -1))
 	})
 
 	// Tab completes the dimmed rest of the nearest match instead of
@@ -460,7 +468,7 @@ func (a *App) hostAddAddrField(c *ui.Context, d *hostAddDraft, pal *palette) ui.
 	addr.OnShortcut(0, ui.KeyTab, func() {
 		shown := hostAddShown(d)
 		if m := hostAddComplete(d.addr, shown); m != "" {
-			a.hostAddPick(d, addr, shown, max(slices.Index(shown, m), 0))
+			a.hostAddPick(d, addr, name, shown, max(slices.Index(shown, m), 0))
 		}
 	})
 	return addr
@@ -488,7 +496,11 @@ func hostAddNext(d *hostAddDraft, n, step int) int {
 // caret after it, where the next keystroke belongs; and the change it
 // reports goes out with d.armed equal to what was written, so the change
 // handler reads it as a pick and not as a keystroke.
-func (a *App) hostAddPick(d *hostAddDraft, addr ui.Element, shown []string, hi int) {
+//
+// WSL 的选择器在填入远程地址的同时，把发行版名填入名称字段（若用户尚未
+// 自行填写名称）。name 为 ui.Element{} 时表示该 kind 没有名称字段（目前
+// 不会出现，保留以防 SSH 侧调用）。
+func (a *App) hostAddPick(d *hostAddDraft, addr, name ui.Element, shown []string, hi int) {
 	s := shown[hi]
 	d.armed, d.err = s, ""
 	d.hi, d.reveal = hi, true
@@ -503,6 +515,13 @@ func (a *App) hostAddPick(d *hostAddDraft, addr ui.Element, shown []string, hi i
 	if d.addr != host {
 		addr.ReplaceText(0, math.MaxInt, host)
 		d.addr = host
+	}
+	// WSL：选择发行版时把名称一并填成发行版名。和地址字段一样，这是
+	// 用户主动选择的直接结果，键盘连续浏览时名称与地址始终同步。name
+	// 为 ui.Element{}（零值）时跳过，避免对不存在的字段写入。
+	if d.kind == kindWSL && name != (ui.Element{}) {
+		name.ReplaceText(0, math.MaxInt, host)
+		d.name = host
 	}
 }
 
@@ -525,7 +544,7 @@ func hostAddShown(d *hostAddDraft) []string {
 
 // hostAddCandidates draws the rows under the field. With nothing found and
 // no scan running, the whole block stays out of the way.
-func hostAddCandidates(c *ui.Context, d *hostAddDraft, pal *palette, addr ui.Element) {
+func hostAddCandidates(c *ui.Context, d *hostAddDraft, pal *palette, addr, name ui.Element) {
 	shown := hostAddShown(d)
 	if len(shown) == 0 && !d.looking[d.kind] {
 		return
@@ -554,6 +573,11 @@ func hostAddCandidates(c *ui.Context, d *hostAddDraft, pal *palette, addr ui.Ele
 				d.hi, d.reveal = i, true
 				d.err = ""
 				d.refocus = true
+				// WSL：点击发行版时一并填入名称字段，与键盘选择一致。
+				if d.kind == kindWSL && name != (ui.Element{}) {
+					name.ReplaceText(0, math.MaxInt, s)
+					d.name = s
+				}
 				addr.Focus()
 			}
 			row.Children(func() {

@@ -73,6 +73,69 @@ func TestDeviceAddWslPrefix(t *testing.T) {
 	}
 }
 
+// 选择 WSL 发行版时，名称与远程地址必须同时填入，且键盘连续浏览时两者
+// 保持同步。点击与键盘两条路径都验证。
+func TestDeviceAddWslPickFillsBothFields(t *testing.T) {
+	// 键盘路径：Down 逐行选择，名称和地址一起变。
+	t.Run("keyboard", func(t *testing.T) {
+		a := testApp(t)
+		d := &a.hostAdd
+		addDraftFor(d, kindWSL, "Ubuntu", "Debian")
+		d.distros = []remote.Distro{{Name: "Ubuntu", Default: true}, {Name: "Debian"}}
+		tt := ui.NewTester(a.view, 1100, 700)
+		tt.Frame()
+
+		// WSL 表单同时有“名称”和“远程地址”两个字段的标签。
+		if !tt.HasText(locales.HostAddFieldName()) {
+			t.Errorf("the Name field is missing: %v", tt.Texts())
+		}
+		if !tt.HasText(locales.HostAddFieldRemote()) {
+			t.Errorf("the Remote address field is missing: %v", tt.Texts())
+		}
+
+		tt.Key(0, ui.KeyDown)
+		tt.Frame()
+		if d.addr != "Ubuntu" || d.name != "Ubuntu" {
+			t.Errorf("Down left addr %q, name %q, want both Ubuntu", d.addr, d.name)
+		}
+		tt.Key(0, ui.KeyDown)
+		tt.Frame()
+		if d.addr != "Debian" || d.name != "Debian" {
+			t.Errorf("second Down left addr %q, name %q, want both Debian", d.addr, d.name)
+		}
+		tt.Key(0, ui.KeyUp)
+		tt.Frame()
+		if d.addr != "Ubuntu" || d.name != "Ubuntu" {
+			t.Errorf("Up left addr %q, name %q, want both Ubuntu", d.addr, d.name)
+		}
+	})
+
+	// 点击路径：点击候选行同样同时填入两者，提交后得到 wsl:// 地址。
+	t.Run("click", func(t *testing.T) {
+		a := testApp(t)
+		d := &a.hostAdd
+		addDraftFor(d, kindWSL, "Ubuntu", "Debian")
+		d.distros = []remote.Distro{{Name: "Ubuntu", Default: true}, {Name: "Debian"}}
+		tt := ui.NewTester(a.view, 1100, 700)
+		tt.Frame()
+
+		// Debian 只在候选行里出现，点它不会误中字段或提示文案。
+		if err := tt.Click("Debian"); err != nil {
+			t.Fatalf("clicking the Debian row: %v", err)
+		}
+		tt.Frame()
+		if d.addr != "Debian" || d.name != "Debian" {
+			t.Errorf("click left addr %q, name %q, want both Debian", d.addr, d.name)
+		}
+		if !a.hostAddSubmit(d) {
+			t.Fatalf("wsl submit failed: %s", d.err)
+		}
+		if w := a.set.Host("Debian"); w == nil || w.Addr != "wsl://Debian" {
+			t.Errorf("Debian reads as %+v", w)
+		}
+	})
+}
+
 func TestDeviceAddSubmit(t *testing.T) {
 	a := testApp(t)
 	d := &a.hostAdd

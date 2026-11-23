@@ -1117,6 +1117,7 @@
   "hostAddKindNetwork": "Network",
   "hostAddFieldSSH": "SSH target",
   "hostAddFieldWSL": "Distribution",
+  "hostAddFieldRemote": "Remote address",
   "hostAddFieldNetwork": "Listener",
   "hostAddFieldUser": "User",
   "hostAddFieldPort": "Port",

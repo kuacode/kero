@@ -6242,6 +6242,16 @@ func (msgs Messages) HostAddFieldWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddFieldWSL", nil)
 }
 
+// HostAddFieldRemote says "Remote address"
+// in the language the app shows.
+func HostAddFieldRemote() string { return In(i18n.Locale()).HostAddFieldRemote() }
+
+// HostAddFieldRemote says "Remote address"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldRemote() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldRemote", nil)
+}
+
 // HostAddFieldNetwork says "Listener"
 // in the language the app shows.
 func HostAddFieldNetwork() string { return In(i18n.Locale()).HostAddFieldNetwork() }
