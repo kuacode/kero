@@ -103,7 +103,7 @@ func (a *App) trayMenu() *mygo.Menu {
 		}},
 		check,
 		mygo.Separator(),
-		{Label: locales.MenuQuitApp(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { a.quit() }},
+		{Label: locales.MenuQuitApp(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { a.endSessionsAndQuit() }},
 	})
 }
 

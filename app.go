@@ -1724,14 +1724,26 @@ var quitApp = func() { mygo.App.Quit() }
 
 // quit quits the app. As it always did when quit-ends-sessions is off;
 // with it on, it ends this machine's sessions and its kerod first, as
-// Quit and End All Sessions does, asking once while a program runs, as
+// endSessionsAndQuit does, asking once while a program runs, as
 // confirm-close does.
 func (a *App) quit() {
 	if a.ending {
-		return // the teardown of quit-ends-sessions runs: its quit is coming
+		return // the teardown of endSessionsAndQuit runs: its quit is coming
 	}
 	if !a.set.QuitEndsSessions {
 		quitApp()
+		return
+	}
+	a.endSessionsAndQuit()
+}
+
+// endSessionsAndQuit ends this machine's sessions and its kerod, then
+// quits, asking first while a program runs. The tray's Quit takes this
+// path whatever quit-ends-sessions says: leaving by the icon means
+// leaving Kero, its service and all. The setting governs closing the
+// window, not the icon's explicit Quit.
+func (a *App) endSessionsAndQuit() {
+	if a.ending {
 		return
 	}
 	if a.busyCount(a.local()) == 0 {

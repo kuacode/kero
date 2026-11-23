@@ -385,3 +385,68 @@ func TestQuitEndsSessions(t *testing.T) {
 		}
 	})
 }
+
+// The tray's Quit leaves Kero altogether: it ends this machine's sessions
+// and stops kerod, whatever quit-ends-sessions says. Closing the last
+// window is what that setting governs; the icon's explicit Quit is not.
+func TestTrayQuitEndsService(t *testing.T) {
+	oldQuit := quitApp
+	defer func() { quitApp = oldQuit }()
+	quits := make(chan struct{}, 4)
+	quitApp = func() { quits <- struct{}{} }
+	waitQuit := func(t *testing.T) {
+		t.Helper()
+		select {
+		case <-quits:
+		case <-time.After(2 * time.Second):
+			t.Fatal("the app did not quit")
+		}
+	}
+	shutdowns := make(chan struct{}, 4)
+	a := testApp(t)
+	if a.set.QuitEndsSessions {
+		t.Fatal("test needs quit-ends-sessions off")
+	}
+	cl, _ := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		if method == "shutdown" {
+			shutdowns <- struct{}{}
+			return nil, nil
+		}
+		return nil, errors.New("unexpected method " + method)
+	})
+	a.local().cl = cl
+	// The tray's Quit calls endSessionsAndQuit directly, not quit: it
+	// ends everything even with quit-ends-sessions off.
+	a.endSessionsAndQuit()
+	waitQuit(t)
+	select {
+	case <-shutdowns:
+	default:
+		t.Error("the tray's Quit did not stop kerod")
+	}
+	if a.ending != true {
+		t.Error("the tray's Quit did not end this machine's sessions")
+	}
+}
+
+// A program still running in a session is asked about before the tray's
+// Quit ends it, as it is for Quit and End All Sessions.
+func TestTrayQuitAsksWhileRunning(t *testing.T) {
+	oldQuit := quitApp
+	defer func() { quitApp = oldQuit }()
+	quits := make(chan struct{}, 4)
+	quitApp = func() { quits <- struct{}{} }
+	a := testApp(t)
+	cl, _ := projectClient(t, func(method string, raw json.RawMessage) (any, error) { return nil, nil })
+	a.local().cl = cl
+	a.st.Sessions[0].Process = "claude"
+	a.endSessionsAndQuit()
+	if a.confirm == nil || !a.confirm.open || a.confirm.run == nil {
+		t.Fatalf("a program runs: the tray's Quit asked nothing: %+v", a.confirm)
+	}
+	select {
+	case <-quits:
+		t.Fatal("quit before the answer")
+	default:
+	}
+}
