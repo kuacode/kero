@@ -256,7 +256,7 @@
   "setAskBeforeClosing": "実行中のプログラムを閉じる前に確認",
   "setAskBeforeClosingDetail": "閉じるペインやセッションで、シェル以外のプログラムが実行中のとき。",
   "setQuitEndsSessions": "Kero の終了時にセッションを終える",
-  "setQuitEndsSessionsDetail": "終了時にこのマシンのセッションをすべて終え、kerod を停止します。プログラムが実行中なら、先に確認します。",
+  "setQuitEndsSessionsDetail": "メニューから終了するか、ウィンドウを閉じるときも、このマシンのセッションをすべて終えて kerod を停止します。プログラムが実行中なら、先に確認します。トレイのアイコンから終了すると、常に完全に終了します。",
   "setRestoreSessions": "再起動後にセッションを復元",
   "setRestoreSessionsDetail": "Mac の再起動などでバックグラウンドサービスが停止したとき、セッションは履歴とともに、それぞれのフォルダで再び開始します。",
   "setResumeAgents": "エージェントを再開",

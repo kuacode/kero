@@ -2458,11 +2458,11 @@ func (msgs Messages) SetQuitEndsSessions() string {
 	return Catalog.Format(msgs.locale, "setQuitEndsSessions", nil)
 }
 
-// SetQuitEndsSessionsDetail says "Quitting also ends this machine's sessions and stops kerod. It asks first while a program still runs."
+// SetQuitEndsSessionsDetail says "Closing the window or quitting from the menu also ends this machine's sessions and stops kerod. It asks first while a…"
 // in the language the app shows.
 func SetQuitEndsSessionsDetail() string { return In(i18n.Locale()).SetQuitEndsSessionsDetail() }
 
-// SetQuitEndsSessionsDetail says "Quitting also ends this machine's sessions and stops kerod. It asks first while a program still runs."
+// SetQuitEndsSessionsDetail says "Closing the window or quitting from the menu also ends this machine's sessions and stops kerod. It asks first while a…"
 // in the language of msgs.
 func (msgs Messages) SetQuitEndsSessionsDetail() string {
 	return Catalog.Format(msgs.locale, "setQuitEndsSessionsDetail", nil)
