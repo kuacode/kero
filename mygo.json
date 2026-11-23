@@ -1,7 +1,7 @@
 {
   "name": "Kero",
   "identifier": "sh.kero",
-  "version": "2.1.36.2",
+  "version": "2.1.36.3",
   "out": "build",
   "i18n": {
     "dir": "locales",

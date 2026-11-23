@@ -85,7 +85,7 @@ func TestVersions(t *testing.T) {
 		// A dev release's fourth number makes it newer than the main
 		// release it builds on.
 		{"2.1.36.1", "2.1.36", 1}, {"2.1.36", "2.1.36.1", -1},
-		{"2.1.36.2", "2.1.36.1", 1},
+		{"2.1.36.2", "2.1.36.1", 1}, {"2.1.36.3", "2.1.36.2", 1},
 	} {
 		if got := Compare(c.a, c.b); got != c.want {
 			t.Errorf("Compare(%s, %s) = %d", c.a, c.b, got)
