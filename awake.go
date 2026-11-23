@@ -19,6 +19,12 @@ const (
 	awakeAgents = "agents"
 )
 
+// awakeDisplay tells that a hold can keep the display on too. mygo's Power
+// backend does this on every platform: the desktop's idle and screen saver
+// on Linux, a display-sleep activity on macOS, and a display-required power
+// request on Windows.
+const awakeDisplay = true
+
 // keepAwake holds the computer awake, or lets it sleep, as the mode and
 // this machine's sessions ask, and its display on while it holds, if Keep
 // display on asks: a session of another host's working keeps that
