@@ -54,7 +54,6 @@ var (
 	diffIcon         = glyph("octicon-file-diff-16")
 	wrapIcon         = glyph("octicon-wrap-16")
 	unwrapIcon       = glyph("octicon-unwrap-16")
-	treeIcon         = glyph("f7-list-bullet-indent")
 	collapseIcon     = glyph("f7-rectangle-compress-vertical")
 	expandIcon       = glyph("f7-rectangle-expand-vertical")
 	revertIcon       = glyph("f7-arrow-uturn-left")

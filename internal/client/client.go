@@ -167,7 +167,6 @@ type Client struct {
 	pending map[int64]chan response
 	onEvent func(proto.Message)
 	closed  chan struct{}
-	err     error
 }
 
 type response struct {

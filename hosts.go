@@ -142,14 +142,6 @@ func (h *host) label() string {
 	return h.name
 }
 
-// home is the host's home directory, as kerod there told.
-func (h *host) home() string {
-	if !h.remote() {
-		return proto.Home()
-	}
-	return h.info.Home
-}
-
 // windows reports whether the host runs Windows, whose paths have drives
 // and backslashes.
 func (h *host) windows() bool {

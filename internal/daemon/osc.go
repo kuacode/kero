@@ -19,7 +19,6 @@ import (
 // It follows them across reads.
 type oscScanner struct {
 	state int // 0 text, 1 after ESC, 2 in an OSC we keep, 3 in one we skip, 4 ESC in an OSC
-	skip  bool
 	buf   []byte
 }
 

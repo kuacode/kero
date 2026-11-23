@@ -808,15 +808,6 @@ func hostAddKind(k hostKind) string {
 	}
 }
 
-func hostAddField(k hostKind) string {
-	switch k {
-	case kindWSL:
-		return locales.HostAddFieldWSL()
-	default:
-		return locales.HostAddFieldSSH()
-	}
-}
-
 func hostAddDetail(k hostKind) string {
 	switch k {
 	case kindWSL:

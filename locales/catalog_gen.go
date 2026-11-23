@@ -1148,16 +1148,6 @@ func (msgs Messages) SidebarShow() string {
 	return Catalog.Format(msgs.locale, "sidebarShow", nil)
 }
 
-// SidebarNoSessions says "No sessions"
-// in the language the app shows.
-func SidebarNoSessions() string { return In(i18n.Locale()).SidebarNoSessions() }
-
-// SidebarNoSessions says "No sessions"
-// in the language of msgs.
-func (msgs Messages) SidebarNoSessions() string {
-	return Catalog.Format(msgs.locale, "sidebarNoSessions", nil)
-}
-
 // SidebarDeviceFilter says "Show hosts…"
 // in the language the app shows.
 func SidebarDeviceFilter() string { return In(i18n.Locale()).SidebarDeviceFilter() }
@@ -1440,26 +1430,6 @@ func (msgs Messages) FooterDone(count int) string {
 	return Catalog.Format(msgs.locale, "footerDone", map[string]any{"count": count})
 }
 
-// FooterGoToIt says "Go to it"
-// in the language the app shows.
-func FooterGoToIt() string { return In(i18n.Locale()).FooterGoToIt() }
-
-// FooterGoToIt says "Go to it"
-// in the language of msgs.
-func (msgs Messages) FooterGoToIt() string {
-	return Catalog.Format(msgs.locale, "footerGoToIt", nil)
-}
-
-// FooterServiceTip says "Sessions run in kerod, in the background: they keep running when you quit kero."
-// in the language the app shows.
-func FooterServiceTip() string { return In(i18n.Locale()).FooterServiceTip() }
-
-// FooterServiceTip says "Sessions run in kerod, in the background: they keep running when you quit kero."
-// in the language of msgs.
-func (msgs Messages) FooterServiceTip() string {
-	return Catalog.Format(msgs.locale, "footerServiceTip", nil)
-}
-
 // StatusConnecting says "Connecting…"
 // in the language the app shows.
 func StatusConnecting() string { return In(i18n.Locale()).StatusConnecting() }
@@ -1538,16 +1508,6 @@ func StatusDone() string { return In(i18n.Locale()).StatusDone() }
 // in the language of msgs.
 func (msgs Messages) StatusDone() string {
 	return Catalog.Format(msgs.locale, "statusDone", nil)
-}
-
-// UpdateRestartTip says "Kero was updated: restart the background service to run the new version"
-// in the language the app shows.
-func UpdateRestartTip() string { return In(i18n.Locale()).UpdateRestartTip() }
-
-// UpdateRestartTip says "Kero was updated: restart the background service to run the new version"
-// in the language of msgs.
-func (msgs Messages) UpdateRestartTip() string {
-	return Catalog.Format(msgs.locale, "updateRestartTip", nil)
 }
 
 // UpdatedTitle says "Kero was updated"
@@ -1648,16 +1608,6 @@ func PaletteAddHost() string { return In(i18n.Locale()).PaletteAddHost() }
 // in the language of msgs.
 func (msgs Messages) PaletteAddHost() string {
 	return Catalog.Format(msgs.locale, "paletteAddHost", nil)
-}
-
-// PaletteAddHostDetail says "Adds the host the address names"
-// in the language the app shows.
-func PaletteAddHostDetail() string { return In(i18n.Locale()).PaletteAddHostDetail() }
-
-// PaletteAddHostDetail says "Adds the host the address names"
-// in the language of msgs.
-func (msgs Messages) PaletteAddHostDetail() string {
-	return Catalog.Format(msgs.locale, "paletteAddHostDetail", nil)
 }
 
 // PaletteOpenInBrowser says "Open in Browser Pane"
@@ -6212,16 +6162,6 @@ func (msgs Messages) HostAddKindWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddKindWSL", nil)
 }
 
-// HostAddKindNetwork says "Network"
-// in the language the app shows.
-func HostAddKindNetwork() string { return In(i18n.Locale()).HostAddKindNetwork() }
-
-// HostAddKindNetwork says "Network"
-// in the language of msgs.
-func (msgs Messages) HostAddKindNetwork() string {
-	return Catalog.Format(msgs.locale, "hostAddKindNetwork", nil)
-}
-
 // HostAddFieldSSH says "SSH target"
 // in the language the app shows.
 func HostAddFieldSSH() string { return In(i18n.Locale()).HostAddFieldSSH() }
@@ -6252,16 +6192,6 @@ func (msgs Messages) HostAddFieldRemote() string {
 	return Catalog.Format(msgs.locale, "hostAddFieldRemote", nil)
 }
 
-// HostAddFieldNetwork says "Listener"
-// in the language the app shows.
-func HostAddFieldNetwork() string { return In(i18n.Locale()).HostAddFieldNetwork() }
-
-// HostAddFieldNetwork says "Listener"
-// in the language of msgs.
-func (msgs Messages) HostAddFieldNetwork() string {
-	return Catalog.Format(msgs.locale, "hostAddFieldNetwork", nil)
-}
-
 // HostAddFieldUser says "User"
 // in the language the app shows.
 func HostAddFieldUser() string { return In(i18n.Locale()).HostAddFieldUser() }
@@ -6272,16 +6202,6 @@ func (msgs Messages) HostAddFieldUser() string {
 	return Catalog.Format(msgs.locale, "hostAddFieldUser", nil)
 }
 
-// HostAddFieldPort says "Port"
-// in the language the app shows.
-func HostAddFieldPort() string { return In(i18n.Locale()).HostAddFieldPort() }
-
-// HostAddFieldPort says "Port"
-// in the language of msgs.
-func (msgs Messages) HostAddFieldPort() string {
-	return Catalog.Format(msgs.locale, "hostAddFieldPort", nil)
-}
-
 // HostAddFieldName says "Name"
 // in the language the app shows.
 func HostAddFieldName() string { return In(i18n.Locale()).HostAddFieldName() }
@@ -6290,16 +6210,6 @@ func HostAddFieldName() string { return In(i18n.Locale()).HostAddFieldName() }
 // in the language of msgs.
 func (msgs Messages) HostAddFieldName() string {
 	return Catalog.Format(msgs.locale, "hostAddFieldName", nil)
-}
-
-// HostAddFieldPassword says "Password"
-// in the language the app shows.
-func HostAddFieldPassword() string { return In(i18n.Locale()).HostAddFieldPassword() }
-
-// HostAddFieldPassword says "Password"
-// in the language of msgs.
-func (msgs Messages) HostAddFieldPassword() string {
-	return Catalog.Format(msgs.locale, "hostAddFieldPassword", nil)
 }
 
 // HostAddUserPlaceholder says "root"
@@ -6350,16 +6260,6 @@ func HostAddDetailWSL() string { return In(i18n.Locale()).HostAddDetailWSL() }
 // in the language of msgs.
 func (msgs Messages) HostAddDetailWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddDetailWSL", nil)
-}
-
-// HostAddDetailNetwork says "http://devbox:7373 or https://devbox.tail1234.ts.net, where kerod listens on your tailnet."
-// in the language the app shows.
-func HostAddDetailNetwork() string { return In(i18n.Locale()).HostAddDetailNetwork() }
-
-// HostAddDetailNetwork says "http://devbox:7373 or https://devbox.tail1234.ts.net, where kerod listens on your tailnet."
-// in the language of msgs.
-func (msgs Messages) HostAddDetailNetwork() string {
-	return Catalog.Format(msgs.locale, "hostAddDetailNetwork", nil)
 }
 
 // HostAddFoundSSH says "From your SSH config"
