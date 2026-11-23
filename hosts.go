@@ -57,6 +57,9 @@ type host struct {
 	// busy is what the app does on the host for the user: install, update
 	// or restart.
 	busy string
+	// busyVersion is the Kero version an install or update is fetching and
+	// sending, named in the note's title instead of the host.
+	busyVersion string
 	// load is the host's load, as its daemon pushes on "system" events,
 	// for the sidebar's header. loadAt is when it last came: a host that
 	// never sends one, an earlier kerod, shows no gauge rather than a

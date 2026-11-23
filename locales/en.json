@@ -898,11 +898,11 @@
   },
   "hostInstall": "Install Kero…",
   "hostInstalling": "Installing Kero on {host}…",
-  "hostInstallingDownload": "Downloading Kero for {host}…",
+  "hostInstallingDownload": "Downloading Kero {version}…",
   "hostProgressStarting": "Starting…",
   "hostProgressDownload": "From {url} · {pct}",
-  "hostUpdatingDownload": "Downloading Kero for {host}…",
-  "hostUpdatingUpload": "Uploading Kero to {host}…",
+  "hostUpdatingDownload": "Downloading Kero {version}…",
+  "hostUpdatingUpload": "Uploading Kero {version}…",
   "@hostInstalling": {
     "placeholders": {
       "host": {
@@ -912,7 +912,7 @@
   },
   "@hostInstallingDownload": {
     "placeholders": {
-      "host": {
+      "version": {
         "type": "String"
       }
     }
@@ -929,14 +929,14 @@
   },
   "@hostUpdatingDownload": {
     "placeholders": {
-      "host": {
+      "version": {
         "type": "String"
       }
     }
   },
   "@hostUpdatingUpload": {
     "placeholders": {
-      "host": {
+      "version": {
         "type": "String"
       }
     }

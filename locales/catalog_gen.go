@@ -5812,16 +5812,16 @@ func (msgs Messages) HostInstalling(host string) string {
 	return Catalog.Format(msgs.locale, "hostInstalling", map[string]any{"host": host})
 }
 
-// HostInstallingDownload says "Downloading Kero for {host}…"
+// HostInstallingDownload says "Downloading Kero {version}…"
 // in the language the app shows.
-func HostInstallingDownload(host string) string {
-	return In(i18n.Locale()).HostInstallingDownload(host)
+func HostInstallingDownload(version string) string {
+	return In(i18n.Locale()).HostInstallingDownload(version)
 }
 
-// HostInstallingDownload says "Downloading Kero for {host}…"
+// HostInstallingDownload says "Downloading Kero {version}…"
 // in the language of msgs.
-func (msgs Messages) HostInstallingDownload(host string) string {
-	return Catalog.Format(msgs.locale, "hostInstallingDownload", map[string]any{"host": host})
+func (msgs Messages) HostInstallingDownload(version string) string {
+	return Catalog.Format(msgs.locale, "hostInstallingDownload", map[string]any{"version": version})
 }
 
 // HostProgressStarting says "Starting…"
@@ -5846,24 +5846,26 @@ func (msgs Messages) HostProgressDownload(url string, pct string) string {
 	return Catalog.Format(msgs.locale, "hostProgressDownload", map[string]any{"url": url, "pct": pct})
 }
 
-// HostUpdatingDownload says "Downloading Kero for {host}…"
+// HostUpdatingDownload says "Downloading Kero {version}…"
 // in the language the app shows.
-func HostUpdatingDownload(host string) string { return In(i18n.Locale()).HostUpdatingDownload(host) }
-
-// HostUpdatingDownload says "Downloading Kero for {host}…"
-// in the language of msgs.
-func (msgs Messages) HostUpdatingDownload(host string) string {
-	return Catalog.Format(msgs.locale, "hostUpdatingDownload", map[string]any{"host": host})
+func HostUpdatingDownload(version string) string {
+	return In(i18n.Locale()).HostUpdatingDownload(version)
 }
 
-// HostUpdatingUpload says "Uploading Kero to {host}…"
-// in the language the app shows.
-func HostUpdatingUpload(host string) string { return In(i18n.Locale()).HostUpdatingUpload(host) }
-
-// HostUpdatingUpload says "Uploading Kero to {host}…"
+// HostUpdatingDownload says "Downloading Kero {version}…"
 // in the language of msgs.
-func (msgs Messages) HostUpdatingUpload(host string) string {
-	return Catalog.Format(msgs.locale, "hostUpdatingUpload", map[string]any{"host": host})
+func (msgs Messages) HostUpdatingDownload(version string) string {
+	return Catalog.Format(msgs.locale, "hostUpdatingDownload", map[string]any{"version": version})
+}
+
+// HostUpdatingUpload says "Uploading Kero {version}…"
+// in the language the app shows.
+func HostUpdatingUpload(version string) string { return In(i18n.Locale()).HostUpdatingUpload(version) }
+
+// HostUpdatingUpload says "Uploading Kero {version}…"
+// in the language of msgs.
+func (msgs Messages) HostUpdatingUpload(version string) string {
+	return Catalog.Format(msgs.locale, "hostUpdatingUpload", map[string]any{"version": version})
 }
 
 // HostInstalled says "Installed Kero on {host}"

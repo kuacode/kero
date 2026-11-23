@@ -514,15 +514,16 @@ func hostProgressDetail(h *host) string {
 // hostBusyTitle is the note's title while a host is being changed: it
 // names the leg in progress, so a download and an upload are told apart.
 func hostBusyTitle(h *host) string {
+	v := h.busyVersion
 	switch {
 	case h.busy == "update" && h.progressStage == "download":
-		return locales.HostUpdatingDownload(h.name)
+		return locales.HostUpdatingDownload(v)
 	case h.busy == "update" && h.progressStage == "upload":
-		return locales.HostUpdatingUpload(h.name)
+		return locales.HostUpdatingUpload(v)
 	case h.busy == "update":
 		return locales.HostUpdating(h.name)
 	case h.busy == "install" && h.progressStage == "download":
-		return locales.HostInstallingDownload(h.name)
+		return locales.HostInstallingDownload(v)
 	default:
 		return locales.HostInstalling(h.name)
 	}
@@ -664,6 +665,7 @@ func (a *App) install(h *host) {
 		update.SetMirror(a.set.DownloadMirror)
 		update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
 		h.busy = "install"
+		h.busyVersion = version
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
@@ -707,6 +709,7 @@ func (a *App) installFromScript(h *host, version string) {
 		return
 	}
 	h.busy = "install"
+	h.busyVersion = version
 	go func() {
 		out, err := cmd.CombinedOutput()
 		a.update(func() {
@@ -820,6 +823,7 @@ func (a *App) hostRequest(h *host, what string) {
 	}
 	h.busy = what
 	version := mygo.App.Version()
+	h.busyVersion = version
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
@@ -854,6 +858,7 @@ func (a *App) hostRequest(h *host, what string) {
 		}
 		a.update(func() {
 			h.busy = ""
+			h.busyVersion = ""
 			h.progress = 0
 			h.progressStage = ""
 			h.progressURL = ""

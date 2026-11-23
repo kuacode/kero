@@ -80,14 +80,14 @@ func TestHostProgressDetail(t *testing.T) {
 // The note's title names the leg in progress, so a download and an upload
 // are told apart instead of both reading "Updating".
 func TestHostBusyTitle(t *testing.T) {
-	h := &host{name: "build", busy: "update"}
+	h := &host{name: "build", busy: "update", busyVersion: "2.1.36.4"}
 	h.progressStage = "download"
-	if got := hostBusyTitle(h); got != locales.HostUpdatingDownload(h.name) {
-		t.Errorf("download title %q, want %q", got, locales.HostUpdatingDownload(h.name))
+	if got := hostBusyTitle(h); got != locales.HostUpdatingDownload(h.busyVersion) {
+		t.Errorf("download title %q, want %q", got, locales.HostUpdatingDownload(h.busyVersion))
 	}
 	h.progressStage = "upload"
-	if got := hostBusyTitle(h); got != locales.HostUpdatingUpload(h.name) {
-		t.Errorf("upload title %q, want %q", got, locales.HostUpdatingUpload(h.name))
+	if got := hostBusyTitle(h); got != locales.HostUpdatingUpload(h.busyVersion) {
+		t.Errorf("upload title %q, want %q", got, locales.HostUpdatingUpload(h.busyVersion))
 	}
 	h.progressStage = ""
 	if got := hostBusyTitle(h); got != locales.HostUpdating(h.name) {
