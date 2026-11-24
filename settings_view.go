@@ -86,7 +86,6 @@ type settingsState struct {
 	menus           map[string]*searchMenu     // the search menus', by key
 	problems        []string                   // what the configuration file got wrong
 	scrolls         map[string]*ui.ScrollState // each page's, for its scroll edge
-	host            hostDraft                  // the Hosts page's form
 	hostEdit        hostDraft                  // a host's, as the user edits it
 	tailnet         tailnetLook                // this machine on the tailnet, for the Hosts page
 	confirm         *confirmation              // a question, asked in this window
@@ -351,6 +350,9 @@ func (a *App) settingsView(c *ui.Context) {
 	if a.controlsMode() != "builtin" {
 		a.settingsWindowControls(c, pal)
 	}
+	// The host dialog can be opened from this page too; draw it here when
+	// it belongs to this window rather than the main one.
+	a.hostAddSettingsView(c, pal)
 	if a.ss.confirm != nil {
 		confirmDialog(c, pal, &a.ss.confirm)
 	}

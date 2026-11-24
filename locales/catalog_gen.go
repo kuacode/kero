@@ -6388,6 +6388,66 @@ func (msgs Messages) HostAddKindWSL() string {
 	return Catalog.Format(msgs.locale, "hostAddKindWSL", nil)
 }
 
+// HostAddKindTailnet says "tailnet"
+// in the language the app shows.
+func HostAddKindTailnet() string { return In(i18n.Locale()).HostAddKindTailnet() }
+
+// HostAddKindTailnet says "tailnet"
+// in the language of msgs.
+func (msgs Messages) HostAddKindTailnet() string {
+	return Catalog.Format(msgs.locale, "hostAddKindTailnet", nil)
+}
+
+// HostAddKindLabel says "Remote type"
+// in the language the app shows.
+func HostAddKindLabel() string { return In(i18n.Locale()).HostAddKindLabel() }
+
+// HostAddKindLabel says "Remote type"
+// in the language of msgs.
+func (msgs Messages) HostAddKindLabel() string {
+	return Catalog.Format(msgs.locale, "hostAddKindLabel", nil)
+}
+
+// HostAddFieldPort says "Port"
+// in the language the app shows.
+func HostAddFieldPort() string { return In(i18n.Locale()).HostAddFieldPort() }
+
+// HostAddFieldPort says "Port"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldPort() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldPort", nil)
+}
+
+// HostAddFieldTarget says "Host address"
+// in the language the app shows.
+func HostAddFieldTarget() string { return In(i18n.Locale()).HostAddFieldTarget() }
+
+// HostAddFieldTarget says "Host address"
+// in the language of msgs.
+func (msgs Messages) HostAddFieldTarget() string {
+	return Catalog.Format(msgs.locale, "hostAddFieldTarget", nil)
+}
+
+// HostAddDetailTailnet says "kerod's tailnet listener: http://devbox:7373 or https://devbox.tail1234.ts.net. A bare host is taken as https."
+// in the language the app shows.
+func HostAddDetailTailnet() string { return In(i18n.Locale()).HostAddDetailTailnet() }
+
+// HostAddDetailTailnet says "kerod's tailnet listener: http://devbox:7373 or https://devbox.tail1234.ts.net. A bare host is taken as https."
+// in the language of msgs.
+func (msgs Messages) HostAddDetailTailnet() string {
+	return Catalog.Format(msgs.locale, "hostAddDetailTailnet", nil)
+}
+
+// HostAddTailnetPlaceholder says "devbox.tail1234.ts.net"
+// in the language the app shows.
+func HostAddTailnetPlaceholder() string { return In(i18n.Locale()).HostAddTailnetPlaceholder() }
+
+// HostAddTailnetPlaceholder says "devbox.tail1234.ts.net"
+// in the language of msgs.
+func (msgs Messages) HostAddTailnetPlaceholder() string {
+	return Catalog.Format(msgs.locale, "hostAddTailnetPlaceholder", nil)
+}
+
 // HostAddFieldSSH says "SSH target"
 // in the language the app shows.
 func HostAddFieldSSH() string { return In(i18n.Locale()).HostAddFieldSSH() }

@@ -617,6 +617,12 @@ func (a *App) editHost(h *host) {
 	a.openHostEdit(h)
 }
 
+// editHostInSettings opens the same dialog filled with this host, in the
+// Settings window where the card that was clicked lives.
+func (a *App) editHostInSettings(h *host) {
+	a.openHostEditInSettings(h)
+}
+
 // startHostEdit puts a host's row in edit mode, on the Hosts page, without
 // opening Settings: editHost opens the window, and tests read the page.
 func (a *App) startHostEdit(h *host) {

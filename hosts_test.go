@@ -880,14 +880,13 @@ func TestEditHost(t *testing.T) {
 	if err := tt.Click(locales.HostEdit()); err != nil {
 		t.Fatal(err)
 	}
-	// The edit dialog lives on the app view, beside the palette.
-	at := ui.NewTester(a.view, 1100, 700)
-	at.Frame()
+	// The edit dialog opens in the Settings window, where the card is.
+	tt.Frame()
 	if a.hostAdd.editing != "build" {
 		t.Fatalf("edit dialog not filled: %+v", a.hostAdd)
 	}
-	if !at.HasText(locales.HostEditTitle()) || !at.HasText(locales.HostTestConnection()) {
-		t.Fatalf("no edit form: %q", at.Texts())
+	if !a.hostAdd.settings || !tt.HasText(locales.HostEditTitle()) || !tt.HasText(locales.HostTestConnection()) {
+		t.Fatalf("no edit form in Settings: %q", tt.Texts())
 	}
 
 	// A name already taken is refused; the dialog stays open.

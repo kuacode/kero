@@ -42,18 +42,14 @@ func (a *App) hostsPage(c *ui.Context, pal *palette) {
 	})
 	docLink(c, pal, "hosts-docs", locales.SetHostsDocs(), "https://kero.sh/docs/remote")
 	settingsGroup(c, pal, locales.SetHostAdd(), locales.SetHostAddDetail(), func() {
-		d := &a.ss.host
-		ui.Row(c).Padding(10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-			add := func() { a.addHost() }
-			textField(c, "host-addr", &d.addr, locales.SetHostAddressPlaceholder(), 0, pal).Font("monospace").OnSubmit(add)
-			textField(c, "host-name", &d.name, locales.SetHostNamePlaceholder(defaultHostName(d.addr)), 130, pal).OnSubmit(add)
-			if fieldButton(c, "host-add", locales.CommonAdd(), true, pal) {
-				add()
+		// The full dialog: a kind picker (SSH, tailnet, WSL), the fields
+		// each kind needs and a connection test, shared with the device
+		// picker. It opens in this window, not the main one.
+		ui.Row(c).Padding(10, 0).Children(func() {
+			if button(c, "host-add-open", locales.CommonAdd(), "", true, pal) {
+				a.openHostAddInSettings()
 			}
 		})
-		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger).Padding(0, 0, 10, 0)
-		}
 	})
 	a.listenGroup(c, pal)
 	settingsGroup(c, pal, locales.SetHostSettingsSplit(), locales.SetHostSettingsSplitDetail(), nil)
@@ -181,7 +177,7 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 		// at a glance. Removal stays an icon: it is not a everyday action.
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			if button(c, "edit", locales.HostEdit(), "", false, pal) {
-				a.editHost(h)
+				a.editHostInSettings(h)
 			}
 			if button(c, "reconnect", locales.HostReconnect(), "", false, pal) {
 				a.reconnectHost(h)
@@ -388,31 +384,4 @@ func defaultHostName(addr string) string {
 		return "devbox"
 	}
 	return a.Label()
-}
-
-// addHost adds the host of the Hosts page's form.
-func (a *App) addHost() {
-	d := &a.ss.host
-	addr := strings.TrimSpace(d.addr)
-	name := strings.TrimSpace(d.name)
-	if addr == "" {
-		d.err = locales.SetHostNeedsAddress()
-		return
-	}
-	if name == "" {
-		name = defaultHostName(addr)
-	}
-	h, err := settings.ParseHost(name + "=" + addr)
-	if err != nil {
-		d.err = err.Error()
-		return
-	}
-	if a.set.Host(h.Name) != nil {
-		d.err = locales.SetHostNameTaken(h.Name)
-		return
-	}
-	s := a.set.Clone()
-	s.Hosts = append(s.Hosts, h)
-	a.set = s
-	*d = hostDraft{}
 }

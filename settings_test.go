@@ -707,28 +707,26 @@ func TestSearchMenuIsModal(t *testing.T) {
 	}
 }
 
-// A form's button stands as high as the field beside it, as Hosts' Add
-// ($KERO_SHOTS).
-func TestFieldButtonHeight(t *testing.T) {
+// The Hosts page offers the full add dialog, opened in this window rather
+// than the half-form of two bare fields ($KERO_SHOTS).
+func TestHostsPageOpensAddDialog(t *testing.T) {
 	a := testApp(t)
 	a.ss.page = "hosts"
 	tt := ui.NewTester(a.settingsView, 820, 900)
 	tt.Frame()
 	shot(t, tt, "hosts-add")
-	add, ok := tt.Find(locales.CommonAdd())
-	if !ok {
-		t.Fatalf("no Add; texts %q", tt.Texts())
+	if a.hostAdd.open {
+		t.Fatal("add dialog opened on its own")
 	}
-	name, ok := tt.Find(locales.SetHostNamePlaceholder("devbox"))
-	if !ok {
-		t.Fatal("no name field")
+	if err := tt.Click(locales.CommonAdd()); err != nil {
+		t.Fatal(err)
 	}
-	if add.H != controlH+2 || abs32(add.Y+add.H/2-(name.Y+name.H/2)) > 0.5 {
-		t.Errorf("Add %+v beside the field %+v", add, name)
+	if !a.hostAdd.open || !a.hostAdd.settings {
+		t.Fatalf("full add dialog did not open in Settings: %+v", a.hostAdd)
 	}
-	// The input is the whole field: 130 wide, as high as Add.
-	if name.W != 130 || name.H != add.H {
-		t.Errorf("the name's input is %+v, in a field of 130×%v", name, add.H)
+	tt.Frame()
+	if !tt.HasText(locales.HostTestConnection()) {
+		t.Fatalf("no kind picker or connection test: %q", tt.Texts())
 	}
 }
 

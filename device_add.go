@@ -45,6 +45,7 @@ type hostKind int
 const (
 	kindSSH hostKind = iota
 	kindWSL
+	kindTailnet
 )
 
 // The candidate caches say how long a badge may quote a lookup that has
@@ -65,7 +66,10 @@ type hostAddFields struct {
 // hostAddDraft is the dialog's state, living on the App while it is open.
 type hostAddDraft struct {
 	open bool
-	kind hostKind
+	// settings says this dialog is shown in the Settings window rather
+	// than the main one, so the async lookups redraw the right window.
+	settings bool
+	kind     hostKind
 
 	// typed keeps each kind's fields apart, so moving along the rail
 	// keeps what was written. The fields, in order, are user, host, port,
@@ -149,8 +153,14 @@ func (d *hostAddDraft) store() {
 	d.typed[d.kind] = hostAddFields{d.user, d.addr, d.port, d.password, d.name, d.kero}
 }
 
-// openHostAdd shows the dialog. The picker's Add a Host row calls it.
-func (a *App) openHostAdd() {
+// openHostAdd shows the dialog in the main window. The picker's Add a Host
+// row calls it.
+func (a *App) openHostAdd() { a.openHostAddOn(false) }
+
+// openHostAddInSettings shows the same dialog in the Settings window.
+func (a *App) openHostAddInSettings() { a.openHostAddOn(true) }
+
+func (a *App) openHostAddOn(inSettings bool) {
 	d := &a.hostAdd
 	if d.typed == nil {
 		d.typed = map[hostKind]hostAddFields{}
@@ -162,6 +172,7 @@ func (a *App) openHostAdd() {
 		d.looking = map[hostKind]bool{}
 	}
 	d.open = true
+	d.settings = inSettings
 	d.err = ""
 	d.armed = ""
 	d.hi, d.reveal = 0, false
@@ -187,17 +198,26 @@ func hostAddAddress(d *hostAddDraft) string {
 		scheme = "ssh"
 	}
 	a := remote.Addr{Scheme: scheme, Host: host, User: strings.TrimSpace(d.user), Port: strings.TrimSpace(d.port), Kero: strings.TrimSpace(d.kero)}
-	if scheme == "wsl" {
-		a.User, a.Port = "", ""
+	switch scheme {
+	case "wsl":
+		a.User, a.Port, a.Kero = "", "", ""
+	case "http", "https":
+		// kerod's tailnet listener has no kero path, user or password.
+		a.User, a.Kero = "", ""
 	}
 	return a.String()
 }
 
 // openHostEdit opens the shared dialog filled with an existing host, so
 // every edit entry point (sidebar, settings card, picker) lands in one form.
-func (a *App) openHostEdit(h *host) {
+func (a *App) openHostEdit(h *host) { a.openHostEditOn(h, false) }
+
+// openHostEditInSettings opens the edit dialog in the Settings window.
+func (a *App) openHostEditInSettings(h *host) { a.openHostEditOn(h, true) }
+
+func (a *App) openHostEditOn(h *host, inSettings bool) {
 	d := &a.hostAdd
-	a.openHostAdd()
+	a.openHostAddOn(inSettings)
 	parsed, err := remote.ParseAddr(h.cfg.Addr)
 	if err != nil {
 		parsed = remote.Addr{Scheme: "ssh", Host: h.cfg.Addr}
@@ -205,8 +225,11 @@ func (a *App) openHostEdit(h *host) {
 	d.editing = h.name
 	d.scheme = parsed.Scheme
 	d.kind = kindSSH
-	if parsed.Scheme == "wsl" {
+	switch parsed.Scheme {
+	case "wsl":
 		d.kind = kindWSL
+	case "http", "https":
+		d.kind = kindTailnet
 	}
 	d.typed = map[hostKind]hostAddFields{}
 	d.kero = parsed.Kero
@@ -224,23 +247,35 @@ func (a *App) openHostEdit(h *host) {
 // promise of a working distro: an address typed under it stays an address.
 func kindsShown() []hostKind {
 	if runtime.GOOS == "windows" {
-		return []hostKind{kindSSH, kindWSL}
+		return []hostKind{kindSSH, kindTailnet, kindWSL}
 	}
-	return []hostKind{kindSSH}
+	return []hostKind{kindSSH, kindTailnet}
 }
 
-// hostAddView builds the dialog. view.go mounts it beside the palette and
-// the picker, in the group of things that cover the whole window.
+// hostAddView builds the dialog in the main window. view.go mounts it
+// beside the palette and the picker, in the group that covers the window.
 func (a *App) hostAddView(c *ui.Context, pal *palette) {
+	a.hostAddDialog(c, pal, false)
+}
+
+// hostAddSettingsView builds the same dialog inside the Settings window.
+func (a *App) hostAddSettingsView(c *ui.Context, pal *palette) {
+	a.hostAddDialog(c, pal, true)
+}
+
+// hostAddDialog draws the dialog only in the window that owns it. The two
+// windows share one draft; settings says which one is showing it.
+func (a *App) hostAddDialog(c *ui.Context, pal *palette, inSettings bool) {
 	d := &a.hostAdd
-	if !d.open {
-		// The frame after a closing: the finder's rows and the pick go
-		// with the dialog, so reopening starts from nothing, and the
-		// window's keyboard goes back where it was.
-		if d.live {
+	if !d.open || d.settings != inSettings {
+		// The frame after a closing in this window: the finder's rows go,
+		// and the main window's keyboard goes back where it was.
+		if d.live && d.settings == inSettings {
 			d.live = false
 			d.cands, d.armed = nil, ""
-			a.focusTerminal()
+			if !inSettings {
+				a.focusTerminal()
+			}
 		}
 		return
 	}
@@ -328,70 +363,30 @@ func dialogClose(c *ui.Context, pal *palette, mode string, open *bool) {
 	}
 }
 
-// hostAddRail is the column of kinds. A narrow window drops the words and
-// keeps the logos.
+// hostAddRail is the kind picker. A RadioGroup makes the choice explicit
+// and keyboard-accessible. Switching kinds keeps what was written under
+// each kind.
 func (a *App) hostAddRail(c *ui.Context, d *hostAddDraft, pal *palette) {
-	winW, _ := c.Size()
-	narrow := winW < 720
-
-	rail := ui.Column(c).Padding(10, 10, 12, 10).Gap(2).Shrink(0)
-	if narrow {
-		rail.Padding(10, 6, 12, 6).Width(56).AlignItems(ui.Center)
-	} else {
-		rail.Width(212)
-	}
-
+	rail := ui.Column(c.Key("host-add-kind")).Width(150).Shrink(0).Gap(6).Padding(10, 10, 12, 10)
 	rail.Children(func() {
-		for _, k := range kindsShown() {
-			item := ui.Row(c.Key(int(k))).Height(32).Gap(10).AlignItems(ui.Center).Radius(8)
-			if narrow {
-				item.Padding(0, 0).Justify(ui.Center)
-			} else {
-				item.Padding(0, 10)
-			}
-			if pal.dark {
-				item.Border(1, ui.Transparent) // room for the chosen item's edge
-			}
-			sel := d.kind == k
-			bg := ui.Transparent
-			switch {
-			case sel:
-				bg = pal.rowSelected
-				chosen(item, pal)
-			case item.Hovered():
-				bg = pal.rowHover
-			}
-			item.Background(item.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
-
-			// A quick tap can press and release between frames; keep its click too.
-			if (item.Pressed() || item.Clicked()) && !sel {
-				d.store()
-				d.kind = k
-				d.fieldsOf(k)
-				d.err = ""
-				d.armed = ""
-				d.hi, d.reveal = 0, false
-				d.refocus = true // the field is a different node from here on
-				a.hostAddPull()
-			}
-
-			icon := serverIcon
-			switch k {
-			case kindWSL:
-				icon = deviceIcon
-			}
-			item.Children(func() {
-				mark := ui.Icon(c, icon).Size(15, 15).Shrink(0).TextColor(pal.textMuted)
-				if sel {
-					mark.TextColor(pal.accent)
+		ui.Text(c, locales.HostAddKindLabel()).FontSize(12).FontWeight(600).TextColor(pal.textMuted).SingleLine()
+		// A local proxy lets the switch run before d.kind changes, so the
+		// kind being left keeps its fields. Radio writes the proxy; Changed
+		// then moves the draft over.
+		selected := d.kind
+		ui.RadioGroup(c, func() {
+			for _, k := range kindsShown() {
+				r := ui.Radio(c, &selected, k, hostAddKind(k))
+				if r.Changed() {
+					d.store()
+					d.kind = k
+					d.fieldsOf(k)
+					d.err, d.armed = "", ""
+					d.hi, d.reveal, d.refocus = 0, false, true
+					a.hostAddPull()
 				}
-				if narrow {
-					return // the logos are the whole rail
-				}
-				ui.Text(c, hostAddKind(k)).FontSize(13.5).TextColor(pal.text).SingleLine()
-				hostAddBadge(c, d, pal, k)
-			})
-		}
+			}
+		}).Label(locales.HostAddKindLabel())
 	})
 }
 
@@ -440,9 +435,14 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 				name.OnSubmit(func() { a.hostAddSubmit(d) })
 			})
 
-			// SSH target (host) and Port on the same row
-			if d.kind == kindSSH {
-				hostAddFieldRow(c, pal, locales.HostAddFieldSSH(), func() {
+			// Target (host) and Port on the same row. SSH and tailnet
+			// (http/https) both take a host and an optional port.
+			if d.kind == kindSSH || d.kind == kindTailnet {
+				targetLabel := locales.HostAddFieldTarget()
+				if d.kind == kindSSH {
+					targetLabel = locales.HostAddFieldSSH()
+				}
+				hostAddFieldRow(c, pal, targetLabel, func() {
 					ui.Row(c).Gap(8).Children(func() {
 						addr = a.hostAddAddrField(c, d, pal, name)
 						addr.OnSubmit(func() { a.hostAddSubmit(d) })
@@ -451,8 +451,10 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 						port.Width(80).OnSubmit(func() { a.hostAddSubmit(d) })
 					})
 				})
+			}
 
-				// User and Password on the same row
+			// SSH alone authenticates with a user and an optional password.
+			if d.kind == kindSSH {
 				hostAddFieldRow(c, pal, locales.HostAddFieldUser(), func() {
 					ui.Row(c).Gap(8).Children(func() {
 						user := textField(c, "host-add-user", &d.user, locales.HostAddUserPlaceholder(), 0, pal)
@@ -461,7 +463,9 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 						password.OnSubmit(func() { a.hostAddSubmit(d) })
 					})
 				})
-			} else {
+			}
+
+			if d.kind == kindWSL {
 				// WSL 的远程地址字段：承载发行版查找器，选择后同时填入名称。
 				hostAddFieldRow(c, pal, locales.HostAddFieldRemote(), func() {
 					addr = a.hostAddAddrField(c, d, pal, name)
@@ -813,9 +817,20 @@ func (a *App) hostAddLook(k hostKind) {
 	}()
 }
 
+// hostAddUpdate runs fn on the main thread and redraws whichever window
+// is showing the dialog: the main one, or Settings.
+func (a *App) hostAddUpdate(fn func()) {
+	a.update(func() {
+		fn()
+		if a.hostAdd.settings && a.setWin != nil {
+			a.setWin.Invalidate()
+		}
+	})
+}
+
 // hostAddFound is the scan's way back onto the UI thread.
 func (a *App) hostAddFound(k hostKind, gen uint64, names []string, ds []remote.Distro, err error) {
-	a.update(func() {
+	a.hostAddUpdate(func() {
 		d := &a.hostAdd
 		d.looking[k] = false
 		if gen != d.look {
@@ -883,7 +898,7 @@ func (a *App) hostAddTest(d *hostAddDraft) {
 			result = locales.HostTestOK(system, info.Kero, rttText(rtt))
 			ok = true
 		}
-		a.update(func() {
+		a.hostAddUpdate(func() {
 			if d.testGen != gen || !d.open {
 				return
 			}
@@ -979,6 +994,10 @@ func hostAddAddrOf(k hostKind, addr, user, port string) string {
 	if k == kindWSL && addr != "" && !strings.Contains(addr, "://") {
 		return "wsl://" + addr
 	}
+	if k == kindTailnet && addr != "" && !strings.Contains(addr, "://") {
+		// A bare tailnet host is an https listener unless said otherwise.
+		return "https://" + addr
+	}
 	if k == kindSSH && addr != "" && !strings.Contains(addr, "://") {
 		// Only add the user prefix when the host field has none.
 		if user != "" && !strings.Contains(addr, "@") {
@@ -998,6 +1017,8 @@ func hostAddKind(k hostKind) string {
 	switch k {
 	case kindWSL:
 		return locales.HostAddKindWSL()
+	case kindTailnet:
+		return locales.HostAddKindTailnet()
 	default:
 		return locales.HostAddKindSSH()
 	}
@@ -1007,21 +1028,31 @@ func hostAddDetail(k hostKind) string {
 	switch k {
 	case kindWSL:
 		return locales.HostAddDetailWSL()
+	case kindTailnet:
+		return locales.HostAddDetailTailnet()
 	default:
 		return locales.HostAddDetailSSH()
 	}
 }
 
 func hostAddSource(k hostKind) string {
-	if k == kindWSL {
+	switch k {
+	case kindWSL:
 		return locales.HostAddFoundWSL()
+	case kindTailnet:
+		return locales.HostAddKindTailnet()
+	default:
+		return locales.HostAddFoundSSH()
 	}
-	return locales.HostAddFoundSSH()
 }
 
 func hostAddPlaceholder(k hostKind) string {
-	if k == kindWSL {
+	switch k {
+	case kindWSL:
 		return locales.HostAddWSLPlaceholder()
+	case kindTailnet:
+		return locales.HostAddTailnetPlaceholder()
+	default:
+		return locales.SetHostAddressPlaceholder()
 	}
-	return locales.SetHostAddressPlaceholder()
 }
