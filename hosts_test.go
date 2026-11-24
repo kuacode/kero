@@ -426,6 +426,73 @@ func TestSidebarDevicePickerActions(t *testing.T) {
 	}
 }
 
+// A host in the picker can be edited and removed in place: the row carries
+// quick actions for both, and a right click opens the same menu its header
+// in the sidebar does.
+func TestDevicePickerEditAndRemove(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	build := withHost(t, a, "build")
+	build.rc = &remote.Conn{}
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.Click(locales.SidebarDeviceAll()); err != nil {
+		t.Fatalf("no picker: %v", err)
+	}
+	// The row offers edit and remove, on top of restart and re-download.
+	for _, want := range []string{locales.HostEdit(), locales.HostRemove()} {
+		if _, ok := tt.Find(want); !ok {
+			t.Errorf("picker has no %q for build: %q", want, tt.Texts())
+		}
+	}
+	// Editing puts the host's row in edit mode on the Hosts page, the same
+	// form Settings uses.
+	a.startHostEdit(build)
+	if a.ss.page != "hosts" || a.ss.hostEdit.editing != "build" || a.ss.hostEdit.addr != build.cfg.Addr {
+		t.Fatalf("no edit of build: page %q, draft %+v", a.ss.page, a.ss.hostEdit)
+	}
+	et := ui.NewTester(a.settingsView, 820, 640)
+	et.Frame()
+	if !et.HasText(locales.CommonSave()) || !et.HasText(locales.CommonCancel()) {
+		t.Errorf("the editor never showed: %q", et.Texts())
+	}
+	a.ss.hostEdit = hostDraft{}
+
+	// Removing asks first, about that host, and without hiding it: the
+	// question covers the picker.
+	tt.Frame()
+	if err := tt.Click(locales.HostRemove()); err != nil {
+		t.Fatalf("no remove on the row: %v", err)
+	}
+	if a.confirm == nil || a.confirm.title != locales.HostRemoveTitle("build") {
+		t.Fatalf("remove asked nothing: %+v", a.confirm)
+	}
+	if !a.deviceShown(build) {
+		t.Error("removing hid the host before the answer")
+	}
+}
+
+// The host header's right-click menu offers editing directly, beside the
+// Settings page it already opened.
+func TestHostHeaderMenuEdits(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	withHost(t, a, "build")
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.RightClick("build"); err != nil {
+		t.Fatalf("no header menu: %v", err)
+	}
+	menu := tt.Menu()
+	if !slices.Contains(menu, locales.HostEdit()) {
+		t.Errorf("header menu has no edit: %q", menu)
+	}
+	if !slices.Contains(menu, locales.HostRemove()) {
+		t.Errorf("header menu has no remove: %q", menu)
+	}
+	tt.CloseMenu()
+}
+
 // The plus at a host's header opens the picker of its folders, which
 // opens a project there; it does not start a session at once.
 func TestHostHeaderPlusOpensPicker(t *testing.T) {

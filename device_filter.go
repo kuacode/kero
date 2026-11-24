@@ -232,6 +232,16 @@ func (a *App) devicePickerRow(c *ui.Context, pal *palette, x ui.MenuItemContent,
 						a.offerHostUpdate(h)
 					}
 				})
+			// Editing and removing belong to a host of Settings, not to
+			// this machine, whose row has no address to change.
+			if h.remote() {
+				devicePickerIconButton(c, pal, x, "picker-edit-"+hostFilterKey(h),
+					locales.HostEdit(), editIcon, h.busy != "",
+					func() { a.editHost(h) })
+				devicePickerIconButton(c, pal, x, "picker-remove-"+hostFilterKey(h),
+					locales.HostRemove(), closeIcon, false,
+					func() { a.confirm = a.removeHostConfirmation(h) })
+			}
 		})
 	})
 }

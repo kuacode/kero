@@ -576,12 +576,29 @@ func (a *App) hostMenu(m *ui.Menu, h *host) {
 	if m.Item(locales.HostCopyAddress()).Chosen() {
 		a.copyText = h.addr.String()
 	}
+	if m.Item(locales.HostEdit()).Chosen() {
+		a.editHost(h)
+	}
 	if m.Item(locales.HostSettings()).Chosen() {
 		a.openSettings("hosts")
 	}
 	if m.Item(locales.HostRemove()).Chosen() {
 		a.confirm = a.removeHostConfirmation(h)
 	}
+}
+
+// editHost opens Settings › Hosts with the host's row in edit mode, so
+// the same form adds a host and changes one.
+func (a *App) editHost(h *host) {
+	a.startHostEdit(h)
+	a.openSettings("hosts")
+}
+
+// startHostEdit puts a host's row in edit mode, on the Hosts page, without
+// opening Settings: editHost opens the window, and tests read the page.
+func (a *App) startHostEdit(h *host) {
+	a.ss.page = "hosts"
+	a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, editing: h.name}
 }
 
 // reconnectHost connects to a host again, now, with a new connection.
