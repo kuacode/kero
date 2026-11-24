@@ -194,7 +194,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 				ui.Box(c).Grow(1)
 			}
 			if h.hasRTT() {
-				ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
+				ui.Text(c, "RTT:"+rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
 					Tooltip(a.rttTip(h))
 			}
 			if a.set.ShowSystemLoad {

@@ -145,9 +145,10 @@ func TestSidebarHostLatency(t *testing.T) {
 	h := withHost(t, a, "build")
 	h.observeRTT(18 * time.Millisecond)
 	h.observeRTT(20 * time.Millisecond)
-	// 18 and 20 ms fold to 18.25, which reads as 18ms.
+	// 18 and 20 ms fold to 18.25, which reads as RTT:18ms, alongside the
+	// CPU:/MEM: labels the load reads with.
 	tt := ui.NewTester(a.view, 1100, 700)
-	if _, ok := tt.Find("18ms"); !ok {
+	if _, ok := tt.Find("RTT:18ms"); !ok {
 		t.Fatalf("the header does not read the smoothed round trip; texts %q", tt.Texts())
 	}
 	tip := a.hostTip(h)
