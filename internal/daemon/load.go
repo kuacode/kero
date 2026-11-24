@@ -1,18 +1,42 @@
 package daemon
 
-// cpuPercent is the busy fraction of the ticks between two samples of the
-// CPU counters, in percent, clamped to 0..100. A sample that did not
-// advance, or went back, has no fraction to tell.
-func cpuPercent(busy0, total0, busy1, total1 uint64) int {
-	if total1 <= total0 || busy1 < busy0 {
+import (
+	"time"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
+
+	"kero/internal/proto"
+)
+
+// LocalLoad reads this machine's load now: the CPU busy percent over a
+// short interval and memory used of total, both through gopsutil.
+func LocalLoad() proto.SystemLoad {
+	used, total := memLoad()
+	return proto.SystemLoad{CPU: cpuPercentNow(), MemUsed: used, MemTotal: total}
+}
+
+// cpuPercentNow samples the CPU busy percent over a short interval.
+func cpuPercentNow() int {
+	pcts, err := cpu.Percent(120*time.Millisecond, false)
+	if err != nil || len(pcts) == 0 {
 		return 0
 	}
-	pct := int(100 * (busy1 - busy0) / (total1 - total0))
-	if pct < 0 {
+	p := pcts[0]
+	if p < 0 {
 		return 0
 	}
-	if pct > 100 {
+	if p > 100 {
 		return 100
 	}
-	return pct
+	return int(p)
+}
+
+// memLoad reads memory used and total in bytes through gopsutil.
+func memLoad() (used, total uint64) {
+	v, err := mem.VirtualMemory()
+	if err != nil || v == nil || v.Total == 0 {
+		return 0, 0
+	}
+	return v.Used, v.Total
 }

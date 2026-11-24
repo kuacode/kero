@@ -63,16 +63,6 @@ type Daemon struct {
 	conns    int
 	idleAt   time.Time
 	lastLoad time.Time
-	// The header's CPU is the busy fraction of the counters between two
-	// ticks, so a short moment between samples does not read as noise.
-	cpuBusy, cpuTotal uint64
-	cpuSeen           bool
-	cpuPct            int
-	// The counters at the last push, whose busy fraction to now is the
-	// load since then: a window as long as the pushes, as a system
-	// monitor's, so one tick's jitter is not the header's number.
-	cpuPushBusy, cpuPushTotal uint64
-	cpuPushSeen               bool
 	ending                    bool
 	// restarting: kerod stops to start again, as a remote client asked
 	// (proto.KindRestart).
@@ -410,13 +400,6 @@ func (d *Daemon) tickLoop() {
 		}
 		idleFor := now.Sub(d.idleAt)
 		d.mu.Unlock()
-		// Sample the CPU counters cheaply each tick, no waiting, so the
-		// push's busy fraction runs over the whole window, not one tick.
-		if busy, total, ok := readCPUTicks(); ok {
-			d.mu.Lock()
-			d.cpuBusy, d.cpuTotal, d.cpuSeen = busy, total, true
-			d.mu.Unlock()
-		}
 		changed := false
 		for _, s := range panes {
 			if s.tick(now) {
@@ -427,17 +410,11 @@ func (d *Daemon) tickLoop() {
 			d.changed()
 		}
 		// The sidebar's host header shows this machine's load; push it
-		// every couple of seconds, while an app is connected. The CPU is
-		// the busy fraction over the window since the last push, as a
-		// system monitor's, so a tick's jitter does not read as the load.
+		// every couple of seconds, while an app is connected.
 		d.mu.Lock()
 		if d.conns > 0 && now.Sub(d.lastLoad) >= 2*time.Second {
 			d.lastLoad = now
-			if d.cpuPushSeen && d.cpuSeen && d.cpuTotal > d.cpuPushTotal {
-				d.cpuPct = cpuPercent(d.cpuPushBusy, d.cpuPushTotal, d.cpuBusy, d.cpuTotal)
-			}
-			d.cpuPushBusy, d.cpuPushTotal, d.cpuPushSeen = d.cpuBusy, d.cpuTotal, d.cpuSeen
-			load := d.loadLocked()
+			load := LocalLoad()
 			d.broadcastLocked(proto.Message{Event: "system", System: &load})
 		}
 		d.mu.Unlock()
@@ -448,14 +425,6 @@ func (d *Daemon) tickLoop() {
 			return
 		}
 	}
-}
-
-// loadLocked is this machine's load for the header: the CPU busy
-// fraction since the last push, and the memory used now. The caller
-// holds d.mu.
-func (d *Daemon) loadLocked() proto.SystemLoad {
-	used, total := memLoad()
-	return proto.SystemLoad{CPU: d.cpuPct, MemUsed: used, MemTotal: total}
 }
 
 func newID() string {

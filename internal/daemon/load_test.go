@@ -40,55 +40,14 @@ func TestSystemLoadRPCJSON(t *testing.T) {
 	}
 }
 
-// The CPU is the busy fraction of the ticks between two samples, so a
-// short moment that landed on an idle tick does not read as 0 for long.
-func TestCPUPercent(t *testing.T) {
-	for _, c := range []struct {
-		b0, t0, b1, t1 uint64
-		want           int
-	}{
-		{0, 0, 50, 100, 50},
-		{100, 1000, 100, 1100, 0},  // all idle
-		{100, 1000, 130, 1100, 30}, // 30 of 100 busy
-		{100, 1000, 100, 1000, 0},  // not advanced
-		{100, 1000, 90, 1100, 0},   // went back: no fraction
-		{0, 0, 200, 100, 100},      // past 100, clamped
-	} {
-		if got := cpuPercent(c.b0, c.t0, c.b1, c.t1); got != c.want {
-			t.Errorf("cpuPercent(%d,%d,%d,%d) = %d, want %d", c.b0, c.t0, c.b1, c.t1, got, c.want)
-		}
+// LocalLoad reads real values: a CPU percent in range, and memory used
+// within total.
+func TestLocalLoad(t *testing.T) {
+	load := LocalLoad()
+	if load.CPU < 0 || load.CPU > 100 {
+		t.Errorf("CPU %d out of range", load.CPU)
 	}
-}
-
-// loadLocked tells the load with the CPU it measured last, and memory now.
-func TestLoadLocked(t *testing.T) {
-	d := &Daemon{cpuPct: 42}
-	l := d.loadLocked()
-	if l.CPU != 42 {
-		t.Errorf("CPU %d, want 42", l.CPU)
-	}
-	if l.MemTotal == 0 || l.MemUsed > l.MemTotal {
-		t.Errorf("memory %d of %d", l.MemUsed, l.MemTotal)
-	}
-}
-
-// The CPU the header shows is the busy fraction over the whole push
-// window, not one tick's: counters advance, and the push reads it.
-func TestCPUWindow(t *testing.T) {
-	d := &Daemon{
-		cpuPushBusy: 30, cpuPushTotal: 100, cpuPushSeen: true,
-		cpuBusy: 50, cpuTotal: 120, cpuSeen: true,
-	}
-	// The push's window advanced 20 busy ticks of 20 total: 100% busy.
-	d.cpuPct = cpuPercent(d.cpuPushBusy, d.cpuPushTotal, d.cpuBusy, d.cpuTotal)
-	if d.cpuPct != 100 {
-		t.Errorf("CPU %d over the window, want 100", d.cpuPct)
-	}
-	// A second window, half busy.
-	d.cpuPushBusy, d.cpuPushTotal = d.cpuBusy, d.cpuTotal
-	d.cpuBusy, d.cpuTotal = 60, 140
-	d.cpuPct = cpuPercent(d.cpuPushBusy, d.cpuPushTotal, d.cpuBusy, d.cpuTotal)
-	if d.cpuPct != 50 {
-		t.Errorf("CPU %d over the window, want 50", d.cpuPct)
+	if load.MemTotal == 0 || load.MemUsed > load.MemTotal {
+		t.Errorf("memory %d of %d", load.MemUsed, load.MemTotal)
 	}
 }
