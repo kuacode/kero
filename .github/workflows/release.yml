@@ -6,7 +6,14 @@ on:
   # Run by hand, it releases mygo.json's version from the branch it runs
   # on, in a new draft: the draft of the version, if there is one, and its
   # tag go, so the release is of this commit. A published release stays.
+  # skip_macos leaves the signed macOS build out of one dispatch, for when
+  # the signing secrets are not set up; a tag push never skips it.
   workflow_dispatch:
+    inputs:
+      skip_macos:
+        description: 'Skip the signed macOS build (no signing secrets)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write # the draft release, its tag, and the uploads to it
@@ -14,8 +21,20 @@ permissions:
 jobs:
   draft-release:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
+      - name: Decide the build matrix
+        id: matrix
+        run: |
+          all='[{"name":"macOS","os":"macos-latest","platform":"darwin/arm64,darwin/amd64"},{"name":"Windows","os":"ubuntu-latest","platform":"windows/amd64,windows/arm64"},{"name":"Linux","os":"ubuntu-latest","platform":"linux/amd64,linux/arm64"}]'
+          no_mac='[{"name":"Windows","os":"ubuntu-latest","platform":"windows/amd64,windows/arm64"},{"name":"Linux","os":"ubuntu-latest","platform":"linux/amd64,linux/arm64"}]'
+          if [ "${{ inputs.skip_macos }}" = "true" ]; then
+            echo "matrix=$no_mac" >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix=$all" >> "$GITHUB_OUTPUT"
+          fi
       - name: Check the tag against mygo.json's version
         if: github.event_name == 'push'
         run: test "$GITHUB_REF_NAME" = "v$(jq -r .version mygo.json)"
@@ -55,10 +74,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { name: macOS, os: macos-latest, platform: "darwin/arm64,darwin/amd64" }
-          - { name: Windows, os: ubuntu-latest, platform: "windows/amd64,windows/arm64" }
-          - { name: Linux, os: ubuntu-latest, platform: "linux/amd64,linux/arm64" }
+        include: ${{ fromJSON(needs.draft-release.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
