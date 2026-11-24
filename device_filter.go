@@ -200,21 +200,20 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 func (a *App) devicePickerRow(c *ui.Context, pal *palette, x ui.MenuItemContent, h *host) {
 	fs := x.Context.Theme().FontSize
 	ui.Column(c).FillWidth().Gap(2).Children(func() {
-		// Top line: state and name get the room; the round trip sits at
-		// the end where a short number fits beside a long name.
+		// Top line: the name gets the room; the round trip sits at the end
+		// where a short number fits beside a long name.
 		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-			ui.Box(c).Size(7, 7).Radius(3.5).Shrink(0).Background(a.deviceStateColor(pal, h))
 			ui.Text(c, a.hostName(h)).FontSize(fs).SingleLine().Ellipsis("…").Grow(1).MinWidth(0).TextColor(x.Text)
 			if h.hasRTT() {
 				ui.Text(c, rttText(h.rtt)).FontSize(fs - 2).SingleLine().Shrink(0).
 					FontFeatures("tnum").TextColor(a.rttColor(pal, h))
 			}
 		})
-		// Second line: the address, and the quick actions at its right.
-		// Both lines are full width, so neither the name nor the buttons
-		// squeeze the other into an ellipsis.
+		// Second line: the state alone, and the quick actions at its right.
+		// The name is already on the line above, so repeating it here (as
+		// deviceSubtitle does for the plain menu item) only crowds the row.
 		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, a.deviceSubtitle(h)).FontSize(fs - 1).SingleLine().Ellipsis("…").Grow(1).MinWidth(0).TextColor(x.Muted)
+			ui.Text(c, a.deviceStatus(h)).FontSize(fs - 1).SingleLine().Ellipsis("…").Grow(1).MinWidth(0).TextColor(x.Muted)
 			name := a.hostName(h)
 			ui.Row(c).Gap(4).Shrink(0).AlignItems(ui.Center).Children(func() {
 				// A host the app cannot reach has no service to restart; one
@@ -331,19 +330,6 @@ func (a *App) deviceSubtitle(h *host) string {
 		return h.addr.Scheme + " " + h.addr.Host + " · " + a.deviceStatus(h)
 	}
 	return a.hostName(h) + " · " + a.deviceStatus(h)
-}
-
-// deviceStateColor is the color of a row's status dot: the host's state at
-// a glance, from the same colors the sidebar header uses.
-func (a *App) deviceStateColor(pal *palette, h *host) ui.Color {
-	switch h.conn {
-	case connConnecting:
-		return pal.attention
-	case connFailed:
-		return pal.danger
-	default:
-		return pal.good
-	}
 }
 
 // deviceStatus is a host's state in the picker: online, or the way it
