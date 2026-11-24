@@ -399,9 +399,10 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	}
 	// The space between and below the rows moves the window, as the top
 	// bar does, and a double click there starts a session, as ⌘T does.
-	// No inset of its own: each row keeps its own, so the tree starts
-	// where the top bar and the foot do, not a step further in.
-	list := ui.Scroll(c.Key("sessions")).Grow(1).Padding(cardGap, 0, 16, 0).DragWindow()
+	// The sides are inset a card's gap too, so a chosen row's highlight
+	// keeps clear of the card's edge instead of bleeding to it, and its
+	// shadow has room to fall.
+	list := ui.Scroll(c.Key("sessions")).Grow(1).Padding(cardGap, cardGap, 16, cardGap).DragWindow()
 	if list.WindowDoubleClicked() {
 		a.defer_(func() { a.newSession("") })
 	}
