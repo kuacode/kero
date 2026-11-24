@@ -602,6 +602,7 @@
   "hostSessions": "{count} 個のセッション",
   "hostLatency": "レイテンシ {rtt}",
   "hostLatencyJitter": "レイテンシ {rtt} · ジッタ {jitter}",
+  "hostJitter": "ジッタ {jitter}",
   "hostCopyAddress": "アドレスをコピー",
   "hostSettings": "ホストの設定…",
   "hostRemove": "ホストを削除…",

@@ -2,10 +2,12 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	"kero/internal/client"
 	"kero/internal/proto"
 	"kero/internal/settings"
+	"kero/locales"
 )
 
 // A "system" event from a host's daemon caches its load, which the host
@@ -40,18 +42,27 @@ func TestHostLoadEvent(t *testing.T) {
 	}
 }
 
-// The header's tooltip says the load the bars show.
-func TestLoadTip(t *testing.T) {
+// The row's one tooltip adds the jitter and the memory share the inline
+// figures leave out, without repeating the latency and CPU already shown.
+func TestStatsTip(t *testing.T) {
 	a := testApp(t)
 	build := withHost(t, a, "build")
 	build.load = proto.SystemLoad{CPU: 42, MemUsed: 8 << 30, MemTotal: 16 << 30}
-	if got := a.loadTip(build); got != "build: CPU 42% · Mem 50%" {
-		t.Errorf("loadTip = %q", got)
+	build.loadAt = time.Now()
+	build.observeRTT(15 * time.Millisecond)
+	build.observeRTT(21 * time.Millisecond)
+	// Jitter comes from the samples; the figures read inline are not said
+	// twice. The name is on the row already, so the tip omits it too.
+	want := locales.HostJitter(rttText(build.rttVar)) + " · CPU 42% · Mem 50%"
+	if got := a.statsTip(build); got != want {
+		t.Errorf("statsTip = %q, want %q", got, want)
 	}
-	// With no memory reported, the bars show only the CPU.
+	// With no memory reported, only the CPU share is added.
 	build.load = proto.SystemLoad{CPU: 0}
-	if got := a.loadTip(build); got != "build: CPU 0% · Mem —" {
-		t.Errorf("loadTip = %q", got)
+	build.loadAt = time.Now()
+	build.rttSamples = 0
+	if got := a.statsTip(build); got != "CPU 0% · Mem —" {
+		t.Errorf("statsTip = %q", got)
 	}
 }
 

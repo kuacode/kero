@@ -602,6 +602,7 @@
   "hostSessions": "{count} 个会话",
   "hostLatency": "延迟 {rtt}",
   "hostLatencyJitter": "延迟 {rtt} · 抖动 {jitter}",
+  "hostJitter": "抖动 {jitter}",
   "hostCopyAddress": "复制地址",
   "hostSettings": "主机设置…",
   "hostRemove": "移除主机…",

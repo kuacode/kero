@@ -195,7 +195,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			}
 			if h.hasRTT() {
 				ui.Text(c, "RTT:"+rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
-					Tooltip(a.rttTip(h))
+					Tooltip(a.statsTip(h))
 			}
 			if a.set.ShowSystemLoad {
 				a.hostLoad(c, pal, h)
@@ -252,7 +252,7 @@ func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	if load.MemTotal > 0 {
 		mem = float64(load.MemUsed) / float64(load.MemTotal)
 	}
-	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(4).AlignItems(ui.Center).Tooltip(a.loadTip(h))
+	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(4).AlignItems(ui.Center).Tooltip(a.statsTip(h))
 	row.Children(func() {
 		cpu := float64(load.CPU)
 		cpuCol := a.loadColor(pal, pal.good, cpu, cpuWarn)
@@ -284,15 +284,29 @@ func (a *App) loadColor(pal *palette, normal ui.Color, value, warn float64) ui.C
 	return normal
 }
 
-// loadTip says what the host's load bars show, or that none did yet.
-func (a *App) loadTip(h *host) string {
+// statsTip is the one hint for the figures on the row: it adds what they
+// leave out — the jitter behind the latency and the memory share — without
+// repeating the latency and CPU already read inline. Both the round trip and
+// the load carry it, so one hover reads the whole picture.
+func (a *App) statsTip(h *host) string {
+	var parts []string
+	if h.rttSamples > 1 {
+		parts = append(parts, locales.HostJitter(rttText(h.rttVar)))
+	}
+	if h.hasLoad() {
+		parts = append(parts, loadDetail(h))
+	}
+	return strings.Join(parts, " · ")
+}
+
+// loadDetail words the CPU and memory figures the daemon sent.
+func loadDetail(h *host) string {
 	load := h.load
-	cpu := fmt.Sprintf("%d%%", load.CPU)
 	mem := "—"
 	if load.MemTotal > 0 {
 		mem = fmt.Sprintf("%d%%", 100*load.MemUsed/load.MemTotal)
 	}
-	return fmt.Sprintf("%s: CPU %s · Mem %s", h.name, cpu, mem)
+	return fmt.Sprintf("CPU %d%% · Mem %s", load.CPU, mem)
 }
 
 // rttText words a round trip: milliseconds under a second, seconds past

@@ -5848,6 +5848,16 @@ func (msgs Messages) HostLatencyJitter(rtt string, jitter string) string {
 	return Catalog.Format(msgs.locale, "hostLatencyJitter", map[string]any{"rtt": rtt, "jitter": jitter})
 }
 
+// HostJitter says "jitter {jitter}"
+// in the language the app shows.
+func HostJitter(jitter string) string { return In(i18n.Locale()).HostJitter(jitter) }
+
+// HostJitter says "jitter {jitter}"
+// in the language of msgs.
+func (msgs Messages) HostJitter(jitter string) string {
+	return Catalog.Format(msgs.locale, "hostJitter", map[string]any{"jitter": jitter})
+}
+
 // HostCopyAddress says "Copy Address"
 // in the language the app shows.
 func HostCopyAddress() string { return In(i18n.Locale()).HostCopyAddress() }

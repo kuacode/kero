@@ -897,6 +897,14 @@
       }
     }
   },
+  "hostJitter": "jitter {jitter}",
+  "@hostJitter": {
+    "placeholders": {
+      "jitter": {
+        "type": "String"
+      }
+    }
+  },
   "hostCopyAddress": "Copy Address",
   "hostSettings": "Host Settings…",
   "hostRemove": "Remove Host…",
