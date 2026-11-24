@@ -67,28 +67,6 @@ func TestRTTText(t *testing.T) {
 	}
 }
 
-// A round trip grades into the number of signal bars, four close and one
-// far, so the signal icon can show quality at a glance.
-func TestRTTBars(t *testing.T) {
-	for _, c := range []struct {
-		d    time.Duration
-		want int
-	}{
-		{time.Microsecond, 4},
-		{49 * time.Millisecond, 4},
-		{50 * time.Millisecond, 3},
-		{rttSlow - time.Millisecond, 3},
-		{rttSlow, 2},
-		{rttFar - time.Millisecond, 2},
-		{rttFar, 1},
-		{time.Second, 1},
-	} {
-		if got := rttBars(c.d); got != c.want {
-			t.Errorf("rttBars(%v) = %d, want %d", c.d, got, c.want)
-		}
-	}
-}
-
 // A round trip folds into a moving average, as RFC 6298 has TCP keep its
 // SRTT and RTTVAR: the first sample seeds both, then a slow one bends the
 // figure by an eighth and the variance by a quarter, not becomes it.
@@ -160,17 +138,17 @@ func TestHasRTT(t *testing.T) {
 	}
 }
 
-// The header grades a remote host's round trip as a signal, and its tip
-// names it with the jitter once one came.
+// The header reads a remote host's round trip as a number, like its load,
+// and its tip names it with the jitter once one came.
 func TestSidebarHostLatency(t *testing.T) {
 	a := testApp(t)
 	h := withHost(t, a, "build")
 	h.observeRTT(18 * time.Millisecond)
 	h.observeRTT(20 * time.Millisecond)
-	// 18 and 20 ms fold to 18.25, a close round trip: all four bars lit.
-	// The header is a signal icon now, not the "18ms" text it used to read.
-	if got := rttBars(h.rtt); got != 4 {
-		t.Fatalf("a close round trip lights %d bars, want 4", got)
+	// 18 and 20 ms fold to 18.25, which reads as 18ms.
+	tt := ui.NewTester(a.view, 1100, 700)
+	if _, ok := tt.Find("18ms"); !ok {
+		t.Fatalf("the header does not read the smoothed round trip; texts %q", tt.Texts())
 	}
 	tip := a.hostTip(h)
 	if !strings.Contains(tip, "Latency 18ms") || !strings.Contains(tip, "jitter 7ms") {

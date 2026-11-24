@@ -169,15 +169,17 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 					})
 			}
 			a.hostState(c, pal, h)
-			// Opening a project is the one action every host offers, so it
-			// sits on the identity line beside the state, always reachable
-			// even when the second line is folded away from view.
-			if h.conn == connReady {
-				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
-			}
 			chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
 			turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 			chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
+			// Opening a project is the one action every host offers, so it
+			// closes out the identity line at its far end, always reachable
+			// even when the second line is folded away from view. A spring
+			// pushes it against the sidebar edge, past the fold arrow.
+			ui.Box(c).Grow(1)
+			if h.conn == connReady {
+				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
+			}
 		})
 		// What it is, and what the user can do with it, without a right
 		// click: the address and system read first, then the round trip and
@@ -192,7 +194,8 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 				ui.Box(c).Grow(1)
 			}
 			if h.hasRTT() {
-				a.rttSignal(c, pal, h)
+				ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
+					Tooltip(a.rttTip(h))
 			}
 			if a.set.ShowSystemLoad {
 				a.hostLoad(c, pal, h)
@@ -249,15 +252,13 @@ func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	if load.MemTotal > 0 {
 		mem = float64(load.MemUsed) / float64(load.MemTotal)
 	}
-	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(3).AlignItems(ui.Center).Tooltip(a.loadTip(h))
+	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(4).AlignItems(ui.Center).Tooltip(a.loadTip(h))
 	row.Children(func() {
 		cpu := float64(load.CPU)
 		cpuCol := a.loadColor(pal, pal.good, cpu, cpuWarn)
-		a.loadGauge(c, pal, float32(cpu)/100, cpuCol)
 		ui.Text(c, fmt.Sprintf("CPU:%d%%", load.CPU)).FontSize(10.5).TextColor(cpuCol).FontFeatures("tnum").SingleLine().Shrink(0)
 		if mem >= 0 {
 			memCol := a.loadColor(pal, pal.good, mem*100, memWarn)
-			a.loadGauge(c, pal, float32(mem), memCol)
 			ui.Text(c, fmt.Sprintf("MEM:%d%%", int(mem*100))).FontSize(10.5).TextColor(memCol).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
 	})
@@ -283,20 +284,6 @@ func (a *App) loadColor(pal *palette, normal ui.Color, value, warn float64) ui.C
 	return normal
 }
 
-// loadGauge is the thin vertical gauge of a host's load: a track, and the
-// used part filled from the bottom.
-func (a *App) loadGauge(c *ui.Context, pal *palette, frac float32, col ui.Color) {
-	g := ui.Box(c).Size(3, 10).Shrink(0)
-	g.Draw(func(p *ui.Painter, r ui.Rect) {
-		p.Fill(r, pal.rowHover, r.W/2)
-		frac = min(1, max(0, frac))
-		if frac > 0.01 {
-			h := r.H * frac
-			p.Fill(ui.Rect{X: r.X, Y: r.Y + r.H - h, W: r.W, H: h}, col, r.W/2)
-		}
-	})
-}
-
 // loadTip says what the host's load bars show, or that none did yet.
 func (a *App) loadTip(h *host) string {
 	load := h.load
@@ -319,50 +306,6 @@ func rttText(d time.Duration) string {
 		return fmt.Sprintf("%dms", int(math.Round(float64(d)/float64(time.Millisecond))))
 	}
 	return fmt.Sprintf("%.1fs", d.Seconds())
-}
-
-// rttBars grades a smoothed round trip into the number of lit signal bars:
-// four when close, one when far. A lost or absent reading lights none.
-func rttBars(d time.Duration) int {
-	switch {
-	case d < 50*time.Millisecond:
-		return 4
-	case d < rttSlow:
-		return 3
-	case d < rttFar:
-		return 2
-	default:
-		return 1
-	}
-}
-
-// rttSignal draws the round trip as a phone's signal: four ascending bars,
-// the faster the host the more of them lit. Each bar waits its turn before
-// it grows, so a change in quality reads as the signal climbing or falling.
-func (a *App) rttSignal(c *ui.Context, pal *palette, h *host) {
-	lit := rttBars(h.rtt)
-	col := a.rttColor(pal, h)
-	box := ui.Box(c.Key("rtt-signal")).Size(16, 13).Shrink(0).Tooltip(a.rttTip(h))
-	fill := [4]float32{}
-	for i := range fill {
-		target := b2f(i < lit)
-		fill[i] = box.AnimateTo(i, target, ui.Animation{
-			Duration: 170 * time.Millisecond,
-			Delay:    time.Duration(i) * 55 * time.Millisecond,
-		})
-	}
-	box.Draw(func(p *ui.Painter, r ui.Rect) {
-		for i := 0; i < 4; i++ {
-			full := r.H * float32(i+1) / 4
-			x := r.X + float32(i)*4
-			p.Fill(ui.Rect{X: x, Y: r.Y + r.H - full, W: 3, H: full}, pal.rowHover, 1.5)
-			f := min(1, max(0, fill[i]))
-			if f > 0.01 {
-				used := full * f
-				p.Fill(ui.Rect{X: x, Y: r.Y + r.H - used, W: 3, H: used}, col, 1.5)
-			}
-		}
-	})
 }
 
 // rttColor grades the smoothed round trip green, yellow, red: good while
