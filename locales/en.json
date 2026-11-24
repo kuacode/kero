@@ -1218,6 +1218,14 @@
       }
     }
   },
+  "setHostAddrTaken": "There's already a host for that address: {name}",
+  "@setHostAddrTaken": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "setHostNeedsAddress": "Type the host's address",
   "setHostRemoteControl": "Remote Control",
   "setHostRemoteControlDetail": "Let programs on {host} show sessions and run the app's actions (kero focus, kero do)",
@@ -1362,5 +1370,28 @@
   "keepAwakeDisplay": "Keep awake and screen on",
   "commonUnlimited": "Unlimited",
   "setImageLimit": "Image Limit",
-  "setImageLimitDetail": "The most the images programs show take in a pane."
+  "setImageLimitDetail": "The most the images programs show take in a pane.",
+  "hostStateOnline": "Connected",
+  "hostMetaWaiting": "Waiting for host info",
+  "hostQuickActions": "Quick actions",
+  "hostEditTitle": "Edit Host",
+  "hostAuthFieldHint": "Uses your SSH keys and agent. Add a password only if this host needs one.",
+  "hostFieldKero": "Kero path (optional)",
+  "hostTestConnection": "Test Connection…",
+  "hostTesting": "Testing…",
+  "hostTestOK": "Connected · {system} · Kero {version} · {rtt}",
+  "@hostTestOK": {
+    "placeholders": {
+      "system": {"type": "String"},
+      "version": {"type": "String"},
+      "rtt": {"type": "String"}
+    }
+  },
+  "hostTestFailed": "Connection failed: {error}",
+  "@hostTestFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "devicePickerMoreTip": "More actions: remove, copy address, color"
 }

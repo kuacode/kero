@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"kero/internal/remote"
 	"kero/internal/settings"
@@ -58,7 +59,7 @@ const (
 // hostAddFields holds the dialog's fields per kind, so switching the rail
 // keeps what was written. user, port and password are SSH-only.
 type hostAddFields struct {
-	user, host, port, password, name string
+	user, host, port, password, name, kero string
 }
 
 // hostAddDraft is the dialog's state, living on the App while it is open.
@@ -76,6 +77,26 @@ type hostAddDraft struct {
 	user     string
 	port     string
 	password string
+
+	// editing holds the name of the host being edited, empty when adding.
+	// The dialog is shared: adding and editing differ only in submit (update
+	// one host instead of appending) and in which address fields are shown.
+	editing string
+	// kero is the optional kero path, from the address's ?kero=. Editing a
+	// host must round-trip it: string-concatenating user@host:port would
+	// silently drop it.
+	kero string
+	// scheme is the original address's scheme while editing, so rebuilding
+	// an http(s) or wsl address keeps the scheme the host was added with.
+	scheme string
+
+	// testing runs a read-only probe of the current address. testGen makes
+	// a slow answer from an older address harmless; result is already the
+	// text to show, ok says whether it was a success.
+	testing    bool
+	testGen    uint64
+	testOK     bool
+	testResult string
 
 	err string
 
@@ -120,12 +141,12 @@ type hostAddDraft struct {
 // fieldsOf reads back the fields this kind was left with.
 func (d *hostAddDraft) fieldsOf(k hostKind) {
 	f := d.typed[k]
-	d.addr, d.name, d.user, d.port, d.password = f.host, f.name, f.user, f.port, f.password
+	d.addr, d.name, d.user, d.port, d.password, d.kero = f.host, f.name, f.user, f.port, f.password, f.kero
 }
 
 // store puts the fields back where they belong.
 func (d *hostAddDraft) store() {
-	d.typed[d.kind] = hostAddFields{d.user, d.addr, d.port, d.password, d.name}
+	d.typed[d.kind] = hostAddFields{d.user, d.addr, d.port, d.password, d.name, d.kero}
 }
 
 // openHostAdd shows the dialog. The picker's Add a Host row calls it.
@@ -145,8 +166,58 @@ func (a *App) openHostAdd() {
 	d.armed = ""
 	d.hi, d.reveal = 0, false
 	d.refocus = true
+	d.editing, d.kero, d.scheme = "", "", ""
+	d.testing, d.testOK, d.testResult, d.testGen = false, false, "", 0
 	d.fieldsOf(d.kind)
 	a.hostAddPull()
+}
+
+// hostAddAddress composes what the fields mean into one address. Adding
+// keeps the finder's forgiving string rewrite; editing rebuilds from the
+// parsed parts so an http(s) scheme and a ?kero= path survive the round
+// trip. Editing fills the fields from remote.ParseAddr, so d.addr is the
+// bare host there and user/port/kero are separate again.
+func hostAddAddress(d *hostAddDraft) string {
+	host := strings.TrimSpace(d.addr)
+	if d.editing == "" {
+		return hostAddAddrOf(d.kind, host, strings.TrimSpace(d.user), strings.TrimSpace(d.port))
+	}
+	scheme := d.scheme
+	if scheme == "" {
+		scheme = "ssh"
+	}
+	a := remote.Addr{Scheme: scheme, Host: host, User: strings.TrimSpace(d.user), Port: strings.TrimSpace(d.port), Kero: strings.TrimSpace(d.kero)}
+	if scheme == "wsl" {
+		a.User, a.Port = "", ""
+	}
+	return a.String()
+}
+
+// openHostEdit opens the shared dialog filled with an existing host, so
+// every edit entry point (sidebar, settings card, picker) lands in one form.
+func (a *App) openHostEdit(h *host) {
+	d := &a.hostAdd
+	a.openHostAdd()
+	parsed, err := remote.ParseAddr(h.cfg.Addr)
+	if err != nil {
+		parsed = remote.Addr{Scheme: "ssh", Host: h.cfg.Addr}
+	}
+	d.editing = h.name
+	d.scheme = parsed.Scheme
+	d.kind = kindSSH
+	if parsed.Scheme == "wsl" {
+		d.kind = kindWSL
+	}
+	d.typed = map[hostKind]hostAddFields{}
+	d.kero = parsed.Kero
+	d.addr = parsed.Host
+	d.name = h.name
+	d.user = parsed.User
+	d.port = parsed.Port
+	d.password = h.cfg.Password
+	d.store()
+	d.err = ""
+	d.armed, d.hi, d.reveal = "", 0, false
 }
 
 // kindsShown lists the rail. WSL is Windows' own, and its row is not a
@@ -181,12 +252,18 @@ func (a *App) hostAddView(c *ui.Context, pal *palette) {
 }
 
 func (a *App) hostAddPanel(c *ui.Context, d *hostAddDraft, pal *palette, panel ui.Element) {
-	floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.popover), pal).Clip()
+	// The fields grow with the editing form (kero path, Test Connection,
+	// Cancel); leave room for them so the Save/Cancel row is never cut off.
+	floating(panel.Width(600).MaxHeight(560).Radius(14).Background(pal.popover), pal).Clip()
 
 	// The close sits where this window style puts its controls: apple's
 	// red light at the left, builtin's and windows' close at the right.
 	// It only closes the dialog — a dialog overlays the window and holds
 	// none of the window's own minimize or maximize.
+	title := locales.SetHostAdd()
+	if d.editing != "" {
+		title = locales.HostEditTitle()
+	}
 	header := ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center)
 	mode := a.controlsMode()
 	if mode == "apple" {
@@ -194,13 +271,13 @@ func (a *App) hostAddPanel(c *ui.Context, d *hostAddDraft, pal *palette, panel u
 			dialogClose(c, pal, mode, &d.open)
 			ui.Box(c).Width(8).Shrink(0)
 			ui.Icon(c, plusIcon).Size(14, 14).TextColor(pal.accent)
-			ui.Text(c, locales.SetHostAdd()).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
+			ui.Text(c, title).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
 			ui.Spacer(c)
 		})
 	} else {
 		header.Children(func() {
 			ui.Icon(c, plusIcon).Size(14, 14).TextColor(pal.accent)
-			ui.Text(c, locales.SetHostAdd()).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
+			ui.Text(c, title).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine()
 			ui.Spacer(c)
 			dialogClose(c, pal, mode, &d.open)
 		})
@@ -347,6 +424,9 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 
 	col.Children(func() {
 		ui.Text(c, hostAddDetail(d.kind)).FontSize(12.5).TextColor(pal.textMuted).LineHeight(1.4).Shrink(0)
+		if d.kind == kindSSH {
+			ui.Text(c, locales.HostAuthFieldHint()).FontSize(11.5).TextColor(pal.textFaint).LineHeight(1.35).Shrink(0)
+		}
 
 		// The fields sit on a soft panel, as Settings' groups do.
 		// addr 承载查找器（候选列表、键盘导航），name 在选择发行版时一并填入。
@@ -388,6 +468,15 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 					addr.OnSubmit(func() { a.hostAddSubmit(d) })
 				})
 			}
+
+			// The kero path is part of every bridged address. It is optional;
+			// editing must keep it, so it gets a field of its own.
+			if d.kind == kindSSH {
+				hostAddFieldRow(c, pal, locales.HostFieldKero(), func() {
+					kero := textField(c, "host-add-kero", &d.kero, "/opt/kero/kero", 0, pal)
+					kero.OnSubmit(func() { a.hostAddSubmit(d) })
+				})
+			}
 		})
 
 		if hostAddWants(d.kind) {
@@ -398,9 +487,36 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger).SingleLine().Shrink(0)
 		}
 
+		// Test Connection probes the address as typed, read-only: it dials
+		// once, reports what answered, and writes nothing to the settings.
+		ui.Row(c).Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
+			if button(c, "host-add-test", locales.HostTestConnection(), "", false, pal) && !d.testing {
+				a.hostAddTest(d)
+			}
+			if d.testing {
+				ui.Text(c, locales.HostTesting()).FontSize(12).TextColor(pal.textMuted).Shrink(0)
+			} else if d.testResult != "" {
+				col := pal.good
+				if !d.testOK {
+					col = pal.danger
+				}
+				ui.Text(c, d.testResult).FontSize(12).TextColor(col).Shrink(1).Ellipsis("…")
+			}
+		})
+
 		ui.Spacer(c)
 		ui.Row(c).Gap(8).Justify(ui.End).Shrink(0).Children(func() {
-			if button(c, "host-add", locales.CommonAdd(), "↩", true, pal) {
+			if d.editing != "" {
+				if button(c, "host-add-cancel", locales.CommonCancel(), "", false, pal) {
+					d.open = false
+					d.editing = ""
+				}
+			}
+			label, key := locales.CommonAdd(), "host-add"
+			if d.editing != "" {
+				label = locales.CommonSave()
+			}
+			if button(c, key, label, "↩", true, pal) {
 				a.hostAddSubmit(d)
 			}
 		})
@@ -731,10 +847,55 @@ func wslNames(ds []remote.Distro) []string {
 	return names
 }
 
+// hostAddTest dials the address the form currently shows, once, read-only:
+// it reports what answered and writes nothing to the settings. A generation
+// counter keeps a slow answer from a since-edited address out of the form.
+func (a *App) hostAddTest(d *hostAddDraft) {
+	raw := hostAddAddress(d)
+	addr, err := remote.ParseAddr(raw)
+	if err != nil {
+		d.testOK, d.testResult = false, locales.HostTestFailed(err.Error())
+		return
+	}
+	d.testing, d.testResult = true, ""
+	d.testGen++
+	gen := d.testGen
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		start := time.Now()
+		conn, err := remote.Dial(ctx, addr, remote.Options{
+			App: mygo.App.Version(), Client: appClientName(),
+			Password: strings.TrimSpace(d.password),
+		})
+		rtt := time.Since(start)
+		var ok bool
+		var result string
+		if err != nil {
+			result = locales.HostTestFailed(err.Error())
+		} else {
+			go conn.Close()
+			info := conn.Welcome.Host
+			system := info.Distro
+			if system == "" {
+				system = info.OS
+			}
+			result = locales.HostTestOK(system, info.Kero, rttText(rtt))
+			ok = true
+		}
+		a.update(func() {
+			if d.testGen != gen || !d.open {
+				return
+			}
+			d.testing, d.testOK, d.testResult = false, ok, result
+		})
+	}()
+}
+
 // hostAddSubmit adds the host the field shows, and closes. It says whether
 // the host went in: a refusal keeps the dialog open with its reason in red.
 func (a *App) hostAddSubmit(d *hostAddDraft) bool {
-	addr := hostAddAddrOf(d.kind, strings.TrimSpace(d.addr), strings.TrimSpace(d.user), strings.TrimSpace(d.port))
+	addr := hostAddAddress(d)
 	name := strings.TrimSpace(d.name)
 	d.err = ""
 
@@ -750,8 +911,14 @@ func (a *App) hostAddSubmit(d *hostAddDraft) bool {
 		d.err = err.Error()
 		return false
 	}
-	if a.set.Host(h.Name) != nil {
-		d.err = locales.SetHostNameTaken(h.Name)
+
+	editing := d.editing
+	if existing := a.set.Host(name); existing != nil && existing.Name != editing {
+		d.err = locales.SetHostNameTaken(name)
+		return false
+	}
+	if dup := a.set.HostAtAddr(addr, editing); dup != nil {
+		d.err = locales.SetHostAddrTaken(dup.Name)
 		return false
 	}
 
@@ -762,12 +929,42 @@ func (a *App) hostAddSubmit(d *hostAddDraft) bool {
 	if d.kind == kindSSH {
 		h.Password = strings.TrimSpace(d.password)
 	}
-	s.Hosts = append(s.Hosts, h)
-	a.applySettings(s)
+	if editing != "" {
+		old := s.Host(editing)
+		if old == nil {
+			d.err = locales.HostCantConnect(editing)
+			return false
+		}
+		h.Color, h.RemoteControl = old.Color, old.RemoteControl
+		addrChanged, passChanged := old.Addr != h.Addr, old.Password != h.Password
+		// A rename at the same address keeps the live host (and its
+		// sessions): syncHosts finds it by its new name only if we move
+		// it first. A changed address gets a fresh connection instead.
+		if !addrChanged {
+			if live := a.hostNamed(editing); live != nil {
+				live.name = h.Name
+			}
+		}
+		for i := range s.Hosts {
+			if s.Hosts[i].Name == editing {
+				s.Hosts[i] = h
+				break
+			}
+		}
+		a.applySettings(s)
+		if target := a.hostNamed(h.Name); target != nil && (addrChanged || passChanged) {
+			a.reconnectHost(target)
+		}
+	} else {
+		s.Hosts = append(s.Hosts, h)
+		a.applySettings(s)
+	}
 
 	d.open = false
 	d.typed[d.kind] = hostAddFields{}
 	d.addr, d.name, d.user, d.port, d.password, d.err = "", "", "", "", "", ""
+	d.editing, d.kero, d.scheme = "", "", ""
+	d.testing, d.testOK, d.testResult, d.testGen = false, false, "", 0
 	a.focusTerminal()
 	return true
 }

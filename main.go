@@ -37,8 +37,8 @@ func main() {
 	// KERO_SSH_ASKPASS=1 and the password in the environment it hands
 	// ssh's child, and the askpass is only ever called there, so this
 	// comes before any other dispatch.
-	if os.Getenv("KERO_SSH_ASKPASS") == "1" {
-		fmt.Print(os.Getenv("KERO_SSH_PASSWORD"))
+	if pw, ok := askpassValue(); ok {
+		fmt.Print(pw)
 		return
 	}
 	if len(os.Args) > 1 {
@@ -74,6 +74,17 @@ func main() {
 		}
 	}
 	runApp()
+}
+
+// askpassValue is the password ssh asks us for when it runs this executable
+// as SSH_ASKPASS. The second result says whether we are in askpass mode at
+// all; ssh passes the prompt as argv[0], so the mode is told only by the
+// environment, never by the arguments.
+func askpassValue() (string, bool) {
+	if os.Getenv("KERO_SSH_ASKPASS") == "1" {
+		return os.Getenv("KERO_SSH_PASSWORD"), true
+	}
+	return "", false
 }
 
 func runApp() {

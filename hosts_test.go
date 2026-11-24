@@ -867,8 +867,9 @@ func TestRemoveHostAsksInSettings(t *testing.T) {
 	}
 }
 
-// Editing a host in Settings renames it in place, keeping its connection
-// and sessions; a new address connects again; a name taken is refused.
+// Editing a host opens the shared dialog filled with it. Saving renames in
+// place (connection and sessions kept); a new address reconnects; a name or
+// address already taken is refused.
 func TestEditHost(t *testing.T) {
 	a := testApp(t)
 	build := withHost(t, a, "build")
@@ -879,45 +880,60 @@ func TestEditHost(t *testing.T) {
 	if err := tt.Click(locales.HostEdit()); err != nil {
 		t.Fatal(err)
 	}
-	tt.Frame()
-	if a.ss.hostEdit.editing != "build" || !tt.HasText(locales.CommonSave()) {
-		t.Fatalf("no editor: %+v; texts %q", a.ss.hostEdit, tt.Texts())
+	// The edit dialog lives on the app view, beside the palette.
+	at := ui.NewTester(a.view, 1100, 700)
+	at.Frame()
+	if a.hostAdd.editing != "build" {
+		t.Fatalf("edit dialog not filled: %+v", a.hostAdd)
+	}
+	if !at.HasText(locales.HostEditTitle()) || !at.HasText(locales.HostTestConnection()) {
+		t.Fatalf("no edit form: %q", at.Texts())
 	}
 
-	a.ss.hostEdit.name = "gpu"
-	if err := tt.Click(locales.CommonSave()); err != nil {
-		t.Fatal(err)
+	// A name already taken is refused; the dialog stays open.
+	d := &a.hostAdd
+	d.name = "gpu"
+	if a.hostAddSubmit(d) {
+		t.Fatal("a taken name saved")
 	}
-	tt.Frame()
-	if a.ss.hostEdit.err != locales.SetHostNameTaken("gpu") {
-		t.Fatalf("took a name taken: %+v", a.ss.hostEdit)
+	if d.err != locales.SetHostNameTaken("gpu") {
+		t.Fatalf("a taken name said %q", d.err)
 	}
 
-	a.ss.hostEdit.name, a.ss.hostEdit.err = "builder", ""
-	if err := tt.Click(locales.CommonSave()); err != nil {
-		t.Fatal(err)
+	// An address another host uses is refused too, even spelled with its
+	// default port. The name check runs first, so use a fresh name.
+	d.name, d.err = "builder", ""
+	d.addr, d.port = "gpu", "22"
+	if a.hostAddSubmit(d) {
+		t.Fatal("a taken address saved")
 	}
-	tt.Frame()
+	if d.err != locales.SetHostAddrTaken("gpu") {
+		t.Fatalf("a taken address said %q", d.err)
+	}
+
+	// Rename at the original address: the connection and sessions stay.
+	d.err = ""
+	d.addr, d.port = "build", ""
+	if !a.hostAddSubmit(d) {
+		t.Fatalf("rename failed: %s", d.err)
+	}
 	a.syncHosts()
 	if h := a.hostNamed("builder"); h != build || a.set.Host("build") != nil || a.hostOf("rs-build") != build {
 		t.Fatalf("renamed to %p, not %p; hosts %+v", h, build, a.set.Hosts)
 	}
-	if a.ss.hostEdit.editing != "" {
-		t.Errorf("still editing %+v", a.ss.hostEdit)
+	if d.editing != "" || d.open {
+		t.Errorf("dialog stayed in edit mode: %+v", d)
 	}
 
-	tt.Frame()
-	if err := tt.Click(locales.HostEdit()); err != nil {
-		t.Fatal(err)
+	// A new address connects again.
+	a.openHostEdit(build)
+	d = &a.hostAdd
+	d.user, d.addr = "", "builder.lan"
+	if !a.hostAddSubmit(d) {
+		t.Fatalf("address change failed: %s", d.err)
 	}
-	tt.Frame()
-	a.ss.hostEdit.addr = "me@builder.lan"
-	if err := tt.Click(locales.CommonSave()); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
 	a.syncHosts()
-	if h := a.hostNamed("builder"); h == nil || h == build || h.addr.String() != "me@builder.lan" {
+	if h := a.hostNamed("builder"); h == nil || h == build || h.addr.String() != "builder.lan" {
 		t.Fatalf("a new address kept the connection: %+v", h)
 	}
 }

@@ -230,6 +230,9 @@ func Run(opts Options) error {
 
 	go d.broadcastLoop()
 	go d.saveLoop()
+	// Seed the CPU baseline so the app's first load request reads an
+	// average over the time to connect, not an empty window that shows 0%.
+	seedLoadBaseline()
 	go d.tickLoop()
 	go d.git.loop()
 	uid := os.Getuid()

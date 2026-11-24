@@ -6580,6 +6580,16 @@ func (msgs Messages) SetHostNameTaken(name string) string {
 	return Catalog.Format(msgs.locale, "setHostNameTaken", map[string]any{"name": name})
 }
 
+// SetHostAddrTaken says "There's already a host for that address: {name}"
+// in the language the app shows.
+func SetHostAddrTaken(name string) string { return In(i18n.Locale()).SetHostAddrTaken(name) }
+
+// SetHostAddrTaken says "There's already a host for that address: {name}"
+// in the language of msgs.
+func (msgs Messages) SetHostAddrTaken(name string) string {
+	return Catalog.Format(msgs.locale, "setHostAddrTaken", map[string]any{"name": name})
+}
+
 // SetHostNeedsAddress says "Type the host's address"
 // in the language the app shows.
 func SetHostNeedsAddress() string { return In(i18n.Locale()).SetHostNeedsAddress() }
@@ -7194,4 +7204,116 @@ func SetImageLimitDetail() string { return In(i18n.Locale()).SetImageLimitDetail
 // in the language of msgs.
 func (msgs Messages) SetImageLimitDetail() string {
 	return Catalog.Format(msgs.locale, "setImageLimitDetail", nil)
+}
+
+// HostStateOnline says "Connected"
+// in the language the app shows.
+func HostStateOnline() string { return In(i18n.Locale()).HostStateOnline() }
+
+// HostStateOnline says "Connected"
+// in the language of msgs.
+func (msgs Messages) HostStateOnline() string {
+	return Catalog.Format(msgs.locale, "hostStateOnline", nil)
+}
+
+// HostMetaWaiting says "Waiting for host info"
+// in the language the app shows.
+func HostMetaWaiting() string { return In(i18n.Locale()).HostMetaWaiting() }
+
+// HostMetaWaiting says "Waiting for host info"
+// in the language of msgs.
+func (msgs Messages) HostMetaWaiting() string {
+	return Catalog.Format(msgs.locale, "hostMetaWaiting", nil)
+}
+
+// HostQuickActions says "Quick actions"
+// in the language the app shows.
+func HostQuickActions() string { return In(i18n.Locale()).HostQuickActions() }
+
+// HostQuickActions says "Quick actions"
+// in the language of msgs.
+func (msgs Messages) HostQuickActions() string {
+	return Catalog.Format(msgs.locale, "hostQuickActions", nil)
+}
+
+// HostEditTitle says "Edit Host"
+// in the language the app shows.
+func HostEditTitle() string { return In(i18n.Locale()).HostEditTitle() }
+
+// HostEditTitle says "Edit Host"
+// in the language of msgs.
+func (msgs Messages) HostEditTitle() string {
+	return Catalog.Format(msgs.locale, "hostEditTitle", nil)
+}
+
+// HostAuthFieldHint says "Uses your SSH keys and agent. Add a password only if this host needs one."
+// in the language the app shows.
+func HostAuthFieldHint() string { return In(i18n.Locale()).HostAuthFieldHint() }
+
+// HostAuthFieldHint says "Uses your SSH keys and agent. Add a password only if this host needs one."
+// in the language of msgs.
+func (msgs Messages) HostAuthFieldHint() string {
+	return Catalog.Format(msgs.locale, "hostAuthFieldHint", nil)
+}
+
+// HostFieldKero says "Kero path (optional)"
+// in the language the app shows.
+func HostFieldKero() string { return In(i18n.Locale()).HostFieldKero() }
+
+// HostFieldKero says "Kero path (optional)"
+// in the language of msgs.
+func (msgs Messages) HostFieldKero() string {
+	return Catalog.Format(msgs.locale, "hostFieldKero", nil)
+}
+
+// HostTestConnection says "Test Connection…"
+// in the language the app shows.
+func HostTestConnection() string { return In(i18n.Locale()).HostTestConnection() }
+
+// HostTestConnection says "Test Connection…"
+// in the language of msgs.
+func (msgs Messages) HostTestConnection() string {
+	return Catalog.Format(msgs.locale, "hostTestConnection", nil)
+}
+
+// HostTesting says "Testing…"
+// in the language the app shows.
+func HostTesting() string { return In(i18n.Locale()).HostTesting() }
+
+// HostTesting says "Testing…"
+// in the language of msgs.
+func (msgs Messages) HostTesting() string {
+	return Catalog.Format(msgs.locale, "hostTesting", nil)
+}
+
+// HostTestOK says "Connected · {system} · Kero {version} · {rtt}"
+// in the language the app shows.
+func HostTestOK(system string, version string, rtt string) string {
+	return In(i18n.Locale()).HostTestOK(system, version, rtt)
+}
+
+// HostTestOK says "Connected · {system} · Kero {version} · {rtt}"
+// in the language of msgs.
+func (msgs Messages) HostTestOK(system string, version string, rtt string) string {
+	return Catalog.Format(msgs.locale, "hostTestOK", map[string]any{"system": system, "version": version, "rtt": rtt})
+}
+
+// HostTestFailed says "Connection failed: {error}"
+// in the language the app shows.
+func HostTestFailed(error string) string { return In(i18n.Locale()).HostTestFailed(error) }
+
+// HostTestFailed says "Connection failed: {error}"
+// in the language of msgs.
+func (msgs Messages) HostTestFailed(error string) string {
+	return Catalog.Format(msgs.locale, "hostTestFailed", map[string]any{"error": error})
+}
+
+// DevicePickerMoreTip says "More actions: remove, copy address, color"
+// in the language the app shows.
+func DevicePickerMoreTip() string { return In(i18n.Locale()).DevicePickerMoreTip() }
+
+// DevicePickerMoreTip says "More actions: remove, copy address, color"
+// in the language of msgs.
+func (msgs Messages) DevicePickerMoreTip() string {
+	return Catalog.Format(msgs.locale, "devicePickerMoreTip", nil)
 }

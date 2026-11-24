@@ -51,6 +51,35 @@ listen-allow = tag:ci
 	}
 }
 
+func TestHostAtAddr(t *testing.T) {
+	s := Settings{Hosts: []Host{
+		{Name: "devbox", Addr: "me@devbox"},
+		{Name: "win", Addr: "wsl://Ubuntu"},
+		{Name: "site", Addr: "https://build.example.com"},
+	}}
+	// The same machine under a different user or an explicit default port
+	// is found, even under another name.
+	for _, addr := range []string{"root@devbox", "ssh://devbox:22", "devbox"} {
+		if h := s.HostAtAddr(addr, "someone-else"); h == nil || h.Name != "devbox" {
+			t.Errorf("HostAtAddr(%q) = %+v, want devbox", addr, h)
+		}
+	}
+	// The host being edited is skipped, so it does not match itself.
+	if h := s.HostAtAddr("me@devbox", "DEVBOX"); h != nil {
+		t.Errorf("editing devbox matched itself: %+v", h)
+	}
+	// A different scheme, host or port is a different machine.
+	for _, addr := range []string{"devbox2", "wsl://devbox", "http://build.example.com", "me@devbox:2222"} {
+		if h := s.HostAtAddr(addr, ""); h != nil {
+			t.Errorf("HostAtAddr(%q) = %+v, want none", addr, h)
+		}
+	}
+	// An unparsable address matches nothing.
+	if h := s.HostAtAddr("not a host", ""); h != nil {
+		t.Errorf("bad address matched %+v", h)
+	}
+}
+
 func TestHostKeyProblems(t *testing.T) {
 	for _, bad := range []string{
 		"host = devbox",

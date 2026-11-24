@@ -62,6 +62,46 @@ func TestParseAddr(t *testing.T) {
 	}
 }
 
+func TestMachineKey(t *testing.T) {
+	// Different spellings of one machine share a key, whatever the user
+	// or the explicit default port. The kero= path is about how to log in.
+	base, err := ParseAddr("me@devbox")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, same := range []string{
+		"devbox", "root@devbox", "ssh://devbox", "me@devbox:22",
+		"ssh://me@devbox:22?kero=/opt/kero/kero",
+	} {
+		a, err := ParseAddr(same)
+		if err != nil {
+			t.Errorf("%q: %v", same, err)
+			continue
+		}
+		if a.MachineKey() != base.MachineKey() {
+			t.Errorf("%q: key %q, want %q", same, a.MachineKey(), base.MachineKey())
+		}
+	}
+	// A different machine, scheme or non-default port is a different key.
+	for _, other := range []string{"devbox2", "wsl://devbox", "http://devbox", "https://devbox", "me@devbox:2222"} {
+		a, err := ParseAddr(other)
+		if err != nil {
+			t.Errorf("%q: %v", other, err)
+			continue
+		}
+		if a.MachineKey() == base.MachineKey() {
+			t.Errorf("%q: key %q should differ", other, a.MachineKey())
+		}
+	}
+	// HTTP's default port is Kero's own, not the web's.
+	h, _ := ParseAddr("http://build")
+	s, _ := ParseAddr("https://build")
+	e, _ := ParseAddr("http://build:7373")
+	if h.MachineKey() != e.MachineKey() || h.MachineKey() == s.MachineKey() {
+		t.Errorf("http=%q https=%q http:7373=%q", h.MachineKey(), s.MachineKey(), e.MachineKey())
+	}
+}
+
 func TestBridgeCommandQuotes(t *testing.T) {
 	cmd := bridgeCommand(Addr{Scheme: "ssh", Host: "x", Kero: "/opt/it's/kero"}, "")
 	if !strings.HasPrefix(cmd, "sh -c '") || !strings.Contains(cmd, `'\''`) {
@@ -93,6 +133,29 @@ func TestBridgeCommandQuotes(t *testing.T) {
 	// which it would act on its characters.
 	if c := bridgeCommand(Addr{Scheme: "ssh", Host: "x"}, ""); strings.ContainsAny(c, `"<>|&%^`) {
 		t.Errorf("cmd would read %s", c)
+	}
+	// The password and askpass settings reach ssh through its environment.
+	// Verify both modes so a regression that drops askpass, or that lets ssh
+	// prompt when there is no password, is caught without a real ssh server.
+	for _, tc := range []struct {
+		password string
+		want     []string
+		reject   []string
+	}{
+		{"p@ss w0rd!", []string{"SSH_ASKPASS=/bin/kero", "SSH_ASKPASS_REQUIRE=force", "DISPLAY=:0", "KERO_SSH_ASKPASS=1", "KERO_SSH_PASSWORD=p@ss w0rd!"}, []string{"SSH_ASKPASS_REQUIRE=never"}},
+		{"", []string{"SSH_ASKPASS_REQUIRE=never"}, []string{"KERO_SSH_PASSWORD=", "SSH_ASKPASS_REQUIRE=force"}},
+	} {
+		env := sshAuthEnv([]string{"PATH=/usr/bin"}, tc.password, "/bin/kero")
+		for _, kv := range tc.want {
+			if !slices.Contains(env, kv) {
+				t.Errorf("password %q: missing %q in %q", tc.password, kv, env)
+			}
+		}
+		for _, kv := range tc.reject {
+			if slices.Contains(env, kv) {
+				t.Errorf("password %q: unexpected %q in %q", tc.password, kv, env)
+			}
+		}
 	}
 	// cmd /c takes the quotes off a command that starts with one, and the
 	// SSH server those of one for PowerShell.

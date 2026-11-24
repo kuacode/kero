@@ -297,6 +297,25 @@ func httpError(resp *http.Response, err error) string {
 // running the bridge. The program is waited for only once all it wrote
 // is read, or the connection closed: Wait closes the pipe it reads from,
 // and would drop what is still in it, as the bridge's last words.
+// sshAuthEnv adds the variables that tell ssh how to get a password. With
+// one, ssh runs our own executable as SSH_ASKPASS, which prints the password
+// from its environment (see askpassValue); DISPLAY is any non-empty value,
+// and _REQUIRE=force makes ssh use askpass even without a terminal. With no
+// password, asking is forbidden outright. Split out so it can be tested
+// without starting a process.
+func sshAuthEnv(env []string, password string, askpass string) []string {
+	if password != "" {
+		return append(env,
+			"SSH_ASKPASS="+askpass,
+			"SSH_ASKPASS_REQUIRE=force",
+			"DISPLAY=:0",
+			"KERO_SSH_ASKPASS=1",
+			"KERO_SSH_PASSWORD="+password,
+		)
+	}
+	return append(env, "SSH_ASKPASS_REQUIRE=never")
+}
+
 type cmdConn struct {
 	cmd    *exec.Cmd
 	ssh    bool // ssh's, whose host may run Windows
@@ -319,24 +338,8 @@ func startBridge(cmd *exec.Cmd, ssh bool, password string) (*cmdConn, error) {
 	if ssh {
 		env = sshEnv()
 	}
-	if password != "" {
-		// SSH_ASKPASS gives ssh the password, as a program it runs; the
-		// DISPLAY it needs is any non-empty value. SSH_ASKPASS_REQUIRE=force
-		// makes ssh use the askpass even with a terminal (there is none).
-		// The password is in the environment, which only this process and
-		// ssh see.
-		exe, _ := os.Executable()
-		env = append(env,
-			"SSH_ASKPASS="+exe,
-			"SSH_ASKPASS_REQUIRE=force",
-			"DISPLAY=:0",
-			"KERO_SSH_ASKPASS=1",
-			"KERO_SSH_PASSWORD="+password,
-		)
-	} else {
-		env = append(env, "SSH_ASKPASS_REQUIRE=never")
-	}
-	cmd.Env = append(env, "WSL_UTF8=1")
+	askpass, _ := os.Executable()
+	cmd.Env = append(sshAuthEnv(env, password, askpass), "WSL_UTF8=1")
 	// A program that keeps the pipes open after its own end, as a
 	// ProxyCommand's child, holds up nothing.
 	cmd.WaitDelay = 2 * time.Second

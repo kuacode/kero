@@ -199,49 +199,57 @@ func (a *App) devicePickerMenu(c *ui.Context, pal *palette, m *ui.Menu) {
 // act on several hosts in one visit.
 func (a *App) devicePickerRow(c *ui.Context, pal *palette, x ui.MenuItemContent, h *host) {
 	fs := x.Context.Theme().FontSize
-	ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Grow(1).MinWidth(0).Children(func() {
-			ui.Text(c, a.hostName(h)).FontSize(fs).SingleLine().Ellipsis("…").TextColor(x.Text)
-			ui.Text(c, a.deviceSubtitle(h)).FontSize(fs - 1).SingleLine().Ellipsis("…").TextColor(x.Muted)
-		})
-		if h.hasRTT() {
-			ui.Text(c, rttText(h.rtt)).FontSize(fs - 2).SingleLine().Shrink(0).
-				FontFeatures("tnum").TextColor(a.rttColor(pal, h))
-		}
-		name := a.hostName(h)
-		ui.Row(c).Gap(2).Shrink(0).AlignItems(ui.Center).Children(func() {
-			// A host the app cannot reach has no service to restart; one
-			// that is installing or updating is left alone until it ends.
-			devicePickerIconButton(c, pal, x, "picker-restart-"+hostFilterKey(h),
-				locales.DevicePickerRestartTip(name), reloadIcon,
-				h.busy != "" || (h.remote() && h.rc == nil),
-				func() { a.offerHostRestart(h) })
-			missing := errors.Is(h.errKind, remote.ErrNotInstalled)
-			devicePickerIconButton(c, pal, x, "picker-redownload-"+hostFilterKey(h),
-				locales.DevicePickerRedownloadTip(name), downloadIcon,
-				h.busy != "" || (h.remote() && h.rc == nil && !missing),
-				func() {
-					switch {
-					case !h.remote():
-						// This machine's Kero is the app itself: its own
-						// updater, as Settings › General offers, fetches it.
-						updater.CheckForUpdates()
-					case missing:
-						a.installOnHost(h) // no Kero there yet: install it
-					default:
-						a.offerHostUpdate(h)
-					}
-				})
-			// Editing and removing belong to a host of Settings, not to
-			// this machine, whose row has no address to change.
-			if h.remote() {
-				devicePickerIconButton(c, pal, x, "picker-edit-"+hostFilterKey(h),
-					locales.HostEdit(), editIcon, h.busy != "",
-					func() { a.editHost(h) })
-				devicePickerIconButton(c, pal, x, "picker-remove-"+hostFilterKey(h),
-					locales.HostRemove(), closeIcon, false,
-					func() { a.confirm = a.removeHostConfirmation(h) })
+	ui.Column(c).FillWidth().Gap(2).Children(func() {
+		// Top line: state and name get the room; the round trip sits at
+		// the end where a short number fits beside a long name.
+		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+			ui.Box(c).Size(7, 7).Radius(3.5).Shrink(0).Background(a.deviceStateColor(pal, h))
+			ui.Text(c, a.hostName(h)).FontSize(fs).SingleLine().Ellipsis("…").Grow(1).MinWidth(0).TextColor(x.Text)
+			if h.hasRTT() {
+				ui.Text(c, rttText(h.rtt)).FontSize(fs - 2).SingleLine().Shrink(0).
+					FontFeatures("tnum").TextColor(a.rttColor(pal, h))
 			}
+		})
+		// Second line: the address, and the quick actions at its right.
+		// Both lines are full width, so neither the name nor the buttons
+		// squeeze the other into an ellipsis.
+		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, a.deviceSubtitle(h)).FontSize(fs - 1).SingleLine().Ellipsis("…").Grow(1).MinWidth(0).TextColor(x.Muted)
+			name := a.hostName(h)
+			ui.Row(c).Gap(4).Shrink(0).AlignItems(ui.Center).Children(func() {
+				// A host the app cannot reach has no service to restart; one
+				// that is installing or updating is left alone until it ends.
+				devicePickerIconButton(c, pal, x, "picker-restart-"+hostFilterKey(h),
+					locales.DevicePickerRestartTip(name), reloadIcon,
+					h.busy != "" || (h.remote() && h.rc == nil),
+					func() { a.offerHostRestart(h) })
+				missing := errors.Is(h.errKind, remote.ErrNotInstalled)
+				devicePickerIconButton(c, pal, x, "picker-redownload-"+hostFilterKey(h),
+					locales.DevicePickerRedownloadTip(name), downloadIcon,
+					h.busy != "" || (h.remote() && h.rc == nil && !missing),
+					func() {
+						switch {
+						case !h.remote():
+							// This machine's Kero is the app itself: its own
+							// updater, as Settings › General offers, fetches it.
+							updater.CheckForUpdates()
+						case missing:
+							a.installOnHost(h) // no Kero there yet: install it
+						default:
+							a.offerHostUpdate(h)
+						}
+					})
+				// Editing and removing belong to a host of Settings, not to
+				// this machine, whose row has no address to change.
+				if h.remote() {
+					devicePickerIconButton(c, pal, x, "picker-edit-"+hostFilterKey(h),
+						locales.HostEdit(), editIcon, h.busy != "",
+						func() { a.editHost(h) })
+					devicePickerIconButton(c, pal, x, "picker-remove-"+hostFilterKey(h),
+						locales.HostRemove(), closeIcon, false,
+						func() { a.confirm = a.removeHostConfirmation(h) })
+				}
+			})
 		})
 	})
 }
@@ -251,19 +259,19 @@ func (a *App) devicePickerRow(c *ui.Context, pal *palette, x ui.MenuItemContent,
 // pointer is on, and shows no more than a chip under the pointer. A
 // disabled button says the host is busy or out of reach.
 func devicePickerIconButton(c *ui.Context, pal *palette, x ui.MenuItemContent, key, tip string, svg *ui.SVG, disabled bool, onClick func()) {
-	b := ui.ButtonBase(c.Key(key)).Size(20, 20).Radius(5).Center().Shrink(0).
+	b := ui.ButtonBase(c.Key(key)).Size(24, 24).Radius(6).Center().Shrink(0).
 		Label(tip).Tooltip(tip).Disabled(disabled).OnClick(onClick)
-	fg, bg := x.Muted, ui.Transparent
+	fg, bg := x.Text, pal.control
 	switch {
 	case disabled:
-		fg = x.Muted.Alpha(0.45)
+		fg, bg = x.Muted.Alpha(0.45), pal.control.Alpha(0.5)
 	case b.Pressed():
-		bg, fg = pal.rowHover.Alpha(0.12), x.Text
+		bg, fg = pal.chip, x.Text
 	case b.Hovered():
 		bg, fg = pal.rowHover, x.Text
 	}
 	b.Background(bg).TextColor(fg).Children(func() {
-		ui.Icon(c, svg).Size(12, 12).TextColor(fg)
+		ui.Icon(c, svg).Size(14, 14).TextColor(fg)
 	})
 }
 
@@ -323,6 +331,19 @@ func (a *App) deviceSubtitle(h *host) string {
 		return h.addr.Scheme + " " + h.addr.Host + " · " + a.deviceStatus(h)
 	}
 	return a.hostName(h) + " · " + a.deviceStatus(h)
+}
+
+// deviceStateColor is the color of a row's status dot: the host's state at
+// a glance, from the same colors the sidebar header uses.
+func (a *App) deviceStateColor(pal *palette, h *host) ui.Color {
+	switch h.conn {
+	case connConnecting:
+		return pal.attention
+	case connFailed:
+		return pal.danger
+	default:
+		return pal.good
+	}
 }
 
 // deviceStatus is a host's state in the picker: online, or the way it

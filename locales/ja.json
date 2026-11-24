@@ -673,6 +673,7 @@
   "setHostPasswordPlaceholder": "••••••",
   "setHostNamePlaceholder": "名前: {name}",
   "setHostNameTaken": "{name} という名前のホストはすでにあります",
+  "setHostAddrTaken": "そのアドレスはホスト {name} が既に使用しています",
   "setHostNeedsAddress": "ホストのアドレスを入力してください",
   "setHostRemoteControl": "リモート操作",
   "setHostRemoteControlDetail": "{host} のプログラムにセッションの表示とアプリのアクションの実行を許可します（kero focus、kero do）",
@@ -732,5 +733,16 @@
   "keepAwakeDisplay": "スリープさせず画面を常にオン",
   "commonUnlimited": "無制限",
   "setImageLimit": "画像の上限",
-  "setImageLimitDetail": "各ペインでプログラムが表示する画像が占める最大量。"
+  "setImageLimitDetail": "各ペインでプログラムが表示する画像が占める最大量。",
+  "hostStateOnline": "接続済み",
+  "hostMetaWaiting": "ホスト情報を取得中",
+  "hostQuickActions": "クイック操作",
+  "hostEditTitle": "ホストを編集",
+  "hostAuthFieldHint": "SSH キーとエージェントを使用します。必要な場合のみパスワードを入力。",
+  "hostFieldKero": "Kero のパス（任意）",
+  "hostTestConnection": "接続をテスト…",
+  "hostTesting": "テスト中…",
+  "hostTestOK": "接続成功 · {system} · Kero {version} · {rtt}",
+  "hostTestFailed": "接続失敗: {error}",
+  "devicePickerMoreTip": "その他の操作: 削除、アドレスをコピー、色"
 }

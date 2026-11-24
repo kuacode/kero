@@ -153,7 +153,6 @@ func (a *App) listenAddress(port string) (detail, addr string) {
 // hostRow is a host in Settings › Hosts: how the app stands with it, and
 // what the user may do about it.
 func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
-	status := a.hostStatus(h)
 	if groupRows++; groupRows > 1 {
 		ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 	}
@@ -162,26 +161,49 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 		return
 	}
 	ui.Column(c.Key("host-"+h.name)).Padding(11, 0).Gap(8).Children(func() {
+		// Identity: the mark, the name, a state capsule, and the system
+		// there once it is known.
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, a.hostOriginIcon(h)).Size(16, 16).TextColor(pal.textMuted).Shrink(0)
-			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, h.name).FontSize(13.5).FontWeight(600).TextColor(pal.text).SingleLine()
-					ui.Text(c, h.addr.String()).Font("monospace").FontSize(12).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Selectable()
-				})
-				col := pal.textMuted
-				if h.conn == connFailed {
-					col = pal.danger
+			ui.Text(c, h.name).FontSize(13.5).FontWeight(600).TextColor(pal.text).SingleLine()
+			a.hostStateCapsule(c, pal, h)
+			ui.Spacer(c)
+			if system := a.hostSystem(h); system != "" {
+				ui.Text(c, system).FontSize(12).TextColor(pal.textMuted).SingleLine().Ellipsis("…").Shrink(1)
+			}
+		})
+		// Facts about the host that need no interpretation: its address,
+		// how far away it is, the Kero there, and how many sessions it
+		// holds. A host that cannot be reached says why instead.
+		facts := a.hostFacts(h)
+		ui.Text(c, facts).Font("monospace").FontSize(12).TextColor(a.hostFactsColor(pal, h)).SingleLine().Ellipsis("…").MinWidth(0).Selectable()
+		// Actions, with words rather than bare icons so they can be found
+		// at a glance. Removal stays an icon: it is not a everyday action.
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			if button(c, "edit", locales.HostEdit(), "", false, pal) {
+				a.editHost(h)
+			}
+			if button(c, "reconnect", locales.HostReconnect(), "", false, pal) {
+				a.reconnectHost(h)
+			}
+			switch {
+			case h.busy != "":
+			case errorsIsNotInstalled(h):
+				if button(c, "install", locales.HostInstall(), "", true, pal) {
+					a.installOnHost(h)
 				}
-				ui.Text(c, status).FontSize(12).TextColor(col).LineHeight(1.35).Selectable()
-			})
-			iconButton(c, "edit", editIcon, locales.HostEdit(), pal, func() {
-				a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, editing: h.name}
-			})
-			iconButton(c, "reconnect", reloadIcon, locales.HostReconnect(), pal, func() { a.reconnectHost(h) })
+			case h.conn == connVersion || h.behind():
+				if button(c, "update", locales.HostUpdateAction(h.name), "", true, pal) {
+					a.offerHostUpdate(h)
+				}
+			case h.stale():
+				if button(c, "restart", locales.CommonRestartService(), "", true, pal) {
+					a.offerHostRestart(h)
+				}
+			}
 			iconButton(c, "remove", closeIcon, locales.HostRemove(), pal, func() { a.ss.confirm = a.removeHostConfirmation(h) })
 		})
-		ui.Row(c).Gap(10).AlignItems(ui.Center).Padding(0, 0, 0, 26).Children(func() {
+		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 				ui.Text(c, locales.SetHostRemoteControl()).FontSize(12.5).TextColor(pal.text)
 				ui.Text(c, locales.SetHostRemoteControlDetail(h.name)).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
@@ -196,21 +218,66 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 				a.set = s
 			})
 		})
-		// What fixes it, a button of its own size, under the host.
-		ui.Row(c).Padding(0, 0, 0, 26).Children(func() {
-			switch {
-			case h.busy != "":
-			case errorsIsNotInstalled(h):
-				if button(c, "install", locales.HostInstall(), "", true, pal) {
-					a.installOnHost(h)
-				}
-			case h.conn == connVersion || h.behind():
-				if button(c, "update", locales.HostUpdateAction(h.name), "", true, pal) {
-					a.offerHostUpdate(h)
-				}
-			}
-		})
 	})
+}
+
+// hostStateCapsule is the host's state as a chip: a colored dot and a short
+// word, so a failed host reads as such before the facts under it.
+func (a *App) hostStateCapsule(c *ui.Context, pal *palette, h *host) {
+	col, word := pal.good, locales.HostStateOnline()
+	switch {
+	case h.conn == connConnecting && h.loaded:
+		col, word = pal.attention, locales.HostReconnecting()
+	case h.conn == connConnecting:
+		col, word = pal.attention, locales.StatusConnecting()
+	case h.conn == connFailed:
+		col, word = pal.danger, locales.StatusDisconnected()
+	case h.conn == connVersion || h.behind() || h.stale():
+		col, word = pal.attention, locales.HostUpdateAction(h.name)
+	}
+	cap := ui.Row(c).Height(18).Padding(0, 6).Gap(5).Radius(9).AlignItems(ui.Center).Shrink(0).
+		Background(col.Alpha(0.12)).Tooltip(a.hostVersionDetail(h))
+	cap.Children(func() {
+		ui.Box(c).Size(6, 6).Radius(3).Background(col).Shrink(0)
+		ui.Text(c, word).FontSize(11).FontWeight(500).TextColor(col).SingleLine()
+	})
+}
+
+// hostSystem is the system a host reported, short enough for a card's head.
+func (a *App) hostSystem(h *host) string {
+	i := h.info
+	switch {
+	case i.Distro != "":
+		return i.Distro
+	case i.OS != "" && i.Arch != "":
+		return i.OS + " · " + i.Arch
+	case i.OS != "":
+		return i.OS
+	}
+	return ""
+}
+
+// hostFacts is the card's fact band: the address, the round trip, the Kero
+// version, and how many sessions the host holds.
+func (a *App) hostFacts(h *host) string {
+	parts := []string{h.addr.String()}
+	if h.hasRTT() {
+		parts = append(parts, rttText(h.rtt))
+	}
+	if h.info.Kero != "" {
+		parts = append(parts, "Kero "+h.info.Kero)
+	}
+	if n := len(a.sessionsOf(h)); n > 0 {
+		parts = append(parts, locales.HostSessions(n))
+	}
+	return strings.Join(parts, " · ")
+}
+
+func (a *App) hostFactsColor(pal *palette, h *host) ui.Color {
+	if h.conn == connFailed {
+		return pal.danger
+	}
+	return pal.textMuted
 }
 
 // hostEditor is a host's row as the user edits its address and name.
@@ -262,6 +329,10 @@ func (a *App) saveHost(h *host) {
 	}
 	if o := a.set.Host(parsed.Name); o != nil && !strings.EqualFold(o.Name, h.name) {
 		d.err = locales.SetHostNameTaken(parsed.Name)
+		return
+	}
+	if dup := a.set.HostAtAddr(parsed.Addr, h.name); dup != nil {
+		d.err = locales.SetHostAddrTaken(dup.Name)
 		return
 	}
 	s := a.set.Clone()

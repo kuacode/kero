@@ -109,6 +109,27 @@ func ParseAddr(s string) (Addr, error) {
 	return a, nil
 }
 
+// MachineKey identifies the machine an address reaches, so a host added as
+// me@devbox and one added as ssh://devbox:22 are told to be the same. It is
+// the scheme, host and effective port: the user and the kero= path say how
+// to log in, not which machine it is. Aliases from ~/.ssh/config are not
+// resolved — ParseAddr sees the alias, so two aliases of one box stay two
+// keys (see FOLLOWUPS.md).
+func (a Addr) MachineKey() string {
+	port := a.Port
+	if port == "" {
+		switch a.Scheme {
+		case "ssh":
+			port = "22"
+		case "http":
+			port = DefaultPort
+		case "https":
+			port = "443"
+		}
+	}
+	return a.Scheme + "|" + a.Host + "|" + port
+}
+
 // String writes the address as ParseAddr reads it: an SSH destination
 // without its scheme.
 func (a Addr) String() string {

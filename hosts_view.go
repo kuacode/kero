@@ -118,7 +118,11 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 	if pal.dark {
 		inset++
 	}
-	hdr := ui.Row(c.Key("host-"+name)).Height(30).Margin(top, 0, rowGap, 0).Padding(0, rowInset, 0, inset).Gap(hdrGap).AlignItems(ui.Center).Radius(rowRadius)
+	// The header is two lines now: the identity (icon, name, state) and,
+	// under it, what the host is (address, system) beside its quick
+	// actions. The whole block folds and opens the menu on a right click,
+	// as the single row did.
+	hdr := ui.Column(c.Key("host-"+name)).Margin(top, 0, rowGap, 0).Padding(4, rowInset, 6, inset).Gap(3).Radius(rowRadius)
 	hovered := hdr.Hovered()
 	collapsed := a.prefs.Collapsed[a.hostFoldKey(h)]
 	pointerTooltip(c, hdr, "tip-host-"+name, a.hostTip(h))
@@ -150,62 +154,76 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		a.toggleHost(h)
 	}
 	hdr.Children(func() {
-		ui.Icon(c, a.hostOriginIcon(h)).Size(hostGlyphW, hostGlyphW).TextColor(a.hostOriginColor(pal, h)).Shrink(0)
-		ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).
-			Margin(0, 0, 0, treeGap-hdrGap)
-		// The count gives way to the load and the round trip when a host
-		// shows them: the name and how far away the host is come first,
-		// and each project's header still counts its sessions.
-		stats := (a.set.ShowSystemLoad && h.hasLoad()) || h.hasRTT()
-		// A host with no session has nothing to count, and a bare zero
-		// reads as part of the name: it is left out until there is one.
-		if a.set.SidebarCount && !stats && count > 0 {
-			// The count keeps a chip of its own, as a tag does, so that it
-			// ends before the name does and the two cannot crowd. Its step
-			// is the tree's: treeGap from the name to the chip, and again
-			// to the fold. The fill is the palette's quiet one, the digits
-			// the muted text, which a faint one would lose on it.
-			ui.Row(c).Height(18).Padding(0, 5).Radius(5).AlignItems(ui.Center).Shrink(0).
-				Background(pal.chip).Margin(0, 0, 0, treeGap-hdrGap).
-				Children(func() {
-					ui.Textf(c, "%d", count).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
-				})
-		}
-		// The fold of a host's projects is read right after its count, as
-		// it is a property of the label, not of the row's far end.
-		// The fold keeps its width when a long name crowds the row: it is
-		// the name that gives way, as it has an ellipsis to say so.
-		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
-		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
-		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
-		ui.Spacer(c)
-		if h.hasRTT() {
-			// The round trip reads first of the figures, as how far the
-			// host is comes before how busy it is: the same client-to-kerod
-			// measure for this machine and for a remote one.
-			ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
-				Tooltip(a.rttTip(h))
-		}
-		// The load's gauges stay in the header during an update too: the
-		// download's progress now reads in the note under the header,
-		// where there is room to name it, instead of a second bar here.
-		if a.set.ShowSystemLoad {
-			a.hostLoad(c, pal, h)
-		}
-		a.hostState(c, pal, h)
-		// Opening a project is always offered, on the row's far end.
-		if h.conn == connReady {
-			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).
-				Label(locales.ActionOpenProject()).Tooltip(locales.ActionOpenProject())
-			if b.Hovered() {
-				b.Background(pal.rowHover).TextColor(pal.text)
+		// Identity: the mark, the name, the state capsule, and the fold.
+		ui.Row(c).Height(20).Gap(hdrGap).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, a.hostOriginIcon(h)).Size(hostGlyphW, hostGlyphW).TextColor(a.hostOriginColor(pal, h)).Shrink(0)
+			ui.Text(c, name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).
+				Margin(0, 0, 0, treeGap-hdrGap)
+			// A host with no session has nothing to count, and a bare zero
+			// reads as part of the name: it is left out until there is one.
+			if a.set.SidebarCount && count > 0 {
+				ui.Row(c).Height(18).Padding(0, 5).Radius(5).AlignItems(ui.Center).Shrink(0).
+					Background(pal.chip).Margin(0, 0, 0, treeGap-hdrGap).
+					Children(func() {
+						ui.Textf(c, "%d", count).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
+					})
 			}
-			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
-			if b.Clicked() {
-				a.openProjectOn(h)
+			a.hostState(c, pal, h)
+			chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
+			turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
+			chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
+		})
+		// What it is, and what the user can do with it, without a right
+		// click: the address and system read first, then the round trip and
+		// load, then reconnect and edit at the row's far end.
+		ui.Row(c).Height(16).Gap(hdrGap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, a.hostMeta(h)).FontSize(10.5).TextColor(pal.textMuted).Font("monospace").
+				SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
+			if h.hasRTT() {
+				ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
+					Tooltip(a.rttTip(h))
 			}
-		}
+			if a.set.ShowSystemLoad {
+				a.hostLoad(c, pal, h)
+			}
+			if h.remote() {
+				a.hostQuickButton(c, pal, "reconnect", locales.HostReconnect(), reloadIcon, func() { a.reconnectHost(h) })
+				a.hostQuickButton(c, pal, "edit", locales.HostEdit(), editIcon, func() { a.editHost(h) })
+			}
+			// Opening a project is always offered, on the row's far end.
+			if h.conn == connReady {
+				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
+			}
+		})
 	})
+}
+
+// hostMeta is the short line under a host's name: its address and, once
+// known, the system there. This machine simply names itself.
+func (a *App) hostMeta(h *host) string {
+	if !h.remote() {
+		return locales.HostThisComputer()
+	}
+	meta := h.addr.Scheme + " " + h.addr.Host
+	if h.info.Distro != "" {
+		meta += " · " + h.info.Distro
+	} else if h.info.OS != "" {
+		meta += " · " + h.info.OS
+	}
+	return meta
+}
+
+// hostQuickButton is one of the header's always-visible actions: a small
+// quiet button that lifts under the pointer. Its label carries the tip.
+func (a *App) hostQuickButton(c *ui.Context, pal *palette, key, tip string, svg *ui.SVG, onClick func()) {
+	b := ui.ButtonBase(c.Key(key)).Size(19, 19).Radius(5).Center().Shrink(0).
+		Label(tip).Tooltip(tip).OnClick(onClick)
+	fg := pal.textFaint
+	if b.Hovered() {
+		fg = pal.text
+		b.Background(pal.rowHover)
+	}
+	b.TextColor(fg).Children(func() { ui.Icon(c, svg).Size(12, 12).TextColor(fg) })
 }
 
 // hostLoad draws a host's CPU and memory load, as its daemon pushes, as
@@ -587,11 +605,10 @@ func (a *App) hostMenu(m *ui.Menu, h *host) {
 	}
 }
 
-// editHost opens Settings › Hosts with the host's row in edit mode, so
-// the same form adds a host and changes one.
+// editHost opens the shared add/edit dialog, filled with this host, so
+// every entry point (sidebar menu, picker, settings card) uses one form.
 func (a *App) editHost(h *host) {
-	a.startHostEdit(h)
-	a.openSettings("hosts")
+	a.openHostEdit(h)
 }
 
 // startHostEdit puts a host's row in edit mode, on the Hosts page, without

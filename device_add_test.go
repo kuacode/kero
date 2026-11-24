@@ -193,6 +193,20 @@ func TestDeviceAddSubmit(t *testing.T) {
 		t.Errorf("a refused name changed the hosts: %v", a.set.Hosts)
 	}
 
+	// The same machine under another name and spelling is refused too: a
+	// bare host, a different user and an explicit ssh port all identify
+	// devbox. The name check runs first, so a fresh name reaches this one.
+	d.addr, d.name, d.err = "root@devbox:22", "second-devbox", ""
+	if a.hostAddSubmit(d) {
+		t.Fatal("a taken address added a second host")
+	}
+	if want := locales.SetHostAddrTaken("devbox"); d.err != want {
+		t.Errorf("a taken address said %q, want %q", d.err, want)
+	}
+	if len(a.set.Hosts) != 2 {
+		t.Errorf("a refused address changed the hosts: %v", a.set.Hosts)
+	}
+
 	// An address nothing can reach is the parser's to refuse.
 	d.addr, d.name, d.err = "not a host", "", ""
 	if a.hostAddSubmit(d) {

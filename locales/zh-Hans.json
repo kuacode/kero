@@ -673,6 +673,7 @@
   "setHostPasswordPlaceholder": "••••••",
   "setHostNamePlaceholder": "名称：{name}",
   "setHostNameTaken": "已经有名为 {name} 的主机",
+  "setHostAddrTaken": "该地址已被主机 {name} 使用",
   "setHostNeedsAddress": "请输入主机的地址",
   "setHostRemoteControl": "远程控制",
   "setHostRemoteControlDetail": "允许 {host} 上的程序显示会话并运行应用的操作（kero focus、kero do）",
@@ -732,5 +733,16 @@
   "keepAwakeDisplay": "保持唤醒和屏幕常亮",
   "commonUnlimited": "无限制",
   "setImageLimit": "图片上限",
-  "setImageLimitDetail": "每个窗格中程序显示的图片最多占用多少。"
+  "setImageLimitDetail": "每个窗格中程序显示的图片最多占用多少。",
+  "hostStateOnline": "已连接",
+  "hostMetaWaiting": "等待主机信息",
+  "hostQuickActions": "快捷操作",
+  "hostEditTitle": "编辑主机",
+  "hostAuthFieldHint": "自动使用 SSH 密钥与 agent；仅当主机要求密码时填写。",
+  "hostFieldKero": "Kero 路径（可选）",
+  "hostTestConnection": "测试连接…",
+  "hostTesting": "正在测试…",
+  "hostTestOK": "连接成功 · {system} · Kero {version} · {rtt}",
+  "hostTestFailed": "连接失败：{error}",
+  "devicePickerMoreTip": "更多操作：删除、复制地址、颜色"
 }

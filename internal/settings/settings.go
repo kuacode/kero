@@ -161,6 +161,28 @@ func (s *Settings) Host(name string) *Host {
 	return nil
 }
 
+// HostAtAddr returns the saved host, if any, whose address names the same
+// machine as addr. Two spellings of one host — an SSH alias, me@devbox,
+// ssh://devbox:22 — all compare equal under ParseAddr+MachineKey. except is
+// a host's own name, skipped when editing it so its address stays its own.
+func (s *Settings) HostAtAddr(addr string, except string) *Host {
+	a, err := remote.ParseAddr(addr)
+	if err != nil {
+		return nil
+	}
+	key := a.MachineKey()
+	for i := range s.Hosts {
+		if strings.EqualFold(s.Hosts[i].Name, except) {
+			continue
+		}
+		other, err := remote.ParseAddr(s.Hosts[i].Addr)
+		if err == nil && other.MachineKey() == key {
+			return &s.Hosts[i]
+		}
+	}
+	return nil
+}
+
 // Default returns the settings of a new install.
 func Default() Settings {
 	return Settings{
