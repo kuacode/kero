@@ -111,7 +111,7 @@ function Install-Kero {
 		[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 		$v = ([string](Invoke-RestMethod -UseBasicParsing "https://api.github.com/repos/$repo/releases/latest").tag_name).TrimStart('v')
 	}
-	if ($v -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$') { Fail "$v is not a version of Kero" }
+	if ($v -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$') { Fail "$v is not a version of Kero" }
 
 	$name = "kero-server-$v-windows-$arch.zip"
 	$releases = if ($env:KERO_RELEASES) { $env:KERO_RELEASES.TrimEnd('/') } else { "https://github.com/$repo/releases/download" }
