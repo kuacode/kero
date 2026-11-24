@@ -169,6 +169,12 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 					})
 			}
 			a.hostState(c, pal, h)
+			// Opening a project is the one action every host offers, so it
+			// sits on the identity line beside the state, always reachable
+			// even when the second line is folded away from view.
+			if h.conn == connReady {
+				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
+			}
 			chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
 			turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 			chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
@@ -177,11 +183,16 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		// click: the address and system read first, then the round trip and
 		// load, then reconnect and edit at the row's far end.
 		ui.Row(c).Height(16).Gap(hdrGap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, a.hostMeta(h)).FontSize(10.5).TextColor(pal.textMuted).Font("monospace").
-				SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
+			// The address reads only on a host: this machine's name is already
+			// on the identity line, so a second "This Computer" would repeat it.
+			if h.remote() {
+				ui.Text(c, a.hostMeta(h)).FontSize(10.5).TextColor(pal.textMuted).Font("monospace").
+					SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
+			} else {
+				ui.Box(c).Grow(1)
+			}
 			if h.hasRTT() {
-				ui.Text(c, rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
-					Tooltip(a.rttTip(h))
+				a.rttSignal(c, pal, h)
 			}
 			if a.set.ShowSystemLoad {
 				a.hostLoad(c, pal, h)
@@ -189,10 +200,6 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			if h.remote() {
 				a.hostQuickButton(c, pal, "reconnect", locales.HostReconnect(), reloadIcon, func() { a.reconnectHost(h) })
 				a.hostQuickButton(c, pal, "edit", locales.HostEdit(), editIcon, func() { a.editHost(h) })
-			}
-			// Opening a project is always offered, on the row's far end.
-			if h.conn == connReady {
-				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
 			}
 		})
 	})
@@ -245,11 +252,13 @@ func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(3).AlignItems(ui.Center).Tooltip(a.loadTip(h))
 	row.Children(func() {
 		cpu := float64(load.CPU)
-		a.loadGauge(c, pal, float32(cpu)/100, a.loadColor(pal, pal.good, cpu, cpuWarn))
-		ui.Text(c, fmt.Sprintf("%d%%", load.CPU)).FontSize(10.5).TextColor(a.loadColor(pal, pal.good, cpu, cpuWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
+		cpuCol := a.loadColor(pal, pal.good, cpu, cpuWarn)
+		a.loadGauge(c, pal, float32(cpu)/100, cpuCol)
+		ui.Text(c, fmt.Sprintf("CPU:%d%%", load.CPU)).FontSize(10.5).TextColor(cpuCol).FontFeatures("tnum").SingleLine().Shrink(0)
 		if mem >= 0 {
-			a.loadGauge(c, pal, float32(mem), a.loadColor(pal, pal.good, mem*100, memWarn))
-			ui.Text(c, fmt.Sprintf("%d%%", int(mem*100))).FontSize(10.5).TextColor(a.loadColor(pal, pal.good, mem*100, memWarn)).FontFeatures("tnum").SingleLine().Shrink(0)
+			memCol := a.loadColor(pal, pal.good, mem*100, memWarn)
+			a.loadGauge(c, pal, float32(mem), memCol)
+			ui.Text(c, fmt.Sprintf("MEM:%d%%", int(mem*100))).FontSize(10.5).TextColor(memCol).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
 	})
 }
@@ -310,6 +319,50 @@ func rttText(d time.Duration) string {
 		return fmt.Sprintf("%dms", int(math.Round(float64(d)/float64(time.Millisecond))))
 	}
 	return fmt.Sprintf("%.1fs", d.Seconds())
+}
+
+// rttBars grades a smoothed round trip into the number of lit signal bars:
+// four when close, one when far. A lost or absent reading lights none.
+func rttBars(d time.Duration) int {
+	switch {
+	case d < 50*time.Millisecond:
+		return 4
+	case d < rttSlow:
+		return 3
+	case d < rttFar:
+		return 2
+	default:
+		return 1
+	}
+}
+
+// rttSignal draws the round trip as a phone's signal: four ascending bars,
+// the faster the host the more of them lit. Each bar waits its turn before
+// it grows, so a change in quality reads as the signal climbing or falling.
+func (a *App) rttSignal(c *ui.Context, pal *palette, h *host) {
+	lit := rttBars(h.rtt)
+	col := a.rttColor(pal, h)
+	box := ui.Box(c.Key("rtt-signal")).Size(16, 13).Shrink(0).Tooltip(a.rttTip(h))
+	fill := [4]float32{}
+	for i := range fill {
+		target := b2f(i < lit)
+		fill[i] = box.AnimateTo(i, target, ui.Animation{
+			Duration: 170 * time.Millisecond,
+			Delay:    time.Duration(i) * 55 * time.Millisecond,
+		})
+	}
+	box.Draw(func(p *ui.Painter, r ui.Rect) {
+		for i := 0; i < 4; i++ {
+			full := r.H * float32(i+1) / 4
+			x := r.X + float32(i)*4
+			p.Fill(ui.Rect{X: x, Y: r.Y + r.H - full, W: 3, H: full}, pal.rowHover, 1.5)
+			f := min(1, max(0, fill[i]))
+			if f > 0.01 {
+				used := full * f
+				p.Fill(ui.Rect{X: x, Y: r.Y + r.H - used, W: 3, H: used}, col, 1.5)
+			}
+		}
+	})
 }
 
 // rttColor grades the smoothed round trip green, yellow, red: good while
