@@ -894,18 +894,6 @@ func (a *App) setStage(h *host, stage, url string) {
 	})
 }
 
-// clearProgress ends an update's progress: the note stops naming a phase
-// or a figure once the work is over.
-func (a *App) clearProgress(h *host) {
-	a.updateSync(func() {
-		if slices.Contains(a.hosts, h) {
-			h.progress = 0
-			h.progressStage = ""
-			h.progressURL = ""
-		}
-	})
-}
-
 // setProgress tells how far the app's fetch or upload of a host's archive
 // has gone, for the note under its header. A total gives a real percent;
 // before the response names one the fetch has begun but cannot be measured

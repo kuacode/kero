@@ -38,7 +38,8 @@ func TestSetProgress(t *testing.T) {
 }
 
 // setStage names the leg of an update and the address a download comes
-// from; clearProgress ends both, along with the figure.
+// from; the note reads the values until hostRequest's final update clears
+// them in one pass alongside busy and the figure.
 func TestProgressStage(t *testing.T) {
 	a := testApp(t)
 	h := a.local()
@@ -47,9 +48,8 @@ func TestProgressStage(t *testing.T) {
 		t.Errorf("setStage did not stick: stage=%q url=%q", h.progressStage, h.progressURL)
 	}
 	a.setProgress(h, 45, 100)
-	a.clearProgress(h)
-	if h.progress != 0 || h.progressStage != "" || h.progressURL != "" {
-		t.Errorf("clearProgress left stage=%q url=%q progress=%d", h.progressStage, h.progressURL, h.progress)
+	if h.progressStage != "download" || h.progress != 45 {
+		t.Errorf("setProgress disturbed the stage: stage=%q progress=%d", h.progressStage, h.progress)
 	}
 }
 
