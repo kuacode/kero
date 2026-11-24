@@ -69,6 +69,17 @@ const (
 	rowGap    = 2
 )
 
+// countChip is the rounded, muted badge that says how many sessions a host
+// or project holds, or how many panes a session has. One shape everywhere
+// in the sidebar, so a count reads the same at every level of the tree.
+// marginLeft shifts it to line up with the name's indent on its row.
+func countChip(c *ui.Context, pal *palette, n int, marginLeft float32) {
+	ui.Row(c).Height(18).Padding(0, 5).Radius(5).AlignItems(ui.Center).Shrink(0).
+		Background(pal.chip).Margin(0, 0, 0, marginLeft).Children(func() {
+		ui.Textf(c, "%d", n).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
+	})
+}
+
 // chrome is where the sidebar's animation puts things, in whole pixels so
 // that edges stay crisp. Each is rounded once, from one progress quantized
 // to the sidebar's pixels, so that they move together: rounded apart,
@@ -589,7 +600,7 @@ func (a *App) groupBody(c *ui.Context, pal *palette, g group, gi int, moving boo
 		fileIconImage(c, pal, g.project.Name, true, !collapsed)
 		ui.Text(c, g.project.Name).FontSize(12.5).FontWeight(600).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if a.set.SidebarCount {
-			ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
+			countChip(c, pal, len(g.sessions), 0)
 		}
 		// The fold of a project's sessions is read right after its count.
 		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
@@ -786,17 +797,17 @@ func (a *App) panesToggle(c *ui.Context, pal *palette, s *proto.Session, expande
 	if expanded {
 		label = locales.SidebarHidePanes()
 	}
-	b := ui.ButtonBase(c.Key("panes")).Height(18).Padding(0, 4).Gap(2).Radius(5).AlignItems(ui.Center).Shrink(0).
-		TextColor(pal.textFaint).Label(label).Tooltip(label)
+	b := ui.ButtonBase(c.Key("panes")).Height(18).Padding(0, 5).Gap(2).Radius(5).AlignItems(ui.Center).Shrink(0).
+		Background(pal.chip).TextColor(pal.textMuted).Label(label).Tooltip(label)
 	if b.Hovered() {
-		b.Background(pal.chip).TextColor(pal.text)
+		b.TextColor(pal.text)
 	}
 	if b.Clicked() {
 		id := s.ID
 		a.defer_(func() { a.toggleSessionPanes(id) })
 	}
 	b.Children(func() {
-		ui.Textf(c, "%d", len(s.Panes)).FontSize(12).FontFeatures("tnum").SingleLine()
+		ui.Textf(c, "%d", len(s.Panes)).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
 		chev := ui.Icon(c, chevronIcon).Size(9, 9)
 		chev.Rotate(chev.AnimateTo("turn", 90*b2f(expanded), ui.Snappy))
 	})

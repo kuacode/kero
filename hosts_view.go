@@ -162,11 +162,7 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			// A host with no session has nothing to count, and a bare zero
 			// reads as part of the name: it is left out until there is one.
 			if a.set.SidebarCount && count > 0 {
-				ui.Row(c).Height(18).Padding(0, 5).Radius(5).AlignItems(ui.Center).Shrink(0).
-					Background(pal.chip).Margin(0, 0, 0, treeGap-hdrGap).
-					Children(func() {
-						ui.Textf(c, "%d", count).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
-					})
+				countChip(c, pal, count, treeGap-hdrGap)
 			}
 			a.hostState(c, pal, h)
 			chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
