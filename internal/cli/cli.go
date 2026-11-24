@@ -223,6 +223,15 @@ func Run(args []string) int {
 		return int(es)
 	}
 	fmt.Fprintln(os.Stderr, "kero:", err)
+	return exitCode(err)
+}
+
+// exitCode is the status kero exits with for an error.
+func exitCode(err error) int {
+	var es exitStatus
+	if errors.As(err, &es) {
+		return int(es)
+	}
 	switch {
 	case errors.Is(err, errUsage):
 		return 2
@@ -272,6 +281,16 @@ func parse(args []string, valued, boolean map[string]string) (*flags, error) {
 			continue
 		}
 		if canon, ok := boolean[name]; ok {
+			if hasVal {
+				// --flag=false, as the valued flags take it: false, not
+				// the flag.
+				b, err := strconv.ParseBool(val)
+				if err != nil {
+					return nil, usageErr("%s takes true or false, not %q", a, val)
+				}
+				f.set[canon] = b
+				continue
+			}
 			f.set[canon] = true
 			continue
 		}
@@ -416,7 +435,9 @@ func run(args []string, host string) error {
 			return err
 		}
 		if f.set["focus"] {
-			c.Call("select", proto.FocusParams{Session: s.ID}, nil)
+			if err := c.Call("select", proto.FocusParams{Session: s.ID}, nil); err != nil {
+				return err
+			}
 		}
 		if f.set["json"] {
 			if err := printJSON(s); err != nil {
@@ -463,7 +484,9 @@ func run(args []string, host string) error {
 			return err
 		}
 		if f.set["focus"] {
-			c.Call("select", proto.FocusParams{Session: s.ID, Pane: s.Focus}, nil)
+			if err := c.Call("select", proto.FocusParams{Session: s.ID, Pane: s.Focus}, nil); err != nil {
+				return err
+			}
 		}
 		if f.set["json"] {
 			if err := printJSON(s); err != nil {
@@ -736,7 +759,9 @@ func run(args []string, host string) error {
 			return err
 		}
 		if f.set["focus"] {
-			c.Call("select", proto.FocusParams{Session: s.ID}, nil)
+			if err := c.Call("select", proto.FocusParams{Session: s.ID}, nil); err != nil {
+				return err
+			}
 		}
 		if f.set["json"] {
 			return printJSON(s)
@@ -1013,8 +1038,16 @@ func daemonCmd(args []string, host string) error {
 	case "status":
 		svc := service.Get()
 		c, err := client.Connect(true)
+		var connErr error
 		if err != nil {
-			fmt.Println("kerod is not running")
+			// A kerod the CLI cannot talk to fails the command, as a
+			// host's does: a script sees the same exit status either way.
+			if errors.Is(err, client.ErrVersion) {
+				fmt.Println("kerod is running, of another version: `kero daemon restart` runs this one")
+			} else {
+				fmt.Println("kerod is not running")
+			}
+			connErr = exitStatus(4)
 		} else {
 			defer c.Close()
 			running := fmt.Sprintf("kerod %d running (Kero %s, pid %d) for %s", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
@@ -1042,7 +1075,7 @@ func daemonCmd(args []string, host string) error {
 		if l := settings.Load().Listen; len(l) > 0 {
 			fmt.Println("listening:", strings.Join(l, ", "))
 		}
-		return nil
+		return connErr
 	case "stop", "restart":
 		// The service's manager stops and restarts it, but Task
 		// Scheduler, whose kerod stops as any, and starts with the task.
@@ -1137,6 +1170,35 @@ func daemonCmd(args []string, host string) error {
 	return usageErr("unknown daemon command %q", sub)
 }
 
+// remoteDaemonConnect opens the connection to the kerod on the host: a
+// daemon that cannot be talked to is said, and the command fails, as
+// the local one does. The connection is given as a function, so that a
+// test can drive it.
+func remoteDaemonConnect(connect func() (*client.Client, error), host string) (*client.Client, error) {
+	c, err := connect()
+	if err == nil {
+		return c, nil
+	}
+	if errors.Is(err, client.ErrVersion) {
+		return nil, fmt.Errorf("%w: the running kerod is of another version: run `kero -H %s daemon restart` (it restarts sessions)", errUnreachable, host)
+	}
+	return nil, fmt.Errorf("%w: %v", errUnreachable, err)
+}
+
+// remoteDaemonStatus says how the kerod c reached stands: a state it
+// could not read is said, not counted as none — no sessions would tell
+// the user theirs were gone.
+func remoteDaemonStatus(c *client.Client) {
+	running := fmt.Sprintf("kerod %d running (Kero %s, pid %d) for %s", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
+		time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second))
+	var st proto.State
+	if err := c.Call("state", nil, &st); err != nil {
+		fmt.Printf("%s\nits state: %v\n", running, err)
+		return
+	}
+	fmt.Printf("%s: %d sessions\n", running, len(st.Sessions))
+}
+
 // remoteDaemonCmd is kero -H <host> daemon …: how kerod on the host is,
 // and restarting it, or updating Kero there, as the app does.
 func remoteDaemonCmd(sub string, args []string, host string) error {
@@ -1151,16 +1213,12 @@ func remoteDaemonCmd(sub string, args []string, host string) error {
 	case "status":
 		h := rc.Welcome.Host
 		fmt.Printf("%s: %s (%s/%s), Kero %s (protocol %d)\n", host, h.Hostname, h.OS, h.Arch, orDash(h.Kero), h.Version)
-		c, err := client.ConnectVia(rc)
+		c, err := remoteDaemonConnect(func() (*client.Client, error) { return client.ConnectVia(rc) }, host)
 		if err != nil {
-			fmt.Println("kerod:", err)
-			return nil
+			return err
 		}
 		defer c.Close()
-		var st proto.State
-		c.Call("state", nil, &st)
-		fmt.Printf("kerod %d running (Kero %s, pid %d) for %s: %d sessions\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
-			time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second), len(st.Sessions))
+		remoteDaemonStatus(c)
 		return nil
 	case "restart":
 		if err := rc.Host(ctx, proto.HostRequest{Kind: proto.KindRestart}); err != nil {
@@ -1231,7 +1289,7 @@ func conversations(c *client.Client, st proto.State, project, query string) ([]p
 			}
 		}
 		if id == "" {
-			return nil, fmt.Errorf("no project %q", project)
+			return nil, fmt.Errorf("%w: no project %q", errNotFound, project)
 		}
 		list = slices.DeleteFunc(list, func(cv proto.Conversation) bool { return cv.Project != id })
 	}

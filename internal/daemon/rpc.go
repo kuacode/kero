@@ -588,7 +588,7 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		if err := decode(&p); err != nil {
 			return nil, err
 		}
-		return fsStat(p), nil
+		return fsStat(p)
 
 	case "fs.read":
 		var p proto.FSReadParams
@@ -642,22 +642,18 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		return d.clientList(), nil
 
 	case "shutdown":
-		d.mu.Lock()
-		d.ending = true
-		ids := make([]string, 0, len(d.sessions))
-		for _, s := range d.sessions {
-			ids = append(ids, s.id)
-		}
-		d.mu.Unlock()
+		ids := d.beginShutdown()
 		for _, id := range ids {
 			d.removeSession(id)
 		}
-		d.saveState()
-		// The conversations too, as a stop's and a restart's: one
-		// remembered since the last snapshot would otherwise be left
-		// out of conversations.json, and the next kerod's kero history
-		// would not show it.
-		d.saveConversations()
+		d.saveSerialized(func() {
+			d.saveState()
+			// The conversations too, as a stop's and a restart's: one
+			// remembered since the last snapshot would otherwise be left
+			// out of conversations.json, and the next kerod's kero history
+			// would not show it.
+			d.saveConversations()
+		})
 		go func() {
 			time.Sleep(100 * time.Millisecond)
 			d.stop()
