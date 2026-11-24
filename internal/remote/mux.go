@@ -83,8 +83,9 @@ type buffered struct {
 
 // Options are what a client says of itself as it dials.
 type Options struct {
-	App    string // the version of Kero
-	Client string // "Kero 2.1.0 on laptop"
+	App      string // the version of Kero
+	Client   string // "Kero 2.1.0 on laptop"
+	Password string // the SSH password, when the host uses one
 }
 
 // Conn is a remote connection: streams to kerod on a host.
@@ -109,7 +110,7 @@ func Dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 }
 
 func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
-	tr, err := transport(ctx, a, o.Client)
+	tr, err := transport(ctx, a, o.Client, o.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 		return c, err
 	}
 	shells.Store(a.String(), se.shell)
-	if tr, err = transport(ctx, a, o.Client); err == nil {
+	if tr, err = transport(ctx, a, o.Client, o.Password); err == nil {
 		c, err = handshake(ctx, tr, a, o)
 	}
 	if err != nil && !errors.Is(err, ErrNotInstalled) {

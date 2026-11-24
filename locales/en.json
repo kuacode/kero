@@ -598,8 +598,10 @@
   "setProgramStatus": "Program status",
   "setProgramStatusDetail": "Programs report what they do with OSC 7501, Superlogical’s program status protocol: the sidebar shows it, and notifies you.",
   "setConfiguration": "Configuration",
-  "setConfigurationDetail": "Every setting here is a line of this file, as Ghostty’s: edit it in any editor, and what you save applies at once. kero config show lists every key.",
+  "setConfigurationDetail": "Every setting here is in the configuration file, in JSON with comments (JSONC): edit it in any editor, and what you save applies at once. kero config show lists every setting.",
   "setConfigFile": "Config file",
+  "setConfigLocation": "Change location…",
+  "setConfigLocationDetail": "Keep the configuration in a folder you choose, as a dotfiles repository. Restart kero to apply.",
   "setBackgroundService": "Background service",
   "setBackgroundServiceDetail": "kerod runs your sessions: quitting kero leaves it running.",
   "setLog": "Log",
@@ -1198,6 +1200,8 @@
   "hostAddDefault": "default",
   "hostAddWSLPlaceholder": "Ubuntu",
   "setHostAddressPlaceholder": "me@devbox",
+  "setHostPassword": "Password",
+  "setHostPasswordPlaceholder": "••••••",
   "setHostNamePlaceholder": "Name: {name}",
   "@setHostNamePlaceholder": {
     "placeholders": {

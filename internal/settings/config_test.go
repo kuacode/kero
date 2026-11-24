@@ -288,7 +288,8 @@ func TestRemoteUpdatesOptIn(t *testing.T) {
 func TestMigratesSettingsJSON(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("KERO_HOME", dir)
-	t.Setenv("KERO_CONFIG", filepath.Join(dir, "config", "kero", "config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(dir, "config"))
+	t.Setenv("KERO_CONFIG", filepath.Join(dir, "config", "kero", "config.jsonc"))
 	os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"fontSize": 16, "appearance": "dark", "background": "rex"}`), 0o600)
 	mu.Lock()
 	cache = nil
@@ -301,7 +302,7 @@ func TestMigratesSettingsJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), "font-size = 16") || !strings.Contains(string(b), "theme = petal") {
+	if !strings.Contains(string(b), `"fontSize": 16`) {
 		t.Errorf("config:\n%s", b)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "settings.json")); err == nil {
@@ -366,15 +367,19 @@ func TestAdLists(t *testing.T) {
 	}
 }
 
-// A line the file still gets wrong stays a problem after the settings
-// are saved: format keeps the lines kero does not know, so the file is
+// A member the file still gets wrong stays a problem after the settings
+// are saved: mergeJSONC keeps members kero does not know, so the file is
 // still wrong, and a save that said "no problems" would leave it wrong
 // with nothing to show for it — the next Load takes the cache and does
 // not look again.
 func TestSaveKeepsProblems(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "config")
-	if err := os.WriteFile(path, []byte("font-size = 14\nsome-future-key = yes\n"), 0o600); err != nil {
+	path := filepath.Join(dir, "config.jsonc")
+	if err := os.WriteFile(path, []byte(`{
+	// my config
+	"fontSize": 14,
+	"some-future-key": "yes",
+}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("KERO_HOME", dir)
@@ -411,22 +416,25 @@ func TestSaveKeepsProblems(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), "some-future-key") {
+	if !strings.Contains(string(b), `"some-future-key"`) {
 		t.Errorf("the unknown key left the file:\n%s", b)
 	}
-	if !strings.Contains(string(b), "font-size = 15") {
+	if !strings.Contains(string(b), `"fontSize"`) || !strings.Contains(string(b), "15") {
 		t.Errorf("the saved setting is not in the file:\n%s", b)
 	}
 }
 
 func TestSaveKeepsASymlinkedConfig(t *testing.T) {
 	dir := t.TempDir()
-	dotfiles := filepath.Join(dir, "dotfiles", "kero", "config")
+	dotfiles := filepath.Join(dir, "dotfiles", "kero", "config.jsonc")
 	os.MkdirAll(filepath.Dir(dotfiles), 0o755)
-	os.WriteFile(dotfiles, []byte("# mine\nfont-size = 14\n"), 0o600)
-	link := filepath.Join(dir, "config", "kero", "config")
+	os.WriteFile(dotfiles, []byte(`{
+	// mine
+	"fontSize": 14,
+}`), 0o600)
+	link := filepath.Join(dir, "config", "kero", "config.jsonc")
 	os.MkdirAll(filepath.Dir(link), 0o755)
-	if err := os.Symlink("../../dotfiles/kero/config", link); err != nil {
+	if err := os.Symlink("../../dotfiles/kero/config.jsonc", link); err != nil {
 		t.Skip(err) // Windows without the privilege
 	}
 	t.Setenv("KERO_HOME", dir)
@@ -443,7 +451,10 @@ func TestSaveKeepsASymlinkedConfig(t *testing.T) {
 		t.Fatalf("the symlink went: %v %v", st, err)
 	}
 	b, _ := os.ReadFile(dotfiles)
-	if string(b) != "# mine\nfont-size = 16\n" {
+	if !strings.Contains(string(b), "// mine") {
+		t.Errorf("the comment was lost:\n%s", b)
+	}
+	if !strings.Contains(string(b), `"fontSize"`) || !strings.Contains(string(b), "16") {
 		t.Errorf("dotfiles' config:\n%s", b)
 	}
 	if st, _ := os.Stat(dotfiles); st.Mode().Perm() != 0o600 {

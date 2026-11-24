@@ -598,7 +598,7 @@ func (a *App) editHost(h *host) {
 // opening Settings: editHost opens the window, and tests read the page.
 func (a *App) startHostEdit(h *host) {
 	a.ss.page = "hosts"
-	a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, editing: h.name}
+	a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, password: h.cfg.Password, editing: h.name}
 }
 
 // reconnectHost connects to a host again, now, with a new connection.

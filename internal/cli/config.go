@@ -31,7 +31,7 @@ func configCmd(args []string) error {
 		if f.set["defaults"] {
 			s = settings.Default()
 		}
-		fmt.Print(settings.Reference(s))
+		fmt.Print(settings.Show(s))
 		return nil
 	case "check":
 		settings.Load()

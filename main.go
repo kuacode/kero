@@ -31,6 +31,16 @@ import (
 )
 
 func main() {
+	// ssh runs the SSH_ASKPASS program to get the password, with the
+	// prompt on the command line (argv[0] is the prompt, not this
+	// program's name, so do not look at os.Args): the app sets
+	// KERO_SSH_ASKPASS=1 and the password in the environment it hands
+	// ssh's child, and the askpass is only ever called there, so this
+	// comes before any other dispatch.
+	if os.Getenv("KERO_SSH_ASKPASS") == "1" {
+		fmt.Print(os.Getenv("KERO_SSH_PASSWORD"))
+		return
+	}
 	if len(os.Args) > 1 {
 		switch {
 		case os.Args[1] == "__kerod":

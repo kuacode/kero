@@ -22,6 +22,7 @@ import (
 // which edits it.
 type hostDraft struct {
 	name, addr string
+	password   string
 	err        string
 	// editing is the name of the host edited, "" for none.
 	editing string
@@ -227,6 +228,14 @@ func (a *App) hostEditor(c *ui.Context, pal *palette, h *host) {
 				save()
 			}
 		})
+		if h.remote() && h.addr.Scheme == "ssh" {
+			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+				save := func() { a.saveHost(h) }
+				ui.Text(c, locales.SetHostPassword()).FontSize(12.5).TextColor(pal.textMuted)
+				textField(c, "edit-password", &d.password, locales.SetHostPasswordPlaceholder(), 0, pal).
+					Font("monospace").Password().OnSubmit(save)
+			})
+		}
 		if d.err != "" {
 			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger)
 		}
@@ -262,6 +271,7 @@ func (a *App) saveHost(h *host) {
 		return
 	}
 	cfg.Name, cfg.Addr = parsed.Name, parsed.Addr
+	cfg.Password = strings.TrimSpace(d.password)
 	// syncHosts finds the host by its new name, and keeps it while its
 	// address stays.
 	h.name = parsed.Name

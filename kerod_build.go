@@ -35,6 +35,7 @@ var kerodModules = []string{
 	"github.com/hashicorp/yamux",
 	"github.com/go-ole/go-ole",
 	"github.com/shirou/gopsutil/v4",
+	"github.com/tailscale/hujson",
 	"github.com/tklauser/go-sysconf",
 	"github.com/tklauser/numcpus",
 	"github.com/yusufpapurcu/wmi",

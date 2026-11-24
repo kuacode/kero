@@ -381,7 +381,7 @@ func (a *App) connectHost(h *host) {
 		} else {
 			if rc == nil {
 				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				rc, err = remote.Dial(ctx, h.addr, remote.Options{App: mygo.App.Version(), Client: appClientName()})
+				rc, err = remote.Dial(ctx, h.addr, remote.Options{App: mygo.App.Version(), Client: appClientName(), Password: h.cfg.Password})
 				cancel()
 			}
 			if err == nil {

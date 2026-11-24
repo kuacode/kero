@@ -377,7 +377,7 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 					ui.Row(c).Gap(8).Children(func() {
 						user := textField(c, "host-add-user", &d.user, locales.HostAddUserPlaceholder(), 0, pal)
 						user.OnSubmit(func() { a.hostAddSubmit(d) })
-						password := textField(c, "host-add-password", &d.password, locales.HostAddPasswordPlaceholder(), 0, pal)
+						password := textField(c, "host-add-password", &d.password, locales.HostAddPasswordPlaceholder(), 0, pal).Password()
 						password.OnSubmit(func() { a.hostAddSubmit(d) })
 					})
 				})
@@ -758,18 +758,16 @@ func (a *App) hostAddSubmit(d *hostAddDraft) bool {
 	// Settings' own addHost only edits the draft on its page, which is
 	// saved when that page is left. This is the palette's way instead:
 	// the host is written and the devices re-read in one step.
-	//
-	// An SSH address that wants a password or a key passphrase is the next
-	// round's work. The transport runs ssh(1) with SSH_ASKPASS_REQUIRE =
-	// never (internal/remote/transport.go), so there is nothing here to
-	// hand a prompt to; that file, and the helper beside it, are the change.
 	s := a.set.Clone()
+	if d.kind == kindSSH {
+		h.Password = strings.TrimSpace(d.password)
+	}
 	s.Hosts = append(s.Hosts, h)
 	a.applySettings(s)
 
 	d.open = false
 	d.typed[d.kind] = hostAddFields{}
-	d.addr, d.name, d.user, d.port, d.err = "", "", "", "", ""
+	d.addr, d.name, d.user, d.port, d.password, d.err = "", "", "", "", "", ""
 	a.focusTerminal()
 	return true
 }

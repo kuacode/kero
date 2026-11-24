@@ -143,6 +143,9 @@ type Host struct {
 	// Color marks the host's sessions in the sidebar and its panes: one of
 	// HostColors, "" for the one its name picks.
 	Color string `json:"color,omitempty"`
+	// Password is the SSH password, when the host uses one. It is kept in
+	// the configuration file, which is readable by the user alone.
+	Password string `json:"password,omitempty"`
 }
 
 // HostColors are the colors a host takes.
@@ -327,9 +330,27 @@ func Load() Settings {
 		problems = []string{fmt.Sprintf("the configuration could not be read: %v", err)}
 		return Default()
 	}
-	s, probs := parse(string(b))
+	if !looksJSONC(b) {
+		// The older `key = value` format: read it, then write it as JSONC
+		// so the next read is the new one.
+		s, probs := parse(string(b))
+		if err := write(s); err == nil {
+			if st, err := os.Stat(Path()); err == nil {
+				return jsoncLoad(&s, probs, st.ModTime().UnixNano())
+			}
+		}
+		return jsoncLoad(&s, probs, st.ModTime().UnixNano())
+	}
+	s, probs := parseJSONC(b)
 	cache, mtime, problems = &s, st.ModTime().UnixNano(), probs
 	return clone(s)
+}
+
+// jsoncLoad caches settings read from the older format after they were
+// rewritten, so that the next stat finds the new file's time.
+func jsoncLoad(s *Settings, probs []string, mod int64) Settings {
+	cache, mtime, problems = s, mod, probs
+	return clone(*s)
 }
 
 // Problems returns what the file got wrong, as of the last Load: keys
@@ -341,11 +362,19 @@ func Problems() []string {
 	return slices.Clone(problems)
 }
 
-// migrate moves the settings of the JSON file kero kept before into the
-// configuration, once; mu is held.
+// migrate moves a configuration kero kept before JSONC into it, once: the
+// older `key = value` file, else the JSON settings before that. mu is held.
 func migrate() {
 	if _, err := os.Stat(Path()); err == nil {
 		return
+	}
+	if p := legacyConfigPath(); p != Path() {
+		if b, err := os.ReadFile(p); err == nil && strings.TrimSpace(string(b)) != "" && !looksJSONC(b) {
+			if s, _ := parse(string(b)); write(s) == nil {
+				os.Rename(p, p+".migrated")
+				return
+			}
+		}
 	}
 	b, err := os.ReadFile(legacyPath())
 	if err != nil {
@@ -385,7 +414,13 @@ func Save(s Settings) error {
 	// with nothing to show for it, and the next Load takes the cache
 	// and would not look again.
 	if b, err := os.ReadFile(Path()); err == nil {
-		c, probs := parse(string(b))
+		var c Settings
+		var probs []string
+		if looksJSONC(b) {
+			c, probs = parseJSONC(b)
+		} else {
+			c, probs = parse(string(b))
+		}
 		cache, problems = &c, probs
 	} else {
 		c := clone(s)
@@ -408,16 +443,31 @@ func write(s Settings) error {
 		// it never held: the user's own lines would be lost.
 		return err
 	}
-	data := format(s, string(old))
+	data := []byte(nil)
+	if looksJSONC(old) {
+		changes, err := diffJSON(s)
+		if err != nil {
+			return err
+		}
+		data, err = mergeJSONC(old, changes)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		data, err = marshalJSONC(s, true)
+		if err != nil {
+			return err
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	mode := os.FileMode(0o644)
-	if st, err := os.Stat(path); err == nil {
-		mode = st.Mode().Perm()
-	}
+	// The configuration may hold credentials: it is readable by the user
+	// alone, where the OS has such modes.
+	mode := os.FileMode(0o600)
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(data), mode); err != nil {
+	if err := os.WriteFile(tmp, data, mode); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)

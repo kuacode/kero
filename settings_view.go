@@ -1429,6 +1429,11 @@ func (a *App) advancedPage(c *ui.Context, pal *palette) {
 				a.openConfig()
 			}
 		})
+		settingRow(c, pal, locales.SetConfigLocation(), locales.SetConfigLocationDetail(), func() {
+			if button(c, "change-config-location", locales.SetConfigLocation(), "", false, pal) {
+				a.chooseConfigLocation()
+			}
+		})
 		for i, p := range a.ss.problems {
 			ui.Row(c.Key("problem"+strconv.Itoa(i))).Padding(0, 0, 8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention).Shrink(0)
@@ -1501,6 +1506,45 @@ func (a *App) chooseNewSessionDir() {
 			case a.set.NewSessionPath == "":
 				a.set.NewSessionDir = cmp.Or(a.ss.dirBefore, "current")
 			}
+		})
+	}()
+}
+
+// chooseConfigLocation asks for a directory to keep the configuration in,
+// copies the file there, and points kero at it. The pointer takes effect
+// after a restart, since the path is read at startup.
+func (a *App) chooseConfigLocation() {
+	if a.ss.choosingDir {
+		return
+	}
+	a.ss.choosingDir = true
+	win := a.setWin
+	if win == nil {
+		win = a.win
+	}
+	go func() {
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
+			Parent: win, Title: locales.SetConfigLocation(), Directory: true, ButtonLabel: locales.CommonChoose(),
+			Message: locales.SetConfigLocationDetail(),
+		})
+		a.update(func() {
+			a.ss.choosingDir = false
+			if err != nil || len(paths) == 0 {
+				return
+			}
+			dir := paths[0]
+			dst := filepath.Join(dir, "config.jsonc")
+			if src, e := os.ReadFile(settings.Path()); e == nil {
+				if e := os.WriteFile(dst, src, 0o600); e != nil {
+					a.ss.toast = locales.ToastSaveSettingsFailed(e.Error())
+					return
+				}
+			}
+			if err := settings.SetConfigPath(dst); err != nil {
+				a.ss.toast = locales.ToastSaveSettingsFailed(err.Error())
+				return
+			}
+			a.ss.toast = locales.SetConfigLocationDetail()
 		})
 	}()
 }

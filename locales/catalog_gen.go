@@ -4098,11 +4098,11 @@ func (msgs Messages) SetConfiguration() string {
 	return Catalog.Format(msgs.locale, "setConfiguration", nil)
 }
 
-// SetConfigurationDetail says "Every setting here is a line of this file, as Ghostty’s: edit it in any editor, and what you save applies at once. …"
+// SetConfigurationDetail says "Every setting here is in the configuration file, in JSON with comments (JSONC): edit it in any editor, and what you s…"
 // in the language the app shows.
 func SetConfigurationDetail() string { return In(i18n.Locale()).SetConfigurationDetail() }
 
-// SetConfigurationDetail says "Every setting here is a line of this file, as Ghostty’s: edit it in any editor, and what you save applies at once. …"
+// SetConfigurationDetail says "Every setting here is in the configuration file, in JSON with comments (JSONC): edit it in any editor, and what you s…"
 // in the language of msgs.
 func (msgs Messages) SetConfigurationDetail() string {
 	return Catalog.Format(msgs.locale, "setConfigurationDetail", nil)
@@ -4116,6 +4116,26 @@ func SetConfigFile() string { return In(i18n.Locale()).SetConfigFile() }
 // in the language of msgs.
 func (msgs Messages) SetConfigFile() string {
 	return Catalog.Format(msgs.locale, "setConfigFile", nil)
+}
+
+// SetConfigLocation says "Change location…"
+// in the language the app shows.
+func SetConfigLocation() string { return In(i18n.Locale()).SetConfigLocation() }
+
+// SetConfigLocation says "Change location…"
+// in the language of msgs.
+func (msgs Messages) SetConfigLocation() string {
+	return Catalog.Format(msgs.locale, "setConfigLocation", nil)
+}
+
+// SetConfigLocationDetail says "Keep the configuration in a folder you choose, as a dotfiles repository. Restart kero to apply."
+// in the language the app shows.
+func SetConfigLocationDetail() string { return In(i18n.Locale()).SetConfigLocationDetail() }
+
+// SetConfigLocationDetail says "Keep the configuration in a folder you choose, as a dotfiles repository. Restart kero to apply."
+// in the language of msgs.
+func (msgs Messages) SetConfigLocationDetail() string {
+	return Catalog.Format(msgs.locale, "setConfigLocationDetail", nil)
 }
 
 // SetBackgroundService says "Background service"
@@ -6516,6 +6536,26 @@ func SetHostAddressPlaceholder() string { return In(i18n.Locale()).SetHostAddres
 // in the language of msgs.
 func (msgs Messages) SetHostAddressPlaceholder() string {
 	return Catalog.Format(msgs.locale, "setHostAddressPlaceholder", nil)
+}
+
+// SetHostPassword says "Password"
+// in the language the app shows.
+func SetHostPassword() string { return In(i18n.Locale()).SetHostPassword() }
+
+// SetHostPassword says "Password"
+// in the language of msgs.
+func (msgs Messages) SetHostPassword() string {
+	return Catalog.Format(msgs.locale, "setHostPassword", nil)
+}
+
+// SetHostPasswordPlaceholder says "••••••"
+// in the language the app shows.
+func SetHostPasswordPlaceholder() string { return In(i18n.Locale()).SetHostPasswordPlaceholder() }
+
+// SetHostPasswordPlaceholder says "••••••"
+// in the language of msgs.
+func (msgs Messages) SetHostPasswordPlaceholder() string {
+	return Catalog.Format(msgs.locale, "setHostPasswordPlaceholder", nil)
 }
 
 // SetHostNamePlaceholder says "Name: {name}"

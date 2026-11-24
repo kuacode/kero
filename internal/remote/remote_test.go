@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -66,8 +67,27 @@ func TestBridgeCommandQuotes(t *testing.T) {
 	if !strings.HasPrefix(cmd, "sh -c '") || !strings.Contains(cmd, `'\''`) {
 		t.Errorf("%s", cmd)
 	}
-	if args := sshArgs(Addr{Scheme: "ssh", Host: "devbox", User: "me", Port: "2222"}); args[len(args)-3] != "--" || args[len(args)-2] != "devbox" {
+	if args := sshArgs(Addr{Scheme: "ssh", Host: "devbox", User: "me", Port: "2222"}, ""); args[len(args)-3] != "--" || args[len(args)-2] != "devbox" {
 		t.Errorf("ssh %q: the host must follow --", args)
+	}
+	// A password lets ssh ask for it, once, through askpass; without one,
+	// ssh is told never to ask.
+	for _, tt := range []struct {
+		password string
+		mode     string
+		prompts  bool
+	}{
+		{"", "BatchMode=yes", false},
+		{"p@ss", "BatchMode=no", true},
+	} {
+		args := sshArgs(Addr{Scheme: "ssh", Host: "devbox"}, tt.password)
+		if !slices.Contains(args, tt.mode) {
+			t.Errorf("password %q: no %s in %q", tt.password, tt.mode, args)
+		}
+		has := slices.Contains(args, "NumberOfPasswordPrompts=1")
+		if has != tt.prompts {
+			t.Errorf("password %q: password prompts %v", tt.password, has)
+		}
 	}
 	// cmd runs the command of sh as far as it says it has no sh, before
 	// which it would act on its characters.

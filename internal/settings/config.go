@@ -16,25 +16,86 @@ import (
 	"kero/internal/remote"
 )
 
-// kero's configuration is a file of lines `key = value`, as Ghostty's:
-// `#` starts a comment, and keys that hold lists, as env and keybind,
-// repeat. The keys are Ghostty's where they mean what Ghostty's do. A
-// file holds what the user changed; the rest is the defaults. The
-// Settings window edits it in place, keeping its comments and order.
+// kero's configuration is JSON with comments (JSONC), which jsonc.go reads
+// and writes. It was a file of `key = value` lines, as Ghostty's: the `keys`
+// registry and parse and format below still read one, once, to move what the
+// user set into the new file.
 
-// ConfigPath returns the configuration file: $KERO_CONFIG, else
-// $XDG_CONFIG_HOME/kero/config, else ~/.config/kero/config; kero-dev in
-// place of kero for a development build (proto.Name).
+// ConfigPath returns the configuration file: $KERO_CONFIG, else the path the
+// user set (see SetConfigPath), else config.jsonc in kero's directory.
 func ConfigPath() string {
 	if p := os.Getenv("KERO_CONFIG"); p != "" {
 		return p
 	}
+	if p := readConfigPointer(); p != "" {
+		return p
+	}
+	return defaultConfigPath()
+}
+
+// defaultConfigPath is config.jsonc in kero's configuration directory.
+func defaultConfigPath() string {
+	return filepath.Join(configDir(), "config.jsonc")
+}
+
+// configDir is kero's configuration directory: $XDG_CONFIG_HOME/kero, else
+// ~/.config/kero; kero-dev in place of kero for a development build
+// (proto.Name).
+func configDir() string {
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
 		home, _ := os.UserHomeDir()
 		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, proto.Name(), "config")
+	return filepath.Join(base, proto.Name())
+}
+
+// legacyConfigPath is where the configuration lived before it was JSONC: a
+// file of `key = value` lines with no extension.
+func legacyConfigPath() string {
+	return filepath.Join(configDir(), "config")
+}
+
+// configPointer is the file that names the configuration when the user keeps
+// it outside kero's directory: a file cannot name its own path.
+func configPointer() string {
+	return filepath.Join(configDir(), "config-path")
+}
+
+// readConfigPointer returns the location the user set, else "".
+func readConfigPointer() string {
+	b, err := os.ReadFile(configPointer())
+	if err != nil {
+		return ""
+	}
+	p := strings.TrimSpace(string(b))
+	if p == "" {
+		return ""
+	}
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(configDir(), p)
+	}
+	return p
+}
+
+// SetConfigPath keeps the configuration at path from now on, by writing the
+// pointer kero reads; "" goes back to the default. $KERO_CONFIG still wins.
+// Moving the file itself is the caller's: see App.setConfigLocation.
+func SetConfigPath(path string) error {
+	if path == "" {
+		if err := os.Remove(configPointer()); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(configDir(), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(configPointer(), []byte(abs+"\n"), 0o644)
 }
 
 // AgentsPath returns the user's agents file, agents.toml, beside the
@@ -714,22 +775,3 @@ var header = []string{
 	"",
 }
 
-// Reference writes every key with its value in s, and what it does, as
-// `kero config show` prints it.
-func Reference(s Settings) string {
-	var b strings.Builder
-	for _, k := range keys {
-		if k.doc != "" {
-			b.WriteString("# " + k.doc + "\n")
-		}
-		vals := k.get(&s)
-		if len(vals) == 0 {
-			b.WriteString("# " + k.name + " =\n")
-		}
-		for _, v := range vals {
-			b.WriteString(k.name + " = " + quote(v) + "\n")
-		}
-		b.WriteString("\n")
-	}
-	return b.String()
-}

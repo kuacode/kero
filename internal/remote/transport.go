@@ -194,18 +194,30 @@ func bridgeScript(a Addr, via string) string {
 // shellQuote quotes s for a POSIX shell.
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// sshArgs are the arguments of ssh(1) that run the bridge on a host. It
-// never asks anything, as there is no one to answer in the app: a key
-// with a passphrase needs the agent, and a host's key needs trusting in a
-// terminal first. It notices a dead link itself, as the mux does.
-func sshArgs(a Addr) []string {
+// sshArgs are the arguments of ssh(1) that run the bridge on a host. With
+// no password it never asks anything, as there is no one to answer in the
+// app: a key with a passphrase needs the agent, and a host's key needs
+// trusting in a terminal first. With a password it asks once through
+// SSH_ASKPASS (see startBridge). It notices a dead link itself, as the mux
+// does.
+func sshArgs(a Addr, password string) []string {
 	args := []string{"-T",
-		"-o", "BatchMode=yes",
 		"-o", "ConnectTimeout=15",
 		"-o", "ServerAliveInterval=10",
 		"-o", "ServerAliveCountMax=3",
 		"-o", "ExitOnForwardFailure=yes",
 		"-o", "ClearAllForwardings=yes",
+	}
+	if password != "" {
+		// Let ssh ask for the password (through SSH_ASKPASS), once, and
+		// prefer it over a key the agent may offer first.
+		args = append(args,
+			"-o", "BatchMode=no",
+			"-o", "NumberOfPasswordPrompts=1",
+			"-o", "PreferredAuthentications=password,keyboard-interactive",
+		)
+	} else {
+		args = append(args, "-o", "BatchMode=yes")
 	}
 	if a.Port != "" {
 		args = append(args, "-p", a.Port)
@@ -226,10 +238,10 @@ func SSHCommand() string {
 
 // transport opens the byte stream to a host that a remote connection runs
 // over.
-func transport(ctx context.Context, a Addr, client string) (io.ReadWriteCloser, error) {
+func transport(ctx context.Context, a Addr, client, password string) (io.ReadWriteCloser, error) {
 	switch a.Scheme {
 	case "ssh":
-		return startBridge(exec.Command(SSHCommand(), sshArgs(a)...), true)
+		return startBridge(exec.Command(SSHCommand(), sshArgs(a, password)...), true, password)
 	case "wsl":
 		if runtime.GOOS != "windows" {
 			return nil, errors.New("wsl:// addresses are of Windows")
@@ -240,7 +252,7 @@ func transport(ctx context.Context, a Addr, client string) (io.ReadWriteCloser, 
 		}
 		// --exec runs sh itself, not through the distribution's shell.
 		args = append(args, "--exec", "sh", "-c", bridgeScript(a, "wsl"))
-		return startBridge(exec.Command("wsl.exe", args...), false)
+		return startBridge(exec.Command("wsl.exe", args...), false, "")
 	case "http", "https":
 		scheme := "ws"
 		if a.Scheme == "https" {
@@ -298,7 +310,7 @@ type cmdConn struct {
 	err    error // the program's end, once done
 }
 
-func startBridge(cmd *exec.Cmd, ssh bool) (*cmdConn, error) {
+func startBridge(cmd *exec.Cmd, ssh bool, password string) (*cmdConn, error) {
 	c := &cmdConn{cmd: cmd, ssh: ssh, eof: make(chan struct{}), done: make(chan struct{})}
 	hideWindow(cmd)
 	// Never a prompt, as there is no one to answer; wsl.exe's errors in
@@ -307,7 +319,24 @@ func startBridge(cmd *exec.Cmd, ssh bool) (*cmdConn, error) {
 	if ssh {
 		env = sshEnv()
 	}
-	cmd.Env = append(env, "SSH_ASKPASS_REQUIRE=never", "WSL_UTF8=1")
+	if password != "" {
+		// SSH_ASKPASS gives ssh the password, as a program it runs; the
+		// DISPLAY it needs is any non-empty value. SSH_ASKPASS_REQUIRE=force
+		// makes ssh use the askpass even with a terminal (there is none).
+		// The password is in the environment, which only this process and
+		// ssh see.
+		exe, _ := os.Executable()
+		env = append(env,
+			"SSH_ASKPASS="+exe,
+			"SSH_ASKPASS_REQUIRE=force",
+			"DISPLAY=:0",
+			"KERO_SSH_ASKPASS=1",
+			"KERO_SSH_PASSWORD="+password,
+		)
+	} else {
+		env = append(env, "SSH_ASKPASS_REQUIRE=never")
+	}
+	cmd.Env = append(env, "WSL_UTF8=1")
 	// A program that keeps the pipes open after its own end, as a
 	// ProxyCommand's child, holds up nothing.
 	cmd.WaitDelay = 2 * time.Second
