@@ -797,18 +797,18 @@ func (a *App) panesToggle(c *ui.Context, pal *palette, s *proto.Session, expande
 	if expanded {
 		label = locales.SidebarHidePanes()
 	}
-	b := ui.ButtonBase(c.Key("panes")).Height(18).Padding(0, 5).Gap(2).Radius(5).AlignItems(ui.Center).Shrink(0).
-		Background(pal.chip).TextColor(pal.textMuted).Label(label).Tooltip(label)
-	if b.Hovered() {
-		b.TextColor(pal.text)
-	}
+	b := ui.ButtonBase(c.Key("panes")).Height(18).Gap(3).AlignItems(ui.Center).Shrink(0).
+		Label(label).Tooltip(label)
 	if b.Clicked() {
 		id := s.ID
 		a.defer_(func() { a.toggleSessionPanes(id) })
 	}
 	b.Children(func() {
-		ui.Textf(c, "%d", len(s.Panes)).FontSize(11).FontWeight(600).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine()
-		chev := ui.Icon(c, chevronIcon).Size(9, 9)
+		// The number keeps the same plain chip as hosts and projects;
+		// the fold arrow sits beside it, faint, so it reads as a control
+		// rather than as part of the count.
+		countChip(c, pal, len(s.Panes), 0)
+		chev := ui.Icon(c, chevronIcon).Size(9, 9).TextColor(pal.textFaint)
 		chev.Rotate(chev.AnimateTo("turn", 90*b2f(expanded), ui.Snappy))
 	})
 }
