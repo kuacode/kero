@@ -10,6 +10,7 @@ require (
 	github.com/ebitengine/purego v0.11.3
 	github.com/egoist/mygo v0.9.1-0.20261114072636-ec96dbe0c477
 	github.com/hashicorp/yamux v0.1.2
+	github.com/melbahja/goph/v2 v2.0.3
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/tailscale/hujson v0.0.0-20260727124030-b80ff77dac4f
 	golang.org/x/crypto v0.58.0
@@ -23,7 +24,9 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-text/typesetting v0.3.5 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
+	github.com/pkg/sftp v1.13.11 // indirect
 	github.com/power-devops/perfstat v0.0.0-20260805114148-88456608a4f6 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect

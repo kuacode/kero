@@ -11,10 +11,12 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/melbahja/goph/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -210,7 +212,9 @@ func sshAgentSigners() func() ([]ssh.Signer, error) {
 	}
 }
 
-// sshDial opens a Go SSH connection to a, in ctx.
+// sshDial opens a Go SSH connection to a, in ctx. The TCP dial and the
+// protocol handshake are goph's; the config it is given is ours, keeping
+// this app's alias, known_hosts and authentication policy in one place.
 func sshDial(ctx context.Context, a Addr, password string) (*ssh.Client, error) {
 	conf, err := sshClientConfig(a, password)
 	if err != nil {
@@ -220,17 +224,26 @@ func sshDial(ctx context.Context, a Addr, password string) (*ssh.Client, error) 
 	if err != nil {
 		return nil, err
 	}
-	var d net.Dialer
-	c, err := d.DialContext(ctx, "tcp", addr)
+	host, portText, err := net.SplitHostPort(addr)
 	if err != nil {
-		return nil, fmt.Errorf("cannot reach %s: %w", addr, err)
+		return nil, err
 	}
-	sc, chans, reqs, err := ssh.NewClientConn(c, addr, conf)
+	port, err := strconv.ParseUint(portText, 10, 32)
 	if err != nil {
-		c.Close()
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	client := &goph.Client{
+		User: conf.User,
+		Addr: host,
+		Port: uint(port),
+	}
+	if err := goph.Dial(client, conf); err != nil {
 		return nil, mapSSHError(err)
 	}
-	return ssh.NewClient(sc, chans, reqs), nil
+	return client.Client, nil
 }
 
 // mapSSHError tells an authentication or host-key refusal from a failure
