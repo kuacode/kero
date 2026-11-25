@@ -6630,11 +6630,11 @@ func (msgs Messages) HostAddDefault() string {
 	return Catalog.Format(msgs.locale, "hostAddDefault", nil)
 }
 
-// HostAddWSLPlaceholder says "Ubuntu"
+// HostAddWSLPlaceholder says "Select a distro"
 // in the language the app shows.
 func HostAddWSLPlaceholder() string { return In(i18n.Locale()).HostAddWSLPlaceholder() }
 
-// HostAddWSLPlaceholder says "Ubuntu"
+// HostAddWSLPlaceholder says "Select a distro"
 // in the language of msgs.
 func (msgs Messages) HostAddWSLPlaceholder() string {
 	return Catalog.Format(msgs.locale, "hostAddWSLPlaceholder", nil)

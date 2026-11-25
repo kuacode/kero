@@ -417,12 +417,25 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 		var addr, name ui.Element
 		groupRows = 0
 		ui.Column(c).Radius(12).Background(pal.chip).Padding(4, 16).Gap(0).Children(func() {
-			// Name first
-			hostAddFieldRow(c, pal, locales.HostAddFieldName(), func() {
-				name = textField(c, "host-add-name", &d.name,
-					locales.SetHostNamePlaceholder(defaultHostName(strings.TrimSpace(d.addr))), 0, pal)
-				name.OnSubmit(func() { a.hostAddSubmit(d) })
-			})
+			// Name first (SSH, tailnet). WSL 把名称和发行版下拉并排：名称在
+			// 前占满，发行版下拉在后做次字段，和 SSH 行「地址撑满 + 端口固
+			// 定」一个对称。发行版字样写在名称框右边，作为下拉自己的标签。
+			if d.kind == kindWSL {
+				hostAddFieldRow(c, pal, locales.HostAddFieldName(), func() {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						name = textField(c, "host-add-name", &d.name,
+							locales.SetHostNamePlaceholder(defaultHostName(strings.TrimSpace(d.addr))), 0, pal)
+						name.OnSubmit(func() { a.hostAddSubmit(d) })
+						a.hostAddDistroPopup(c, d, pal)
+					})
+				})
+			} else {
+				hostAddFieldRow(c, pal, locales.HostAddFieldName(), func() {
+					name = textField(c, "host-add-name", &d.name,
+						locales.SetHostNamePlaceholder(defaultHostName(strings.TrimSpace(d.addr))), 0, pal)
+					name.OnSubmit(func() { a.hostAddSubmit(d) })
+				})
+			}
 
 			// Target (host) and Port on the same row. SSH and tailnet
 			// (http/https) both take a host and an optional port.
@@ -438,6 +451,19 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 						// Port field on the same row, smaller
 						port := textField(c, "host-add-port", &d.port, locales.HostAddPortPlaceholder(), 0, pal)
 						port.Width(80).OnSubmit(func() { a.hostAddSubmit(d) })
+						// Tab completes the dimmed rest of the nearest match,
+						// and otherwise moves on to the port: the name is the
+						// part that may stay empty, and the rail answers to
+						// the pointer. 绑在这里而非地址框里，让 Tab 在没有候
+						// 选可补时把焦点交给下一个字段，和其他输入框一致。
+						addr.OnShortcut(0, ui.KeyTab, func() {
+							shown := hostAddShown(d)
+							if m := hostAddComplete(hostAddBare(d, d.addr), shown); m != "" {
+								a.hostAddPick(d, addr, name, shown, max(slices.Index(shown, m), 0))
+							} else {
+								port.Focus()
+							}
+						})
 					})
 				})
 			}
@@ -464,14 +490,6 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 							d.showPassword = !d.showPassword
 						})
 					})
-				})
-			}
-
-			if d.kind == kindWSL {
-				// WSL 的发行版从下拉框里选：列出 wsl.exe 检测到的发行版，
-				// 选中即把地址填成 wsl://<发行版>（提交时由 hostAddAddrOf 补齐）。
-				hostAddFieldRow(c, pal, locales.HostAddFieldWSL(), func() {
-					a.hostAddDistroPopup(c, d, pal)
 				})
 			}
 
@@ -541,28 +559,14 @@ func hostAddFieldRow(c *ui.Context, pal *palette, label string, control func()) 
 	})
 }
 
-// wslCommonDistros are offered alongside the ones wsl.exe actually reports,
-// so a machine that only lists Ubuntu can still add a Debian or Fedora host
-// that is installed but not detected, or one to be installed later.
-var wslCommonDistros = []string{
-	"Ubuntu", "Debian", "Fedora", "kali-linux", "openSUSE", "Arch", "Alpine",
-	"Ubuntu-22.04", "Ubuntu-24.04", "Debian-12",
-}
-
 // hostAddDistroPopup is WSL's distribution picker: a drop-down of the
-// distributions wsl.exe reported plus the common ones, its choice landing
-// in d.addr as the bare distro name. hostAddAddrOf turns that into
+// distributions wsl.exe reported as installed, its choice landing in
+// d.addr as the bare distro name. hostAddAddrOf turns that into
 // wsl://<distro> at submit. A host edits with its own distribution shown
 // even once it is not (or no longer) installed, so the current value is
 // kept in the options.
 func (a *App) hostAddDistroPopup(c *ui.Context, d *hostAddDraft, pal *palette) {
-	// Detected distributions lead; the common ones follow, deduplicated.
 	opts := slices.Clone(d.shown[kindWSL])
-	for _, name := range wslCommonDistros {
-		if !slices.Contains(opts, name) {
-			opts = append(opts, name)
-		}
-	}
 	if d.addr != "" && !slices.Contains(opts, d.addr) {
 		opts = append(opts, d.addr)
 	}
@@ -571,11 +575,14 @@ func (a *App) hostAddDistroPopup(c *ui.Context, d *hostAddDraft, pal *palette) {
 	}
 	label := func(s string) string {
 		if s == "" {
+			if d.looking[kindWSL] {
+				return "…"
+			}
 			return locales.HostAddWSLPlaceholder()
 		}
 		return s
 	}
-	popup(c, "host-add-wsl", &d.addr, opts, label, 220, pal).Grow(1)
+	popup(c, "host-add-wsl", &d.addr, opts, label, 200, pal)
 }
 
 // hostAddAddrField is the field the whole dialog turns on: it filters the
@@ -622,15 +629,6 @@ func (a *App) hostAddAddrField(c *ui.Context, d *hostAddDraft, pal *palette, nam
 		a.hostAddPick(d, addr, name, shown, hostAddNext(d, len(shown), -1))
 	})
 
-	// Tab completes the dimmed rest of the nearest match instead of
-	// moving on: the name is the part that may stay empty, and the rail
-	// answers to the pointer.
-	addr.OnShortcut(0, ui.KeyTab, func() {
-		shown := hostAddShown(d)
-		if m := hostAddComplete(hostAddBare(d, d.addr), shown); m != "" {
-			a.hostAddPick(d, addr, name, shown, max(slices.Index(shown, m), 0))
-		}
-	})
 	return addr
 }
 
@@ -885,6 +883,16 @@ func (a *App) hostAddFound(k hostKind, gen uint64, names []string, ds []remote.D
 			d.sshN, d.sshAt = len(names), time.Now()
 		case kindWSL:
 			d.wslN, d.wslAt, d.distros = len(names), time.Now(), ds
+			// 学 dock badge popup：值永远是有效选项。扫描完成后若还没有
+			// 地址，自动选上默认发行版，popup trigger 直接显示真实名称。
+			if d.addr == "" {
+				for _, ds := range d.distros {
+					if ds.Default {
+						d.addr = ds.Name
+						break
+					}
+				}
+			}
 		}
 		if !d.open || d.kind != k {
 			return // the badge is set; the rows come when it is looked at

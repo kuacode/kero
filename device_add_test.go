@@ -82,10 +82,8 @@ func TestDeviceAddWslDropdown(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 
-	// WSL 用"发行版"下拉框，不再有"远程地址"输入框和候选行。
-	if !tt.HasText(locales.HostAddFieldWSL()) {
-		t.Errorf("the Distribution field is missing: %v", tt.Texts())
-	}
+	// WSL 用发行版下拉框（触发器显示占位文案，无独立"发行版"标签），
+	// 不再有"远程地址"输入框和候选行。
 	if tt.HasText(locales.HostAddFieldRemote()) {
 		t.Errorf("the WSL form still shows a Remote address field: %v", tt.Texts())
 	}

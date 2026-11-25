@@ -80,9 +80,6 @@ func ParseWslList(out []byte) ([]Distro, error) {
 	return got, nil
 }
 
-// decodeWslOutput turns what wsl.exe wrote into Go text: UTF-16LE behind
-// a BOM, UTF-8 behind one, or plain bytes from a build that wrote the
-// console's own code page.
 func decodeWslOutput(out []byte) string {
 	if len(out) >= 2 && binary.LittleEndian.Uint16(out) == 0xfeff {
 		return decodeUTF16LE(out[2:])
@@ -90,10 +87,36 @@ func decodeWslOutput(out []byte) string {
 	if len(out) >= 3 && out[0] == 0xef && out[1] == 0xbb && out[2] == 0xbf {
 		return string(out[3:])
 	}
-	// No BOM. wsl.exe writes UTF-16LE when its output is a pipe, which is
-	// the case Distros sees, but an older build wrote the console's own
-	// code page: readable bytes, so take them as they are.
+	// No BOM. wsl.exe writes UTF-16LE when its output is a pipe, and some
+	// builds skip the BOM entirely, so probe the bytes: a stream that reads
+	// as ASCII in its low bytes and is even in length is UTF-16LE, not the
+	// console's code page.
+	if len(out) >= 2 && len(out)%2 == 0 && looksUTF16LEASCII(out) {
+		return decodeUTF16LE(out)
+	}
+	// An older build wrote the console's own code page: readable bytes, so
+	// take them as they are.
 	return string(out)
+}
+
+// looksUTF16LEASCII reports whether out reads as UTF-16LE code units whose
+// every character is plain ASCII (high byte 0, low byte printable or
+// whitespace). wsl.exe -l -v only ever lists names, states and versions,
+// all ASCII, so this is a safe way to spot the BOM-less UTF-16LE that some
+// builds write to a pipe.
+func looksUTF16LEASCII(out []byte) bool {
+	for i := 0; i+1 < len(out); i += 2 {
+		if out[i+1] != 0 {
+			return false
+		}
+		c := out[i]
+		if c != '\r' && c != '\n' && c != '\t' && c != ' ' && c != '*' &&
+			!(c >= '0' && c <= '9') && !(c >= 'A' && c <= 'Z') &&
+			!(c >= 'a' && c <= 'z') && c != '-' && c != '_' && c != '.' {
+			return false
+		}
+	}
+	return true
 }
 
 // decodeUTF16LE reads the bytes as UTF-16LE code units, dropping a byte

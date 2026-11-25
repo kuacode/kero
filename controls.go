@@ -52,6 +52,7 @@ func popupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *pale
 	trig.Background(trig.AnimateColor("bg", bg, anim))
 	trig.Children(func() {
 		ui.Text(c, text).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Spacer(c)
 		d := ui.Box(c.Key("disc")).Size(22, 22).Radius(11).Center().Shrink(0)
 		d.Background(d.AnimateColor("bg", disc, anim)).Children(func() {
 			ui.Icon(c, updownIcon).Size(16, 16).TextColor(pal.text.Alpha(0.85))
