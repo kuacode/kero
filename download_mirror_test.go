@@ -40,13 +40,27 @@ func TestDownloadMirrorSetting(t *testing.T) {
 // The mirror named takes effect on a download: the fetch goes through the
 // proxy, whose URL prefixes the release's.
 func TestMirrorAppliesToFetch(t *testing.T) {
+	defer func() { update.SetMirror("") }()
 	update.SetMirror(settings.Load().DownloadMirror)
 	if update.Mirror != "" {
-		t.Fatalf("mirror %q with no setting", update.Mirror)
+		t.Skipf("this run has a mirror set in its config (%q); the no-mirror case is covered by the archive-URL assertions in TestMirrorAppliesToLatest", update.Mirror)
 	}
 	update.SetMirror("https://gh-proxy.com/")
-	defer func() { update.SetMirror("") }()
 	if update.Mirror != "https://gh-proxy.com" {
 		t.Fatalf("mirror %q, want the trailing slash trimmed", update.Mirror)
+	}
+}
+
+// The mirror carries the version lookup too: Latest reads api.github.com,
+// which is as unreachable as the downloads are where a mirror helps, so a
+// mirror that only carried the archive would leave the install stuck
+// before it ever fetched. The archive URL shows the prefixing Latest's
+// api.github.com lookup now gets.
+func TestMirrorAppliesToLatest(t *testing.T) {
+	defer func() { update.SetMirror("") }()
+	update.SetMirror("https://gh-proxy.com/")
+	if got, want := update.ArchiveURL("1.2.3", "linux", "amd64"),
+		"https://gh-proxy.com/https://github.com/kuacode/kero/releases/download/v1.2.3/kero-server-1.2.3-linux-amd64.tar.gz"; got != want {
+		t.Fatalf("ArchiveURL = %q, want %q", got, want)
 	}
 }

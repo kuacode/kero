@@ -269,7 +269,7 @@
   "setShowSystemLoad": "ホストのシステム負荷を表示",
   "setShowSystemLoadDetail": "ホストのヘッダーに、そのデーモンが報告する CPU とメモリの負荷を表示します。",
   "setDownloadMirror": "ダウンロードミラー",
-  "setDownloadMirrorDetail": "GitHub Releases のプロキシ（gh-proxy.com など）経由でリリースを取得します。プロキシの URL を入力してください。",
+  "setDownloadMirrorDetail": "GitHub Releases のプロキシ（gh-proxy.com など）経由でリリースと最新バージョンを取得します。プロキシの URL を入力してください。",
   "setLocalDownload": "このマシンでダウンロードしてアップロード",
   "setLocalDownloadDetail": "リモートホストの Kero アーカイブをアプリがミラー経由で（レジュームと再試行付き）取得してホストへ送ります。ホストが自分の接続でダウンロードする代わりに。",
   "setFocusFollowsMouse": "マウスでフォーカスを移動",

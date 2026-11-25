@@ -115,9 +115,12 @@ func get(ctx context.Context, url string, max int64) ([]byte, error) {
 	return b, nil
 }
 
-// Latest is the version of Kero's latest release.
+// Latest is the version of Kero's latest release. The version lookup goes
+// through the mirror too: api.github.com is as unreachable as the release
+// downloads are where a mirror helps, so a mirror set for the archive has
+// to carry the version lookup or the install never gets that far.
 func Latest(ctx context.Context) (string, error) {
-	b, err := get(ctx, "https://api.github.com/repos/"+Repo+"/releases/latest", 1<<20)
+	b, err := get(ctx, mirrored("https://api.github.com/repos/"+Repo+"/releases/latest"), 1<<20)
 	if err != nil {
 		return "", err
 	}

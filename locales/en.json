@@ -431,7 +431,7 @@
   "setShowSystemLoad": "Show host system load",
   "setShowSystemLoadDetail": "A host's header shows its CPU and memory load, as its daemon reports them.",
   "setDownloadMirror": "Download mirror",
-  "setDownloadMirrorDetail": "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL.",
+  "setDownloadMirrorDetail": "Fetch releases and the latest version through a proxy of the GitHub releases (as gh-proxy.com): fill in the proxy's address.",
   "setLocalDownload": "Download on this machine, then upload",
   "setLocalDownloadDetail": "This app fetches a remote host's Kero archive through the mirror, with resume and retries, and sends it to the host, instead of the host downloading it over its own connection.",
   "setFocusFollowsMouse": "Focus follows mouse",

@@ -22,7 +22,9 @@ var Mirror string
 
 // SetMirror takes a proxy of the releases (gh-proxy.com and the like) as
 // the user's settings name one, trimming any trailing slash. An empty
-// value turns the mirror off.
+// value turns the mirror off. The mirror carries both the release
+// downloads and the version lookup (api.github.com), since where one is
+// unreachable the other usually is too.
 func SetMirror(mirror string) { Mirror = strings.TrimRight(strings.TrimSpace(mirror), "/") }
 
 // mirrored is a release URL through the mirror, else itself: a proxy of

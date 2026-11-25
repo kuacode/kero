@@ -269,7 +269,7 @@
   "setShowSystemLoad": "显示主机系统负载",
   "setShowSystemLoadDetail": "在主机的标题头中显示其 CPU 和内存负载，由该主机的守护进程上报。",
   "setDownloadMirror": "下载镜像",
-  "setDownloadMirrorDetail": "通过 GitHub Releases 的代理（如 gh-proxy.com）获取发布文件，填写该代理的地址。",
+  "setDownloadMirrorDetail": "通过 GitHub Releases 的代理（如 gh-proxy.com）获取发布文件和最新版本号，填写该代理的地址。",
   "setLocalDownload": "在本机下载后上传",
   "setLocalDownloadDetail": "由本应用通过代理（支持断点续传和重试）获取远程主机的 Kero 归档再上传给主机，而不是由主机通过其自身连接下载。",
   "setFocusFollowsMouse": "焦点跟随鼠标",
