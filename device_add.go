@@ -241,6 +241,8 @@ func (a *App) openHostEditOn(h *host, inSettings bool) {
 	d.store()
 	d.err = ""
 	d.armed, d.hi, d.reveal = "", 0, false
+	// 编辑 WSL 主机时，下拉框需要已检测到的发行版列表，触发一次扫描。
+	a.hostAddPull()
 }
 
 // kindsShown lists the rail. WSL is Windows' own, and its row is not a
@@ -448,10 +450,10 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			}
 
 			if d.kind == kindWSL {
-				// WSL 的远程地址字段：承载发行版查找器，选择后同时填入名称。
-				hostAddFieldRow(c, pal, locales.HostAddFieldRemote(), func() {
-					addr = a.hostAddAddrField(c, d, pal, name)
-					addr.OnSubmit(func() { a.hostAddSubmit(d) })
+				// WSL 的发行版从下拉框里选：列出 wsl.exe 检测到的发行版，
+				// 选中即把地址填成 wsl://<发行版>（提交时由 hostAddAddrOf 补齐）。
+				hostAddFieldRow(c, pal, locales.HostAddFieldWSL(), func() {
+					a.hostAddDistroPopup(c, d, pal)
 				})
 			}
 
@@ -465,7 +467,8 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			}
 		})
 
-		if hostAddWants(d.kind) {
+		// WSL 的发行版用下拉框选，不再在地址框下画候选行。
+		if d.kind != kindWSL && hostAddWants(d.kind) {
 			hostAddCandidates(c, d, pal, addr, name)
 		}
 
@@ -518,6 +521,28 @@ func hostAddFieldRow(c *ui.Context, pal *palette, label string, control func()) 
 		ui.Text(c, label).FontSize(12).FontWeight(600).TextColor(pal.textMuted).SingleLine()
 		control()
 	})
+}
+
+// hostAddDistroPopup is WSL's distribution picker: a drop-down of the
+// distributions wsl.exe reported, its choice landing in d.addr as the bare
+// distro name. hostAddAddrOf turns that into wsl://<distro> at submit. A
+// host edits with its own distribution shown even once it is not (or no
+// longer) installed, so the current value is kept in the options.
+func (a *App) hostAddDistroPopup(c *ui.Context, d *hostAddDraft, pal *palette) {
+	opts := slices.Clone(d.shown[kindWSL])
+	if d.addr != "" && !slices.Contains(opts, d.addr) {
+		opts = append(opts, d.addr)
+	}
+	if len(opts) == 0 {
+		opts = []string{""}
+	}
+	label := func(s string) string {
+		if s == "" {
+			return locales.HostAddWSLPlaceholder()
+		}
+		return s
+	}
+	popup(c, "host-add-wsl", &d.addr, opts, label, 220, pal).Grow(1)
 }
 
 // hostAddAddrField is the field the whole dialog turns on: it filters the

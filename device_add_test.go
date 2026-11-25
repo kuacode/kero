@@ -73,67 +73,46 @@ func TestDeviceAddWslPrefix(t *testing.T) {
 	}
 }
 
-// 选择 WSL 发行版时，名称与远程地址必须同时填入，且键盘连续浏览时两者
-// 保持同步。点击与键盘两条路径都验证。
-func TestDeviceAddWslPickFillsBothFields(t *testing.T) {
-	// 键盘路径：Down 逐行选择，名称和地址一起变。
-	t.Run("keyboard", func(t *testing.T) {
-		a := testApp(t)
-		d := &a.hostAdd
-		addDraftFor(d, kindWSL, "Ubuntu", "Debian")
-		d.distros = []remote.Distro{{Name: "Ubuntu", Default: true}, {Name: "Debian"}}
-		tt := ui.NewTester(a.view, 1100, 700)
-		tt.Frame()
+// WSL 的发行版从下拉框里选：表单显示"发行版"标签，选中后地址填成裸发行版名，
+// 提交得到 wsl://<发行版>，名称由地址推导。
+func TestDeviceAddWslDropdown(t *testing.T) {
+	a := testApp(t)
+	d := &a.hostAdd
+	addDraftFor(d, kindWSL, "Debian", "Fedora")
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
 
-		// WSL 表单同时有“名称”和“远程地址”两个字段的标签。
-		if !tt.HasText(locales.HostAddFieldName()) {
-			t.Errorf("the Name field is missing: %v", tt.Texts())
-		}
-		if !tt.HasText(locales.HostAddFieldRemote()) {
-			t.Errorf("the Remote address field is missing: %v", tt.Texts())
-		}
+	// WSL 用"发行版"下拉框，不再有"远程地址"输入框和候选行。
+	if !tt.HasText(locales.HostAddFieldWSL()) {
+		t.Errorf("the Distribution field is missing: %v", tt.Texts())
+	}
+	if tt.HasText(locales.HostAddFieldRemote()) {
+		t.Errorf("the WSL form still shows a Remote address field: %v", tt.Texts())
+	}
 
-		tt.Key(0, ui.KeyDown)
-		tt.Frame()
-		if d.addr != "wsl://Ubuntu" || d.name != "Ubuntu" {
-			t.Errorf("Down left addr %q, name %q, want wsl://Ubuntu and Ubuntu", d.addr, d.name)
-		}
-		tt.Key(0, ui.KeyDown)
-		tt.Frame()
-		if d.addr != "wsl://Debian" || d.name != "Debian" {
-			t.Errorf("second Down left addr %q, name %q, want wsl://Debian and Debian", d.addr, d.name)
-		}
-		tt.Key(0, ui.KeyUp)
-		tt.Frame()
-		if d.addr != "wsl://Ubuntu" || d.name != "Ubuntu" {
-			t.Errorf("Up left addr %q, name %q, want wsl://Ubuntu and Ubuntu", d.addr, d.name)
-		}
-	})
+	// 点击下拉框，菜单列出检测到的发行版；键盘选第一个。
+	r, ok := tt.Find(locales.HostAddWSLPlaceholder())
+	if !ok {
+		t.Fatalf("no distribution popup; texts %q", tt.Texts())
+	}
+	tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if !tt.HasText("Debian") || !tt.HasText("Fedora") {
+		t.Fatalf("the distro menu did not open; texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyDown)
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if d.addr != "Debian" {
+		t.Errorf("popup left addr %q, want Debian", d.addr)
+	}
 
-	// 点击路径：点击候选行同样同时填入两者，提交后得到 wsl:// 地址。
-	t.Run("click", func(t *testing.T) {
-		a := testApp(t)
-		d := &a.hostAdd
-		addDraftFor(d, kindWSL, "Ubuntu", "Debian")
-		d.distros = []remote.Distro{{Name: "Ubuntu", Default: true}, {Name: "Debian"}}
-		tt := ui.NewTester(a.view, 1100, 700)
-		tt.Frame()
-
-		// Debian 只在候选行里出现，点它不会误中字段或提示文案。
-		if err := tt.Click("Debian"); err != nil {
-			t.Fatalf("clicking the Debian row: %v", err)
-		}
-		tt.Frame()
-		if d.addr != "wsl://Debian" || d.name != "Debian" {
-			t.Errorf("click left addr %q, name %q, want wsl://Debian and Debian", d.addr, d.name)
-		}
-		if !a.hostAddSubmit(d) {
-			t.Fatalf("wsl submit failed: %s", d.err)
-		}
-		if w := a.set.Host("Debian"); w == nil || w.Addr != "wsl://Debian" {
-			t.Errorf("Debian reads as %+v", w)
-		}
-	})
+	if !a.hostAddSubmit(d) {
+		t.Fatalf("wsl submit failed: %s", d.err)
+	}
+	if w := a.set.Host("Debian"); w == nil || w.Addr != "wsl://Debian" {
+		t.Errorf("Debian reads as %+v", w)
+	}
 }
 
 func TestDeviceAddSubmit(t *testing.T) {

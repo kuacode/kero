@@ -327,7 +327,11 @@ func (a *App) deviceSummary() string {
 // state: online, or why it is not.
 func (a *App) deviceSubtitle(h *host) string {
 	if h.remote() {
-		return h.addr.Scheme + " " + h.addr.Host + " · " + a.deviceStatus(h)
+		addr := h.addr.Scheme + " " + h.addr.Host
+		if h.addr.Scheme == "wsl" {
+			addr = "wsl://" + h.addr.Host
+		}
+		return addr + " · " + a.deviceStatus(h)
 	}
 	return a.hostName(h) + " · " + a.deviceStatus(h)
 }

@@ -211,6 +211,15 @@ func (a *App) hostMeta(h *host) string {
 		return locales.HostThisComputer()
 	}
 	meta := h.addr.Scheme + " " + h.addr.Host
+	// WSL 的地址是 wsl://<发行版>，完整显示比 "wsl Ubuntu" 更清楚；
+	// 发行版名已经是地址本身，不再重复后缀，只补操作系统。
+	if h.addr.Scheme == "wsl" {
+		meta = "wsl://" + h.addr.Host
+		if h.info.OS != "" {
+			meta += " · " + h.info.OS
+		}
+		return meta
+	}
 	if h.info.Distro != "" {
 		meta += " · " + h.info.Distro
 	} else if h.info.OS != "" {
@@ -391,6 +400,9 @@ func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 		if b.Clicked() {
 			a.offerHostRestart(h)
 		}
+	case h.conn == connReady:
+		// 已连接且无需更新：用一个绿点注明在线状态，悬停显示 Connected。
+		a.hostDot(c, pal, pal.good, locales.HostStateOnline())
 	}
 }
 
