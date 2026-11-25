@@ -5782,11 +5782,11 @@ func (msgs Messages) HostRefused(host string) string {
 	return Catalog.Format(msgs.locale, "hostRefused", map[string]any{"host": host})
 }
 
-// HostAuthHint says "Kero signs in with your SSH keys and agent, and never asks for a password. To trust a host's key, run ssh {address} o…"
+// HostAuthHint says "Kero signs in with your SSH keys and agent, or the password you set on the host. To trust a host's key, run ssh {addr…"
 // in the language the app shows.
 func HostAuthHint(address string) string { return In(i18n.Locale()).HostAuthHint(address) }
 
-// HostAuthHint says "Kero signs in with your SSH keys and agent, and never asks for a password. To trust a host's key, run ssh {address} o…"
+// HostAuthHint says "Kero signs in with your SSH keys and agent, or the password you set on the host. To trust a host's key, run ssh {addr…"
 // in the language of msgs.
 func (msgs Messages) HostAuthHint(address string) string {
 	return Catalog.Format(msgs.locale, "hostAuthHint", map[string]any{"address": address})

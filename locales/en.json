@@ -828,7 +828,7 @@
       }
     }
   },
-  "hostAuthHint": "Kero signs in with your SSH keys and agent, and never asks for a password. To trust a host's key, run ssh {address} once in a terminal.",
+  "hostAuthHint": "Kero signs in with your SSH keys and agent, or the password you set on the host. To trust a host's key, run ssh {address} once in a terminal.",
   "@hostAuthHint": {
     "placeholders": {
       "address": {

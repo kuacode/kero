@@ -31,16 +31,6 @@ import (
 )
 
 func main() {
-	// ssh runs the SSH_ASKPASS program to get the password, with the
-	// prompt on the command line (argv[0] is the prompt, not this
-	// program's name, so do not look at os.Args): the app sets
-	// KERO_SSH_ASKPASS=1 and the password in the environment it hands
-	// ssh's child, and the askpass is only ever called there, so this
-	// comes before any other dispatch.
-	if pw, ok := askpassValue(); ok {
-		fmt.Print(pw)
-		return
-	}
 	if len(os.Args) > 1 {
 		switch {
 		case os.Args[1] == "__kerod":
@@ -74,17 +64,6 @@ func main() {
 		}
 	}
 	runApp()
-}
-
-// askpassValue is the password ssh asks us for when it runs this executable
-// as SSH_ASKPASS. The second result says whether we are in askpass mode at
-// all; ssh passes the prompt as argv[0], so the mode is told only by the
-// environment, never by the arguments.
-func askpassValue() (string, bool) {
-	if os.Getenv("KERO_SSH_ASKPASS") == "1" {
-		return os.Getenv("KERO_SSH_PASSWORD"), true
-	}
-	return "", false
 }
 
 func runApp() {
@@ -183,8 +162,8 @@ func (a *App) openWindow() {
 		MinHeight: 360,
 		// 不记录窗口状态
 		// StateKey:  "main",
-		Vibrancy:  vibrancyFor(a.set),
-		Content:   ui.View(a.view),
+		Vibrancy: vibrancyFor(a.set),
+		Content:  ui.View(a.view),
 	}))
 	a.winOpen = true
 	a.updateTitle()

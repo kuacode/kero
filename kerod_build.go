@@ -39,6 +39,7 @@ var kerodModules = []string{
 	"github.com/tklauser/go-sysconf",
 	"github.com/tklauser/numcpus",
 	"github.com/yusufpapurcu/wmi",
+	"golang.org/x/crypto",
 	"golang.org/x/image",
 	"golang.org/x/net",
 	"golang.org/x/sys",

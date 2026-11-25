@@ -1,9 +1,8 @@
 package remote
 
 import (
-	"errors"
-	"os"
-	"path/filepath"
+	"context"
+	"io"
 	"strings"
 	"testing"
 )
@@ -14,19 +13,14 @@ import (
 // command's standard input carries it. The host still fetches the
 // install script, which no release embeds.
 func TestInstallArchiveCommand(t *testing.T) {
-	t.Setenv("KERO_SSH", exe(t))
-	log := filepath.Join(t.TempDir(), "ssh.log")
-	t.Setenv("KERO_TEST_SHELL", "sh")
-	t.Setenv("KERO_TEST_SSH_LOG", log)
-
 	a := Addr{Scheme: "ssh", Host: "devbox"}
-	cmd, err := InstallArchiveCommand(a, "2.1.0", true)
+	cmd, err := InstallArchiveCommand(a, "2.1.0", true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := cmd.Args[len(cmd.Args)-1]
 	// The script streams the archive on standard input, writes it to a
 	// temp file, and installs with install-server.sh --archive FILE.
+	last := cmd.command
 	if !strings.Contains(last, "cat >") || !strings.Contains(last, "--archive ") || !strings.Contains(last, "--version ") || !strings.Contains(last, "2.1.0") {
 		t.Errorf("install does not stream an archive: %s", last)
 	}
@@ -36,7 +30,7 @@ func TestInstallArchiveCommand(t *testing.T) {
 		t.Errorf("the host still downloads the archive: %s", last)
 	}
 	// A version that is none is refused before a command is made.
-	if _, err := InstallArchiveCommand(a, "../../x", true); err == nil {
+	if _, err := InstallArchiveCommand(a, "../../x", true, ""); err == nil {
 		t.Error("took a version that is none")
 	}
 }
@@ -45,17 +39,12 @@ func TestInstallArchiveCommand(t *testing.T) {
 // SSH, which has no archive of the app's, installs with the script's
 // download, as it did.
 func TestInstallArchiveCommandWindows(t *testing.T) {
-	t.Setenv("KERO_SSH", exe(t))
-	log := filepath.Join(t.TempDir(), "ssh.log")
-	t.Setenv("KERO_TEST_SHELL", "powershell")
-	t.Setenv("KERO_TEST_SSH_LOG", log)
-
-	a := Addr{Scheme: "ssh", Host: "devbox"}
-	// The connection a dial finds tells the host runs Windows.
-	if _, err := Dial(t.Context(), a, Options{}); !errors.Is(err, ErrNotInstalled) {
-		t.Fatalf("dial: %v", err)
-	}
-	if _, err := InstallArchiveCommand(a, "2.1.0", true); err == nil {
+	a := Addr{Scheme: "ssh", Host: "devbox-win"}
+	// A connection found its shell to be one of Windows: mark the host as
+	// it would, without dialing a real SSH server.
+	shells.Store(a.String(), shellCmd)
+	t.Cleanup(func() { shells.Delete(a.String()) })
+	if _, err := InstallArchiveCommand(a, "2.1.0", true, ""); err == nil {
 		t.Error("a Windows host takes an archive of the app's")
 	}
 }
@@ -81,16 +70,6 @@ func TestWslInstallArchiveArgs(t *testing.T) {
 	if bare[0] != "--exec" {
 		t.Errorf("a default distro still passed -d: %q", bare)
 	}
-}
-
-// exe is the test's executable, the ssh the tests fake.
-func exe(t *testing.T) string {
-	t.Helper()
-	exe, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return exe
 }
 
 // TestParsePlatform tests that uname's answer maps to the goos and goarch
@@ -127,15 +106,18 @@ func TestParsePlatform(t *testing.T) {
 }
 
 // TestPlatform tests that a host reached over SSH tells its platform with
-// uname, through the test's fake ssh.
+// uname, through the in-process SSH seam.
 func TestPlatform(t *testing.T) {
-	t.Setenv("KERO_SSH", exe(t))
-	log := filepath.Join(t.TempDir(), "ssh.log")
-	t.Setenv("KERO_TEST_SHELL", "sh")
-	t.Setenv("KERO_TEST_SSH_LOG", log)
-
+	old := sshExecFn
+	t.Cleanup(func() { sshExecFn = old })
 	a := Addr{Scheme: "ssh", Host: "devbox"}
-	goos, goarch, err := Platform(a, true)
+	sshExecFn = func(_ context.Context, got Addr, password, command string, _ io.Reader, _, _ io.Writer) ([]byte, []byte, error) {
+		if got != a || password != "pw" || !strings.Contains(command, "uname -s") {
+			t.Errorf("probed %s with %q, %q", got, password, command)
+		}
+		return []byte("Linux\nx86_64\n"), nil, nil
+	}
+	goos, goarch, err := Platform(a, true, "pw")
 	if err != nil {
 		t.Fatal(err)
 	}

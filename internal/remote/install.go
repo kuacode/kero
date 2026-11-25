@@ -1,44 +1,88 @@
 package remote
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"unicode/utf16"
 
+	"golang.org/x/crypto/ssh"
 	"kero/internal/shell"
 	"kero/internal/update"
 )
+
+// remoteCmd is an install or probe command the app runs. Its ssh form is
+// carried out in-process (see gossh.go); its wsl form runs wsl.exe. It
+// exposes the fields callers set (Stdin, Stdout, Stderr) and the Run /
+// Output / CombinedOutput they use, so neither needs to know the transport.
+type remoteCmd struct {
+	addr     Addr
+	password string
+	command  string // ssh: the remote command; wsl: unused
+	exec     *exec.Cmd
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+func (c *remoteCmd) run() error {
+	if c.exec != nil {
+		c.exec.Stdin, c.exec.Stdout, c.exec.Stderr = c.Stdin, c.Stdout, c.Stderr
+		return c.exec.Run()
+	}
+	_, _, err := sshExecFn(context.Background(), c.addr, c.password, c.command, c.Stdin, c.Stdout, c.Stderr)
+	return err
+}
+
+func (c *remoteCmd) Run() error { return c.run() }
+
+func (c *remoteCmd) Output() ([]byte, error) {
+	if c.exec != nil {
+		c.exec.Stdin, c.exec.Stderr = c.Stdin, c.Stderr
+		return c.exec.Output()
+	}
+	out, _, err := sshExecFn(context.Background(), c.addr, c.password, c.command, c.Stdin, nil, c.Stderr)
+	return out, err
+}
+
+func (c *remoteCmd) CombinedOutput() ([]byte, error) {
+	if c.exec != nil {
+		c.exec.Stdin = c.Stdin
+		return c.exec.CombinedOutput()
+	}
+	out, errout, err := sshExecFn(context.Background(), c.addr, c.password, c.command, c.Stdin, nil, nil)
+	return append(out, errout...), err
+}
 
 // InstallCommand is the command that installs the server build of Kero,
 // of version ("" the latest), on a host reached over SSH or WSL: the
 // release's install script, which puts it in ~/.local, or on Windows in
 // %LOCALAPPDATA%\Programs, and runs kerod as a service of the user's. It
 // downloads the script whole before it runs it, so that a failed download
-// fails the command. Batch: it asks nothing, as from the app.
+// fails the command.
 //
 // A host is of Windows when a connection found it so (Windows): a dial
 // before tells, as the app's has.
-func InstallCommand(a Addr, version string, batch bool) (*exec.Cmd, error) {
+func InstallCommand(a Addr, version string, batch bool, password string) (*remoteCmd, error) {
 	if version != "" {
 		version = strings.TrimPrefix(version, "v")
 		if !update.ValidVersion(version) {
 			return nil, errors.New(version + " is not a version of Kero")
 		}
 	}
-	var cmd *exec.Cmd
 	switch a.Scheme {
 	case "ssh":
 		run := "sh -c " + shellQuote(shInstall(version))
 		if Windows(a) {
 			run = encodedPowerShell(powershellInstall(version))
 		}
-		cmd = exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
-		cmd.Env = sshEnv()
+		return &remoteCmd{addr: a, password: password, command: run}, nil
 	case "wsl":
 		if runtime.GOOS != "windows" {
 			return nil, errors.New("wsl:// addresses are of Windows")
@@ -47,12 +91,12 @@ func InstallCommand(a Addr, version string, batch bool) (*exec.Cmd, error) {
 		if a.Host != "" {
 			wa = append(wa, "-d", a.Host)
 		}
-		cmd = exec.Command("wsl.exe", append(wa, "--exec", "sh", "-c", shInstall(version))...)
+		cmd := exec.Command("wsl.exe", append(wa, "--exec", "sh", "-c", shInstall(version))...)
+		hideWindow(cmd)
+		return &remoteCmd{exec: cmd}, nil
 	default:
 		return nil, errors.New("Kero installs itself on a host over SSH or WSL: install it there with the script of its releases")
 	}
-	hideWindow(cmd)
-	return cmd, nil
 }
 
 // Platform is the operating system and architecture of a host reached
@@ -60,14 +104,11 @@ func InstallCommand(a Addr, version string, batch bool) (*exec.Cmd, error) {
 // and install it there. A host with no kero, or one a connection has not
 // found yet, tells its platform with a command of its own. Windows maps
 // its uname.
-func Platform(a Addr, batch bool) (string, string, error) {
+func Platform(a Addr, batch bool, password string) (string, string, error) {
 	switch a.Scheme {
 	case "ssh":
 		run := "sh -c " + shellQuote(`uname -s; uname -m`)
-		cmd := exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
-		cmd.Env = sshEnv()
-		hideWindow(cmd)
-		out, err := cmd.Output()
+		out, err := sshRun(context.Background(), a, password, run, nil)
 		if err != nil {
 			return "", "", err
 		}
@@ -100,12 +141,11 @@ func parsePlatform(out string) (string, string, error) {
 // installs it with install-server.sh --archive, with no download of its
 // own. Only sh hosts: Windows has no archive of the app's (install.go's
 // InstallCommand still runs the script there, which downloads).
-func InstallArchiveCommand(a Addr, version string, batch bool) (*exec.Cmd, error) {
+func InstallArchiveCommand(a Addr, version string, batch bool, password string) (*remoteCmd, error) {
 	version = strings.TrimPrefix(version, "v")
 	if !update.ValidVersion(version) {
 		return nil, errors.New(version + " is not a version of Kero")
 	}
-	var cmd *exec.Cmd
 	switch a.Scheme {
 	case "ssh":
 		if Windows(a) {
@@ -115,8 +155,7 @@ func InstallArchiveCommand(a Addr, version string, batch bool) (*exec.Cmd, error
 		// it, and the host writes it to a temp file before it installs, as
 		// a download cut short could stop it anywhere.
 		run := "sh -c " + shellQuote(shInstallArchive(version))
-		cmd = exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, run)...)
-		cmd.Env = sshEnv()
+		return &remoteCmd{addr: a, password: password, command: run}, nil
 	case "wsl":
 		if runtime.GOOS != "windows" {
 			return nil, errors.New("wsl:// addresses are of Windows")
@@ -124,12 +163,12 @@ func InstallArchiveCommand(a Addr, version string, batch bool) (*exec.Cmd, error
 		// wsl.exe forwards its standard input to the distro's shell, so
 		// the archive the app fetched streams in just as it does over
 		// ssh: the distro installs it without a download of its own.
-		cmd = exec.Command("wsl.exe", wslInstallArchiveArgs(a, version)...)
+		cmd := exec.Command("wsl.exe", wslInstallArchiveArgs(a, version)...)
+		hideWindow(cmd)
+		return &remoteCmd{exec: cmd}, nil
 	default:
 		return nil, errors.New("Kero installs itself on a host over SSH or WSL: install it there with the script of its releases")
 	}
-	hideWindow(cmd)
-	return cmd, nil
 }
 
 // wslInstallArchiveArgs is wsl.exe's arguments for an install that streams
@@ -194,45 +233,24 @@ func encodedPowerShell(script string) string {
 	return "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + base64.StdEncoding.EncodeToString(b)
 }
 
-// installSSH are the options of ssh for an install, which, but in batch,
-// may ask to trust the host, or for a password.
-func installSSH(a Addr, batch bool) []string {
-	sa := []string{"-T", "-o", "ConnectTimeout=15"}
-	if batch {
-		sa = append(sa, "-o", "BatchMode=yes")
-	}
-	if a.Port != "" {
-		sa = append(sa, "-p", a.Port)
-	}
-	if a.User != "" {
-		sa = append(sa, "-l", a.User)
-	}
-	return sa
-}
-
 // FindShell finds whether a host reached over SSH runs commands with a
 // shell of Windows, as Windows then reports, for InstallCommand: it runs
-// sh there, which they have not. A connection finds it too. It may ask as
-// an install does, and fails as it would.
-func FindShell(a Addr, batch bool) error {
+// sh there, which they have not. A connection finds it too. It fails as an
+// install would.
+func FindShell(a Addr, batch bool, password string) error {
 	if a.Scheme != "ssh" || Windows(a) {
 		return nil
 	}
-	cmd := exec.Command(SSHCommand(), append(installSSH(a, batch), "--", a.Host, "sh -c 'exit 0'")...)
-	cmd.Env = sshEnv()
-	hideWindow(cmd)
-	var stderr tail
-	cmd.Stdin, cmd.Stderr = os.Stdin, &stderr
-	err := cmd.Run()
-	var ee *exec.ExitError
+	_, errout, err := sshExecFn(context.Background(), a, password, "sh -c 'exit 0'", os.Stdin, nil, nil)
+	var ee *ssh.ExitError
 	if errors.As(err, &ee) {
-		if sh := windowsShell(ee.ExitCode(), stderr.all()); sh != "" {
+		if sh := windowsShell(ee.ExitStatus(), string(errout)); sh != "" {
 			shells.Store(a.String(), sh)
 			return nil
 		}
 	}
-	if err != nil && stderr.last() != "" {
-		return errors.New(stderr.last())
+	if err != nil && strings.TrimSpace(string(errout)) != "" {
+		return errors.New(strings.TrimSpace(string(errout)))
 	}
 	return err
 }

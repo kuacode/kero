@@ -110,7 +110,7 @@ func Dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 }
 
 func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
-	tr, err := transport(ctx, a, o.Client, o.Password)
+	tr, err := transportFn(ctx, a, o.Client, o.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 		return c, err
 	}
 	shells.Store(a.String(), se.shell)
-	if tr, err = transport(ctx, a, o.Client, o.Password); err == nil {
+	if tr, err = transportFn(ctx, a, o.Client, o.Password); err == nil {
 		c, err = handshake(ctx, tr, a, o)
 	}
 	if err != nil && !errors.Is(err, ErrNotInstalled) {
@@ -137,8 +137,8 @@ func handshake(ctx context.Context, tr io.ReadWriteCloser, a Addr, o Options) (*
 	fail := func(err error) (*Conn, error) {
 		// The program's end, rather than what a host that answered said,
 		// says why.
-		if c, ok := tr.(*cmdConn); ok && ctx.Err() == nil && (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, os.ErrClosed)) {
-			err = c.failure()
+		if f, ok := tr.(interface{ failure() error }); ok && ctx.Err() == nil && (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, os.ErrClosed)) {
+			err = f.failure()
 		}
 		tr.Close()
 		return nil, err

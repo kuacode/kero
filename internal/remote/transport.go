@@ -194,54 +194,18 @@ func bridgeScript(a Addr, via string) string {
 // shellQuote quotes s for a POSIX shell.
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// sshArgs are the arguments of ssh(1) that run the bridge on a host. With
-// no password it never asks anything, as there is no one to answer in the
-// app: a key with a passphrase needs the agent, and a host's key needs
-// trusting in a terminal first. With a password it asks once through
-// SSH_ASKPASS (see startBridge). It notices a dead link itself, as the mux
-// does.
-func sshArgs(a Addr, password string) []string {
-	args := []string{"-T",
-		"-o", "ConnectTimeout=15",
-		"-o", "ServerAliveInterval=10",
-		"-o", "ServerAliveCountMax=3",
-		"-o", "ExitOnForwardFailure=yes",
-		"-o", "ClearAllForwardings=yes",
-	}
-	if password != "" {
-		// Let ssh ask for the password (through SSH_ASKPASS), once, and
-		// prefer it over a key the agent may offer first.
-		args = append(args,
-			"-o", "BatchMode=no",
-			"-o", "NumberOfPasswordPrompts=1",
-			"-o", "PreferredAuthentications=password,keyboard-interactive",
-		)
-	} else {
-		args = append(args, "-o", "BatchMode=yes")
-	}
-	if a.Port != "" {
-		args = append(args, "-p", a.Port)
-	}
-	if a.User != "" {
-		args = append(args, "-l", a.User)
-	}
-	return append(args, "--", a.Host, bridgeCommand(a, hostShell(a)))
-}
-
-// SSHCommand is the program that runs ssh: $KERO_SSH, else ssh.
-func SSHCommand() string {
-	if s := os.Getenv("KERO_SSH"); s != "" {
-		return s
-	}
-	return "ssh"
-}
+// transportFn is the seam tests replace to dial without a real SSH server:
+// Go SSH has no ssh(1) executable to point KERO_SSH at. Production uses the
+// real transport.
+var transportFn = transport
 
 // transport opens the byte stream to a host that a remote connection runs
-// over.
+// over. SSH is spoken in-process (see gossh.go); only WSL still starts a
+// program, as it is Windows' own subsystem.
 func transport(ctx context.Context, a Addr, client, password string) (io.ReadWriteCloser, error) {
 	switch a.Scheme {
 	case "ssh":
-		return startBridge(exec.Command(SSHCommand(), sshArgs(a, password)...), true, password)
+		return goSSHTransport(ctx, a, password)
 	case "wsl":
 		if runtime.GOOS != "windows" {
 			return nil, errors.New("wsl:// addresses are of Windows")
@@ -293,29 +257,11 @@ func httpError(resp *http.Response, err error) string {
 	return err.Error()
 }
 
-// cmdConn is a program's standard input and output: ssh's or wsl.exe's,
-// running the bridge. The program is waited for only once all it wrote
-// is read, or the connection closed: Wait closes the pipe it reads from,
-// and would drop what is still in it, as the bridge's last words.
-// sshAuthEnv adds the variables that tell ssh how to get a password. With
-// one, ssh runs our own executable as SSH_ASKPASS, which prints the password
-// from its environment (see askpassValue); DISPLAY is any non-empty value,
-// and _REQUIRE=force makes ssh use askpass even without a terminal. With no
-// password, asking is forbidden outright. Split out so it can be tested
-// without starting a process.
-func sshAuthEnv(env []string, password string, askpass string) []string {
-	if password != "" {
-		return append(env,
-			"SSH_ASKPASS="+askpass,
-			"SSH_ASKPASS_REQUIRE=force",
-			"DISPLAY=:0",
-			"KERO_SSH_ASKPASS=1",
-			"KERO_SSH_PASSWORD="+password,
-		)
-	}
-	return append(env, "SSH_ASKPASS_REQUIRE=never")
-}
-
+// startBridge starts wsl.exe running the bridge. (SSH is spoken in Go,
+// see gossh.go.) WSL's errors are asked in UTF-8, which it writes in UTF-16
+// otherwise. The program is waited for only once all it wrote is read, or
+// the connection closed: Wait closes the pipe it reads from, and would drop
+// what is still in it, as the bridge's last words.
 type cmdConn struct {
 	cmd    *exec.Cmd
 	ssh    bool // ssh's, whose host may run Windows
@@ -332,17 +278,10 @@ type cmdConn struct {
 func startBridge(cmd *exec.Cmd, ssh bool, password string) (*cmdConn, error) {
 	c := &cmdConn{cmd: cmd, ssh: ssh, eof: make(chan struct{}), done: make(chan struct{})}
 	hideWindow(cmd)
-	// Never a prompt, as there is no one to answer; wsl.exe's errors in
-	// UTF-8, which it writes in UTF-16 otherwise.
-	env := os.Environ()
-	if ssh {
-		env = sshEnv()
-	}
-	askpass, _ := os.Executable()
-	cmd.Env = append(sshAuthEnv(env, password, askpass), "WSL_UTF8=1")
 	// A program that keeps the pipes open after its own end, as a
 	// ProxyCommand's child, holds up nothing.
 	cmd.WaitDelay = 2 * time.Second
+	cmd.Env = append(os.Environ(), "WSL_UTF8=1")
 	var err error
 	if c.stdin, err = cmd.StdinPipe(); err != nil {
 		return nil, err
@@ -420,6 +359,13 @@ func (c *cmdConn) failure() error {
 		}
 		return fmt.Errorf("%w: %s", ErrNotInstalled, msg)
 	case code == 255 && authFailure(msg):
+		// ssh prints why askpass failed (a bad path, a spawn error, our own
+		// stderr note) before the final "Permission denied". last() keeps
+		// only that final line, hiding the actual cause, so include the
+		// whole transcript when it says more.
+		if all := strings.TrimSpace(c.stderr.all()); all != "" && all != msg {
+			return fmt.Errorf("%w: %s\n%s", ErrAuth, msg, all)
+		}
 		return fmt.Errorf("%w: %s", ErrAuth, msg)
 	case msg != "":
 		return errors.New(msg)

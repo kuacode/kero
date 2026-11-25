@@ -66,11 +66,11 @@ Kero 为每台主机只建立一条连接，所有内容都经由它传输：边
 
 通过 SSH 连接时，Kero 会在主机上运行 `kero __bridge`：如果 kerod 尚未运行，它会先启动 kerod，再把连接转交给它。除了 Kero 本身（应用或服务器版本）之外，主机上无需任何设置，也不会有任何程序监听网络。
 
-Kero 通过 SSH 连接时从不弹出任何提示，因为应用里没有人可以回应：
+Kero 自己用 Go 实现 SSH，无需安装或配置 `ssh` 程序，仍复用你已有的配置：
 
-- **带口令的密钥**需要借助你的 SSH agent。和终端里的 `ssh` 一样，Kero 使用你的 shell 在 `SSH_AUTH_SOCK` 中设置的 agent，例如 1Password 的。
-- **首次连接的主机**需要先信任其密钥。在终端中运行一次 `ssh me@devbox` 即可。
-- **不支持密码登录。** 请使用密钥。
+- **密钥**从 `~/.ssh/config` 的 `IdentityFile` 和常用的 `~/.ssh/id_*` 读取，或通过 SSH agent（`SSH_AUTH_SOCK`，如 1Password 的）提供。带口令的密钥需要 agent。
+- **首次连接的主机**需要先信任其密钥。在终端中运行一次 `ssh me@devbox`，把它加入 `known_hosts`。
+- **密码登录可用**：添加或编辑主机时填入密码，Kero 只尝试一次。未填密码时用密钥和 agent。`~/.ssh/config` 的基础字段（`HostName`、`User`、`Port`、`IdentityFile`）会被读取。
 
 Kero 会在主机的以下位置查找 `kero`：`~/.local/bin`（Windows 上为 `%LOCALAPPDATA%\Programs\kero-server`）、桌面应用及其命令行工具，以及你的 `PATH`。如果装在别处，请在地址中指定：`me@devbox?kero=/opt/kero/kero`，Windows 上则为 `me@pc?kero=C:/kero/kero.exe`。
 
@@ -204,7 +204,6 @@ host = ubuntu=wsl://Ubuntu
 | 变量 | 作用 |
 | --- | --- |
 | `KERO_HOST` | 命令作用的主机，同 `-H` |
-| `KERO_SSH` | Kero 运行的 `ssh` 程序，取代 `PATH` 中的那个 |
 | `KERO_RELEASES` | Kero 发布版本的镜像，供安装脚本和 `kero daemon update` 使用 |
 
 ## 安全

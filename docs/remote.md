@@ -66,11 +66,11 @@ Kero opens one connection per host and carries everything over it: the sidebar's
 
 Over SSH, Kero runs `kero __bridge` on the host, which starts kerod there if it isn't running and passes the connection to it. There is nothing to set up on the host beyond Kero itself, the app or the server build, and nothing listens on the network.
 
-Kero never prompts for anything over SSH, as there's no one to answer in the app:
+Kero speaks SSH itself, in Go, so there's no `ssh` program to install or configure. It still uses what you already have:
 
-- **Keys with a passphrase** need your SSH agent. Kero uses the agent your shell sets in `SSH_AUTH_SOCK`, as 1Password's, as `ssh` in a terminal does.
-- **A host you haven't connected to before** needs its key trusted first. Run `ssh me@devbox` once in a terminal.
-- **Password logins** aren't supported. Use a key.
+- **Keys** are read from `~/.ssh/config` (`IdentityFile`) and the usual `~/.ssh/id_*`, or offered through your SSH agent (`SSH_AUTH_SOCK`, as 1Password's). Keys with a passphrase need the agent.
+- **A host you haven't connected to before** needs its key trusted first. Run `ssh me@devbox` once in a terminal to add it to `known_hosts`.
+- **Password logins** work: enter the password when you add or edit the host, and Kero offers it once. Keys and the agent are used when no password is set. Basic `~/.ssh/config` fields (`HostName`, `User`, `Port`, `IdentityFile`) are honored.
 
 Kero looks for `kero` on the host in `~/.local/bin` (on Windows, `%LOCALAPPDATA%\Programs\kero-server`), the desktop app and its command line tool, and your `PATH`. If yours is elsewhere, name it in the address: `me@devbox?kero=/opt/kero/kero`, or on Windows `me@pc?kero=C:/kero/kero.exe`.
 
@@ -202,7 +202,6 @@ host = ubuntu=wsl://Ubuntu
 | Variable | What it does |
 | --- | --- |
 | `KERO_HOST` | The host commands act on, as `-H` |
-| `KERO_SSH` | The `ssh` program Kero runs, in place of the one on your `PATH` |
 | `KERO_RELEASES` | A mirror of Kero's releases, for the install scripts and `kero daemon update` |
 
 ## Security

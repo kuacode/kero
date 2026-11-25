@@ -14,12 +14,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"kero/internal/proto"
 )
@@ -107,55 +109,10 @@ func TestBridgeCommandQuotes(t *testing.T) {
 	if !strings.HasPrefix(cmd, "sh -c '") || !strings.Contains(cmd, `'\''`) {
 		t.Errorf("%s", cmd)
 	}
-	if args := sshArgs(Addr{Scheme: "ssh", Host: "devbox", User: "me", Port: "2222"}, ""); args[len(args)-3] != "--" || args[len(args)-2] != "devbox" {
-		t.Errorf("ssh %q: the host must follow --", args)
-	}
-	// A password lets ssh ask for it, once, through askpass; without one,
-	// ssh is told never to ask.
-	for _, tt := range []struct {
-		password string
-		mode     string
-		prompts  bool
-	}{
-		{"", "BatchMode=yes", false},
-		{"p@ss", "BatchMode=no", true},
-	} {
-		args := sshArgs(Addr{Scheme: "ssh", Host: "devbox"}, tt.password)
-		if !slices.Contains(args, tt.mode) {
-			t.Errorf("password %q: no %s in %q", tt.password, tt.mode, args)
-		}
-		has := slices.Contains(args, "NumberOfPasswordPrompts=1")
-		if has != tt.prompts {
-			t.Errorf("password %q: password prompts %v", tt.password, has)
-		}
-	}
 	// cmd runs the command of sh as far as it says it has no sh, before
 	// which it would act on its characters.
 	if c := bridgeCommand(Addr{Scheme: "ssh", Host: "x"}, ""); strings.ContainsAny(c, `"<>|&%^`) {
 		t.Errorf("cmd would read %s", c)
-	}
-	// The password and askpass settings reach ssh through its environment.
-	// Verify both modes so a regression that drops askpass, or that lets ssh
-	// prompt when there is no password, is caught without a real ssh server.
-	for _, tc := range []struct {
-		password string
-		want     []string
-		reject   []string
-	}{
-		{"p@ss w0rd!", []string{"SSH_ASKPASS=/bin/kero", "SSH_ASKPASS_REQUIRE=force", "DISPLAY=:0", "KERO_SSH_ASKPASS=1", "KERO_SSH_PASSWORD=p@ss w0rd!"}, []string{"SSH_ASKPASS_REQUIRE=never"}},
-		{"", []string{"SSH_ASKPASS_REQUIRE=never"}, []string{"KERO_SSH_PASSWORD=", "SSH_ASKPASS_REQUIRE=force"}},
-	} {
-		env := sshAuthEnv([]string{"PATH=/usr/bin"}, tc.password, "/bin/kero")
-		for _, kv := range tc.want {
-			if !slices.Contains(env, kv) {
-				t.Errorf("password %q: missing %q in %q", tc.password, kv, env)
-			}
-		}
-		for _, kv := range tc.reject {
-			if slices.Contains(env, kv) {
-				t.Errorf("password %q: unexpected %q in %q", tc.password, kv, env)
-			}
-		}
 	}
 	// cmd /c takes the quotes off a command that starts with one, and the
 	// SSH server those of one for PowerShell.
@@ -169,6 +126,66 @@ func TestBridgeCommandQuotes(t *testing.T) {
 	}
 	if c := bridgeCommand(Addr{Scheme: "ssh", Host: "x", Kero: "C:/kero/kero.exe"}, shellCmd); !strings.HasPrefix(c, `if exist "C:/kero/kero.exe" ("C:/kero/kero.exe" __bridge`) {
 		t.Errorf("cmd, kero=: %s", c)
+	}
+}
+
+// The Go client takes its login and target from ~/.ssh/config, and offers
+// a stored password alone when there is one: it never prompts otherwise.
+func TestSSHClientConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", home)
+	}
+	if err := os.MkdirAll(filepath.Join(home, ".ssh"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	conf := "Host devbox\n  HostName real.devbox.example\n  User alice\n  Port 2222\n"
+	if err := os.WriteFile(filepath.Join(home, ".ssh", "config"), []byte(conf), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	a := Addr{Scheme: "ssh", Host: "devbox"}
+	cfg, err := sshClientConfig(a, "p@ss")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.User != "alice" || cfg.HostKeyCallback == nil {
+		t.Errorf("config of an alias: user %q, callback %v", cfg.User, cfg.HostKeyCallback)
+	}
+	// x/crypto's Password returns an unexported callback type, so compare
+	// the dynamic type with one it makes here.
+	passwordType := reflect.TypeOf(ssh.Password(""))
+	if len(cfg.Auth) != 1 || reflect.TypeOf(cfg.Auth[0]) != passwordType {
+		t.Fatalf("with a password: %d auth methods %v, want one ssh.Password", len(cfg.Auth), cfg.Auth)
+	}
+	if got, err := sshAddr(a); err != nil || got != "real.devbox.example:2222" {
+		t.Errorf("sshAddr of an alias: %q, %v", got, err)
+	}
+
+	// What the user wrote wins over the config's defaults.
+	explicit := Addr{Scheme: "ssh", Host: "devbox", User: "me", Port: "2022"}
+	cfg, err = sshClientConfig(explicit, "p@ss")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.User != "me" {
+		t.Errorf("explicit user: %q", cfg.User)
+	}
+	if got, err := sshAddr(explicit); err != nil || got != "real.devbox.example:2022" {
+		t.Errorf("sshAddr with a port: %q, %v", got, err)
+	}
+
+	// Without a password the client offers keys or the agent, never a
+	// password method that would prompt.
+	cfg, err = sshClientConfig(a, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, method := range cfg.Auth {
+		if reflect.TypeOf(method) == passwordType {
+			t.Errorf("without a password: an ssh.Password auth method")
+		}
 	}
 }
 
@@ -204,90 +221,81 @@ func TestWindowsShell(t *testing.T) {
 	}
 }
 
-// fakeSSH is ssh to a host whose shell is $KERO_TEST_SHELL: cmd or
-// powershell, which run no sh, or sh. It logs the commands it runs, and
-// finds no kero.
-func fakeSSH() {
-	cmd := os.Args[len(os.Args)-1]
-	if f, err := os.OpenFile(os.Getenv("KERO_TEST_SSH_LOG"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600); err == nil {
-		fmt.Fprintf(f, "%q\n", cmd)
-		f.Close()
-	}
-	shell := os.Getenv("KERO_TEST_SHELL")
-	sh := strings.HasPrefix(cmd, "sh -c ")
-	switch {
-	case shell == "sh" && cmd == "sh -c 'exit 0'":
-		os.Exit(0)
-	case shell == "sh" && strings.Contains(cmd, "uname -s"):
-		// Platform probes a host with uname: a host that answers tells
-		// what it is.
-		fmt.Fprintln(os.Stdout, "Linux\nx86_64")
-		os.Exit(0)
-	case shell == "sh" && sh:
-		fmt.Fprintln(os.Stderr, "kero is not installed on devbox")
-		os.Exit(127)
-	case shell == "cmd" && sh:
-		fmt.Fprint(os.Stderr, "'sh' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n")
-		os.Exit(1)
-	case shell == "powershell" && sh:
-		fmt.Fprint(os.Stderr, "\x1b[31;1msh: \x1b[31;1mThe term 'sh' is not recognized as a name of a cmdlet.\x1b[0m\r\n")
-		os.Exit(1)
-	case shell == "cmd" && strings.HasPrefix(cmd, "if exist "), shell == "powershell" && strings.HasPrefix(cmd, "$k = @("):
-		fmt.Fprint(os.Stderr, "kero is not installed on DEVBOX\r\n")
-		os.Exit(127)
-	}
-	fmt.Fprintln(os.Stderr, "unexpected command")
-	os.Exit(2)
+// eofTransport is a bridge that ended before it answered a handshake. Its
+// Read is the EOF the handshake sees; failure is what the SSH session says
+// happened, which is how mux.handshake tells a shell of Windows from a host
+// with no Kero.
+type eofTransport struct {
+	fail   error
+	closed bool
 }
 
-func TestMain(m *testing.M) {
-	if os.Getenv("KERO_TEST_SHELL") != "" {
-		fakeSSH()
-	}
-	os.Exit(m.Run())
+func (c *eofTransport) Read([]byte) (int, error)    { return 0, io.EOF }
+func (c *eofTransport) Write(p []byte) (int, error) { return len(p), nil }
+func (c *eofTransport) Close() error {
+	c.closed = true
+	return nil
 }
+func (c *eofTransport) failure() error { return c.fail }
 
 // A host of Windows is found as its shell fails to run sh, and reached
 // with a command of that shell from then on; Kero installs there with
 // PowerShell.
 func TestDialWindows(t *testing.T) {
-	exe, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("KERO_SSH", exe)
-	for i, shell := range []string{"cmd", "powershell", "sh"} {
-		log := filepath.Join(t.TempDir(), "ssh.log")
-		t.Setenv("KERO_TEST_SHELL", shell)
-		t.Setenv("KERO_TEST_SSH_LOG", log)
+	old := transportFn
+	t.Cleanup(func() { transportFn = old })
+	for i, tt := range []struct {
+		shell string
+		first error // what the first bridge says when it ends
+	}{
+		{shellCmd, &shellError{shellCmd, errors.New("x")}},
+		{shellPowerShell, &shellError{shellPowerShell, errors.New("x")}},
+		{"", ErrNotInstalled}, // sh ran: the host has no Kero
+	} {
 		a := Addr{Scheme: "ssh", Host: fmt.Sprintf("devbox%d", i)}
-		for range 2 {
-			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
-			_, err := Dial(ctx, a, Options{})
-			cancel()
-			if !errors.Is(err, ErrNotInstalled) {
-				t.Fatalf("%s: %v", shell, err)
+		t.Cleanup(func() { shells.Delete(a.String()) })
+		var bridges []*eofTransport
+		transportFn = func(_ context.Context, got Addr, _, _ string) (io.ReadWriteCloser, error) {
+			if got != a {
+				t.Errorf("dialed %s, want %s", got, a)
 			}
+			// A Windows shell fails to run sh; the retry, in that
+			// shell, finds no Kero.
+			fail := ErrNotInstalled
+			if len(bridges) == 0 {
+				fail = tt.first
+			}
+			b := &eofTransport{fail: fail}
+			bridges = append(bridges, b)
+			return b, nil
 		}
-		b, _ := os.ReadFile(log)
-		lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-		want := 3 // sh -c, then the shell's, then the shell's at once
-		if shell == "sh" {
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		_, err := Dial(ctx, a, Options{})
+		cancel()
+		if !errors.Is(err, ErrNotInstalled) {
+			t.Fatalf("%q: %v", tt.shell, err)
+		}
+		want := 1 // a sh host needs no retry
+		if tt.shell != "" {
 			want = 2
 		}
-		if len(lines) != want {
-			t.Errorf("%s: ran %d commands: %s", shell, len(lines), b)
+		if len(bridges) != want {
+			t.Errorf("%q: opened %d bridges, want %d", tt.shell, len(bridges), want)
 		}
-		if Windows(a) != (shell != "sh") {
-			t.Errorf("%s: Windows(%s) = %v", shell, a, Windows(a))
+		for _, b := range bridges {
+			if !b.closed {
+				t.Errorf("%q: a bridge was left open", tt.shell)
+			}
 		}
-		cmd, err := InstallCommand(a, "2.1.0", true)
+		if Windows(a) != (tt.shell != "") {
+			t.Errorf("%q: Windows(%s) = %v", tt.shell, a, Windows(a))
+		}
+		cmd, err := InstallCommand(a, "2.1.0", true, "")
 		if err != nil {
 			t.Fatal(err)
 		}
-		last := cmd.Args[len(cmd.Args)-1]
-		if strings.HasPrefix(last, "powershell ") != (shell != "sh") {
-			t.Errorf("%s: installs with %s", shell, last)
+		if strings.HasPrefix(cmd.command, "powershell ") != (tt.shell != "") {
+			t.Errorf("%q: installs with %q", tt.shell, cmd.command)
 		}
 	}
 }
@@ -602,23 +610,51 @@ func TestBridgeScript(t *testing.T) {
 }
 
 // An install finds a host of Windows before it runs, as its shell fails to
-// run sh.
+// run sh. ssh.ExitError keeps its status in an unexported field and has no
+// constructor, so a fake sshExecFn cannot make errors.As find one with the
+// status windowsShell needs; TestDialWindows covers that detection through
+// the transport seam. Here the paths that need no remote shell are checked.
 func TestFindShell(t *testing.T) {
-	exe, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
+	old := sshExecFn
+	t.Cleanup(func() { sshExecFn = old })
+	a := Addr{Scheme: "ssh", Host: "probe"}
+	calls := 0
+	sshExecFn = func(_ context.Context, got Addr, password, command string, _ io.Reader, _, _ io.Writer) ([]byte, []byte, error) {
+		calls++
+		if got != a || password != "pw" || command != "sh -c 'exit 0'" {
+			t.Errorf("probed %s with %q, %q", got, password, command)
+		}
+		return nil, []byte("kero: connection refused\r\n"), errors.New("exit status 1")
 	}
-	t.Setenv("KERO_SSH", exe)
-	t.Setenv("KERO_TEST_SSH_LOG", filepath.Join(t.TempDir(), "ssh.log"))
-	for i, shell := range []string{"cmd", "powershell", "sh"} {
-		t.Setenv("KERO_TEST_SHELL", shell)
-		a := Addr{Scheme: "ssh", Host: fmt.Sprintf("probe%d", i)}
-		if err := FindShell(a, true); err != nil {
-			t.Errorf("%s: %v", shell, err)
-		}
-		if Windows(a) != (shell != "sh") {
-			t.Errorf("%s: Windows = %v", shell, Windows(a))
-		}
+
+	// WSL is Windows' Linux, and a host a connection already found to be
+	// Windows needs no probe: neither reaches SSH.
+	if err := FindShell(Addr{Scheme: "wsl", Host: "Ubuntu"}, true, ""); err != nil {
+		t.Errorf("wsl: %v", err)
+	}
+	known := Addr{Scheme: "ssh", Host: "probe-known"}
+	shells.Store(known.String(), shellCmd)
+	t.Cleanup(func() { shells.Delete(known.String()) })
+	if err := FindShell(known, true, ""); err != nil {
+		t.Errorf("known Windows host: %v", err)
+	}
+	if calls != 0 {
+		t.Errorf("probed a host that needed no probe")
+	}
+
+	// Without an *ssh.ExitError, the probe reports the command's stderr.
+	if err := FindShell(a, true, "pw"); err == nil || err.Error() != "kero: connection refused" {
+		t.Errorf("a failed probe: %v", err)
+	}
+	if calls != 1 {
+		t.Errorf("ran %d probes, want one", calls)
+	}
+
+	sshExecFn = func(context.Context, Addr, string, string, io.Reader, io.Writer, io.Writer) ([]byte, []byte, error) {
+		return nil, nil, nil
+	}
+	if err := FindShell(a, true, ""); err != nil {
+		t.Errorf("a host with sh: %v", err)
 	}
 }
 
@@ -655,7 +691,7 @@ func TestInstallOfAWslHostIsOfWindows(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows")
 	}
-	_, err := InstallCommand(Addr{Scheme: "wsl", Host: "Ubuntu"}, "", true)
+	_, err := InstallCommand(Addr{Scheme: "wsl", Host: "Ubuntu"}, "", true, "")
 	if err == nil || !strings.Contains(err.Error(), "Windows") {
 		t.Fatalf("the install command: %v", err)
 	}

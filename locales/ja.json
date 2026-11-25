@@ -596,7 +596,7 @@
   "hostCantConnect": "{host} に接続できません",
   "hostNotInstalled": "{host} に Kero がインストールされていません",
   "hostRefused": "{host} が接続を拒否しました",
-  "hostAuthHint": "Kero は SSH キーとエージェントでサインインし、パスワードを尋ねることはありません。ホストのキーを信頼するには、ターミナルで ssh {address} を一度実行してください。",
+  "hostAuthHint": "Kero は SSH キーとエージェント、またはホストに設定したパスワードでサインインします。ホストのキーを信頼するには、ターミナルで ssh {address} を一度実行してください。",
   "hostAbout": "Kero {version}（{platform}）· {hostname}、ユーザー {user}",
   "hostConnected": "接続済み: Kero {version}（{platform}）· {hostname}、ユーザー {user}",
   "hostSessions": "{count} 個のセッション",

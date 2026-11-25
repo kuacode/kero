@@ -689,7 +689,7 @@ func (a *App) install(h *host) {
 	if platform == "" {
 		// A host with no kero (ErrNotInstalled) tells its platform with a
 		// command of its own, so the app fetches the right archive.
-		if gos, garch, perr := remote.Platform(h.addr, true); perr == nil {
+		if gos, garch, perr := remote.Platform(h.addr, true, h.cfg.Password); perr == nil {
 			goos, goarch = gos, garch
 			platform = gos + "/" + garch
 		}
@@ -708,7 +708,7 @@ func (a *App) install(h *host) {
 				a.installFromScript(h, version)
 				return
 			}
-			cmd, cerr := remote.InstallArchiveCommand(h.addr, version, true)
+			cmd, cerr := remote.InstallArchiveCommand(h.addr, version, true, h.cfg.Password)
 			if cerr != nil {
 				a.installFromScript(h, version)
 				return
@@ -736,7 +736,7 @@ func (a *App) install(h *host) {
 // installFromScript installs Kero on a host with the release's script,
 // which downloads the archive there, as the app's own install did.
 func (a *App) installFromScript(h *host, version string) {
-	cmd, err := remote.InstallCommand(h.addr, version, true)
+	cmd, err := remote.InstallCommand(h.addr, version, true, h.cfg.Password)
 	if err != nil {
 		a.toast(err.Error())
 		return

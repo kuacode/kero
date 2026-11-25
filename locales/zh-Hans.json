@@ -596,7 +596,7 @@
   "hostCantConnect": "无法连接到 {host}",
   "hostNotInstalled": "{host} 上没有安装 Kero",
   "hostRefused": "{host} 拒绝了连接",
-  "hostAuthHint": "Kero 用你的 SSH 密钥和 agent 登录，从不询问密码。要信任主机的密钥，请先在终端中运行一次 ssh {address}。",
+  "hostAuthHint": "Kero 用你的 SSH 密钥、agent 或主机上设置的密码登录。要信任主机的密钥，请先在终端中运行一次 ssh {address}。",
   "hostAbout": "{platform} 上的 Kero {version} · {hostname}，用户 {user}",
   "hostConnected": "已连接：{platform} 上的 Kero {version} · {hostname}，用户 {user}",
   "hostSessions": "{count} 个会话",

@@ -355,10 +355,10 @@ func hostsCmd(args []string) error {
 		}
 		// A host of Windows, whose shell has no sh, installs with
 		// PowerShell.
-		if err := remote.FindShell(a, false); err != nil {
+		if err := remote.FindShell(a, false, ""); err != nil {
 			return err
 		}
-		cmd, err := remote.InstallCommand(a, version, false)
+		cmd, err := remote.InstallCommand(a, version, false, "")
 		if err != nil {
 			return err
 		}
