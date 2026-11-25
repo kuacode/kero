@@ -523,13 +523,28 @@ func hostAddFieldRow(c *ui.Context, pal *palette, label string, control func()) 
 	})
 }
 
+// wslCommonDistros are offered alongside the ones wsl.exe actually reports,
+// so a machine that only lists Ubuntu can still add a Debian or Fedora host
+// that is installed but not detected, or one to be installed later.
+var wslCommonDistros = []string{
+	"Ubuntu", "Debian", "Fedora", "kali-linux", "openSUSE", "Arch", "Alpine",
+	"Ubuntu-22.04", "Ubuntu-24.04", "Debian-12",
+}
+
 // hostAddDistroPopup is WSL's distribution picker: a drop-down of the
-// distributions wsl.exe reported, its choice landing in d.addr as the bare
-// distro name. hostAddAddrOf turns that into wsl://<distro> at submit. A
-// host edits with its own distribution shown even once it is not (or no
-// longer) installed, so the current value is kept in the options.
+// distributions wsl.exe reported plus the common ones, its choice landing
+// in d.addr as the bare distro name. hostAddAddrOf turns that into
+// wsl://<distro> at submit. A host edits with its own distribution shown
+// even once it is not (or no longer) installed, so the current value is
+// kept in the options.
 func (a *App) hostAddDistroPopup(c *ui.Context, d *hostAddDraft, pal *palette) {
+	// Detected distributions lead; the common ones follow, deduplicated.
 	opts := slices.Clone(d.shown[kindWSL])
+	for _, name := range wslCommonDistros {
+		if !slices.Contains(opts, name) {
+			opts = append(opts, name)
+		}
+	}
 	if d.addr != "" && !slices.Contains(opts, d.addr) {
 		opts = append(opts, d.addr)
 	}

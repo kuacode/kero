@@ -164,6 +164,10 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			if a.set.SidebarCount && count > 0 {
 				countChip(c, pal, count, treeGap-hdrGap)
 			}
+			// Update and restart ask for a choice, so they read on the
+			// identity line as buttons. The connection state word reads on
+			// the second line, with the address in its hover.
+			a.hostStateAction(c, pal, h)
 			chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
 			turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 			chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
@@ -180,21 +184,12 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
 			}
 		})
-		// What it is, and how it is doing, without a right click: the state
-		// reads first, then the address and system, then the round trip and
-		// load. Reconnect and edit live on the identity line above.
+		// The second line keeps the connection state word, the round trip
+		// and load. Update/restart read on the identity line; the address
+		// and system live in the state word's hover.
 		ui.Row(c).Height(16).Gap(hdrGap).AlignItems(ui.Center).Children(func() {
-			// 状态放在第二行起始：连接中/失败/已连接用简短文字，更新或
-			// 重启仍是可点的小按钮。本机通常无需状态，占位即可。
 			a.hostState(c, pal, h)
-			// The address reads only on a host: this machine's name is already
-			// on the identity line, so a second "This Computer" would repeat it.
-			if h.remote() {
-				ui.Text(c, a.hostMeta(h)).FontSize(10.5).TextColor(pal.textMuted).Font("monospace").
-					SingleLine().Ellipsis("…").MinWidth(0).Grow(1)
-			} else {
-				ui.Box(c).Grow(1)
-			}
+			ui.Box(c).Grow(1)
 			if h.hasRTT() {
 				ui.Text(c, "RTT:"+rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
 					Tooltip(a.statsTip(h))
@@ -204,30 +199,6 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			}
 		})
 	})
-}
-
-// hostMeta is the short line under a host's name: its address and, once
-// known, the system there. This machine simply names itself.
-func (a *App) hostMeta(h *host) string {
-	if !h.remote() {
-		return locales.HostThisComputer()
-	}
-	meta := h.addr.Scheme + " " + h.addr.Host
-	// WSL 的地址是 wsl://<发行版>，完整显示比 "wsl Ubuntu" 更清楚；
-	// 发行版名已经是地址本身，不再重复后缀，只补操作系统。
-	if h.addr.Scheme == "wsl" {
-		meta = "wsl://" + h.addr.Host
-		if h.info.OS != "" {
-			meta += " · " + h.info.OS
-		}
-		return meta
-	}
-	if h.info.Distro != "" {
-		meta += " · " + h.info.Distro
-	} else if h.info.OS != "" {
-		meta += " · " + h.info.OS
-	}
-	return meta
 }
 
 // hostQuickButton is one of the header's always-visible actions: a small
@@ -365,24 +336,14 @@ func (a *App) hostTag(c *ui.Context, pal *palette, h *host) {
 	})
 }
 
-// hostState says how the app stands with a host, at the start of the second
-// line: a short word instead of the dot the identity line used to carry.
-// Connecting, failed and ready read as text; update and restart stay as
-// small buttons because they ask for a choice first.
-func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
-	stateWord := func(col ui.Color, label string) {
-		ui.Text(c, label).FontSize(10.5).FontWeight(500).TextColor(col).SingleLine().Shrink(0).Tooltip(label)
-	}
+// hostStateAction puts the choices that need a decision on the identity
+// line: an update or a restart button. Connection states read as plain
+// words on the second line instead.
+func (a *App) hostStateAction(c *ui.Context, pal *palette, h *host) {
 	switch {
-	case h.conn == connConnecting && h.loaded:
-		stateWord(pal.attention, locales.HostReconnecting())
-	case h.conn == connConnecting:
-		stateWord(pal.attention, locales.StatusConnecting())
-	case h.conn == connFailed:
-		stateWord(pal.danger, locales.StatusDisconnected())
 	case h.conn == connVersion || h.behind():
 		b := ui.ButtonBase(c.Key("update")).Height(18).Padding(0, 6).Gap(5).Radius(9).AlignItems(ui.Center).
-			Label(locales.HostUpdateAction(h.name)).Tooltip(a.hostVersionDetail(h))
+			Label(locales.HostUpdateAction(h.name)).Tooltip(a.hostTip(h))
 		if b.Hovered() {
 			b.Background(pal.rowHover)
 		}
@@ -394,7 +355,7 @@ func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 		}
 	case h.stale():
 		b := ui.ButtonBase(c.Key("restart")).Height(18).Padding(0, 6).Gap(5).Radius(9).AlignItems(ui.Center).
-			Label(locales.HostRestartAction(h.name)).Tooltip(locales.HostStaleTip(h.name, h.daemonApp, h.info.Kero))
+			Label(locales.HostRestartAction(h.name)).Tooltip(a.hostTip(h))
 		if b.Hovered() {
 			b.Background(pal.rowHover)
 		}
@@ -404,8 +365,24 @@ func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 		if b.Clicked() {
 			a.offerHostRestart(h)
 		}
+	}
+}
+
+// hostState says how the app stands with a host, as a short word at the
+// start of the second line. The full address, system and latency live in
+// its hover (hostTip), so the line itself stays free of a wsl:// address.
+func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
+	stateWord := func(col ui.Color, label string) {
+		ui.Text(c, label).FontSize(10.5).FontWeight(500).TextColor(col).SingleLine().Shrink(0).Tooltip(a.hostTip(h))
+	}
+	switch {
+	case h.conn == connConnecting && h.loaded:
+		stateWord(pal.attention, locales.HostReconnecting())
+	case h.conn == connConnecting:
+		stateWord(pal.attention, locales.StatusConnecting())
+	case h.conn == connFailed:
+		stateWord(pal.danger, locales.StatusDisconnected())
 	case h.conn == connReady:
-		// 已连接且无需更新：第二行起始用简短文字注明在线状态。
 		stateWord(pal.good, locales.HostStateOnline())
 	}
 }
