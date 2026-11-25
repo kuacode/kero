@@ -103,7 +103,14 @@ func (a *App) trayMenu() *mygo.Menu {
 		}},
 		check,
 		mygo.Separator(),
-		{Label: locales.MenuQuitApp(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { a.endSessionsAndQuit() }},
+		// Quit the app as the menu's Quit does: respecting the
+		// QuitEndsSessions setting, which keeps the sessions and kerod
+		// running (and restores them next start) unless the user asked
+		// for the opposite. The tray must not end the sessions
+		// unconditionally, as endSessionsAndQuit does: that makes the
+		// daemon's "shutdown" drop every session and write an empty
+		// state, and the next start restores none.
+		{Label: locales.MenuQuitApp(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { a.quit() }},
 	})
 }
 

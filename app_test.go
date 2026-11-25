@@ -432,10 +432,12 @@ func TestQuitEndsSessions(t *testing.T) {
 	})
 }
 
-// The tray's Quit leaves Kero altogether: it ends this machine's sessions
-// and stops kerod, whatever quit-ends-sessions says. Closing the last
-// window is what that setting governs; the icon's explicit Quit is not.
-func TestTrayQuitEndsService(t *testing.T) {
+// The tray's Quit leaves Kero, as the menu's Quit does: with
+// quit-ends-sessions off (its default), it quits the app and leaves kerod
+// and the sessions running, to be restored next start. The tray must not
+// end the sessions unconditionally, as the daemon's "shutdown" would
+// drop every session and write an empty state.
+func TestTrayQuitLeavesSessions(t *testing.T) {
 	oldQuit := quitApp
 	defer func() { quitApp = oldQuit }()
 	quits := make(chan struct{}, 4)
@@ -461,9 +463,47 @@ func TestTrayQuitEndsService(t *testing.T) {
 		return nil, errors.New("unexpected method " + method)
 	})
 	a.local().cl = cl
-	// The tray's Quit calls endSessionsAndQuit directly, not quit: it
-	// ends everything even with quit-ends-sessions off.
-	a.endSessionsAndQuit()
+	// The tray's Quit now goes through quit, which keeps the sessions
+	// while quit-ends-sessions is off.
+	a.quit()
+	waitQuit(t)
+	select {
+	case <-shutdowns:
+		t.Error("the tray's Quit stopped kerod with quit-ends-sessions off")
+	default:
+	}
+	if a.ending {
+		t.Error("the tray's Quit ended this machine's sessions")
+	}
+}
+
+// With quit-ends-sessions on, the tray's Quit ends this machine's
+// sessions and stops kerod, as the menu's Quit does.
+func TestTrayQuitEndsService(t *testing.T) {
+	oldQuit := quitApp
+	defer func() { quitApp = oldQuit }()
+	quits := make(chan struct{}, 4)
+	quitApp = func() { quits <- struct{}{} }
+	waitQuit := func(t *testing.T) {
+		t.Helper()
+		select {
+		case <-quits:
+		case <-time.After(2 * time.Second):
+			t.Fatal("the app did not quit")
+		}
+	}
+	shutdowns := make(chan struct{}, 4)
+	a := testApp(t)
+	a.set.QuitEndsSessions = true
+	cl, _ := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		if method == "shutdown" {
+			shutdowns <- struct{}{}
+			return nil, nil
+		}
+		return nil, errors.New("unexpected method " + method)
+	})
+	a.local().cl = cl
+	a.quit()
 	waitQuit(t)
 	select {
 	case <-shutdowns:
