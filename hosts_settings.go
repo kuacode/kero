@@ -32,7 +32,15 @@ type hostDraft struct {
 // shows beside this one's, which the configuration's host keys keep, as
 // `kero hosts` does.
 func (a *App) hostsPage(c *ui.Context, pal *palette) {
-	settingsGroup(c, pal, locales.SetHosts(), locales.SetHostsDetail(), func() {
+	add := func() {
+		// The full dialog: a kind picker (SSH, tailnet, WSL), the fields
+		// each kind needs and a connection test, shared with the device
+		// picker. It opens in this window, not the main one.
+		iconButton(c, "host-add-open", plusIcon, locales.SetHostAdd(), pal, func() {
+			a.openHostAddInSettings()
+		})
+	}
+	settingsGroupAction(c, pal, locales.SetHosts(), locales.SetHostsDetail(), add, func() {
 		if len(a.hosts) == 1 {
 			settingRow(c, pal, locales.SetHostsNone(), locales.SetHostsNoneDetail(), func() {})
 		}
@@ -41,16 +49,6 @@ func (a *App) hostsPage(c *ui.Context, pal *palette) {
 		}
 	})
 	docLink(c, pal, "hosts-docs", locales.SetHostsDocs(), "https://kero.sh/docs/remote")
-	settingsGroup(c, pal, locales.SetHostAdd(), locales.SetHostAddDetail(), func() {
-		// The full dialog: a kind picker (SSH, tailnet, WSL), the fields
-		// each kind needs and a connection test, shared with the device
-		// picker. It opens in this window, not the main one.
-		ui.Row(c).Padding(10, 0).Children(func() {
-			if button(c, "host-add-open", locales.CommonAdd(), "", true, pal) {
-				a.openHostAddInSettings()
-			}
-		})
-	})
 	a.listenGroup(c, pal)
 	settingsGroup(c, pal, locales.SetHostSettingsSplit(), locales.SetHostSettingsSplitDetail(), nil)
 }

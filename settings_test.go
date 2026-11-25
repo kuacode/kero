@@ -718,7 +718,7 @@ func TestHostsPageOpensAddDialog(t *testing.T) {
 	if a.hostAdd.open {
 		t.Fatal("add dialog opened on its own")
 	}
-	if err := tt.Click(locales.CommonAdd()); err != nil {
+	if err := tt.Click(locales.SetHostAdd()); err != nil {
 		t.Fatal(err)
 	}
 	if !a.hostAdd.open || !a.hostAdd.settings {

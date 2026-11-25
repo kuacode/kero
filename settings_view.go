@@ -466,9 +466,19 @@ func groupTitle(c *ui.Context, pal *palette, title string) {
 
 // group is a titled set of settings, on a soft panel.
 func settingsGroup(c *ui.Context, pal *palette, title, note string, fn func()) {
+	settingsGroupAction(c, pal, title, note, nil, fn)
+}
+
+// settingsGroupAction is settingsGroup with a control at the right of its
+// title, as the Hosts group puts its add button there.
+func settingsGroupAction(c *ui.Context, pal *palette, title, note string, action func(), fn func()) {
 	ui.Column(c).Gap(8).Children(func() {
 		if title != "" {
-			groupTitle(c, pal, title)
+			if action != nil {
+				groupTitleAction(c, pal, title, action)
+			} else {
+				groupTitle(c, pal, title)
+			}
 		}
 		if fn != nil { // a group of a note alone has no panel
 			groupRows = 0
@@ -477,6 +487,17 @@ func settingsGroup(c *ui.Context, pal *palette, title, note string, fn func()) {
 		if note != "" {
 			ui.Text(c, note).FontSize(12).TextColor(pal.textFaint).LineHeight(1.4).Padding(0, 4)
 		}
+	})
+}
+
+// groupTitleAction is groupTitle with a control at its right.
+func groupTitleAction(c *ui.Context, pal *palette, title string, action func()) {
+	row := ui.Row(c.Key("title-"+title)).Padding(0, 4).AlignItems(ui.Center)
+	row.Children(func() {
+		searchHighlight(c, row, title, pal, 2, 3)
+		ui.Text(c, title).FontSize(12).FontWeight(600).TextColor(pal.textMuted)
+		ui.Spacer(c)
+		action()
 	})
 }
 
