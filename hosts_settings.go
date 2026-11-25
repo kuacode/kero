@@ -281,7 +281,7 @@ func (a *App) hostEditor(c *ui.Context, pal *palette, h *host) {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			save := func() { a.saveHost(h) }
 			textField(c, "edit-addr", &d.addr, locales.SetHostAddressPlaceholder(), 0, pal).Font("monospace").OnSubmit(save)
-			textField(c, "edit-name", &d.name, locales.SetHostNamePlaceholder(defaultHostName(d.addr)), 130, pal).OnSubmit(save)
+			textField(c, "edit-name", &d.name, defaultHostName(d.addr), 130, pal).OnSubmit(save)
 			if fieldButton(c, "edit-cancel", locales.CommonCancel(), false, pal) {
 				*d = hostDraft{}
 			}

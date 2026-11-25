@@ -423,8 +423,10 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			if d.kind == kindWSL {
 				hostAddFieldRow(c, pal, locales.HostAddFieldName(), func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						// WSL 的名称来自发行版名，占位直接是发行版名，不再套
+						// 「名称: …」的前缀。
 						name = textField(c, "host-add-name", &d.name,
-							locales.SetHostNamePlaceholder(defaultHostName(strings.TrimSpace(d.addr))), 0, pal)
+							defaultHostName(strings.TrimSpace(d.addr)), 0, pal)
 						name.OnSubmit(func() { a.hostAddSubmit(d) })
 						a.hostAddDistroPopup(c, d, pal)
 					})
@@ -432,7 +434,7 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			} else {
 				hostAddFieldRow(c, pal, locales.HostAddFieldName(), func() {
 					name = textField(c, "host-add-name", &d.name,
-						locales.SetHostNamePlaceholder(defaultHostName(strings.TrimSpace(d.addr))), 0, pal)
+						defaultHostName(strings.TrimSpace(d.addr)), 0, pal)
 					name.OnSubmit(func() { a.hostAddSubmit(d) })
 				})
 			}
