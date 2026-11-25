@@ -170,6 +170,30 @@ func TestConfirmEscapeCancels(t *testing.T) {
 	}
 }
 
+// A waiting caller is dismissed only when the question is actually sent
+// away, not on the frames it is still open waiting for an answer.
+func TestConfirmDismissOnlyWhenClosed(t *testing.T) {
+	a := testApp(t)
+	tt := ui.NewTester(a.view, 1100, 640)
+	dismissed := 0
+	a.confirm = &confirmation{
+		open:    true,
+		title:   "Trust this host?",
+		detail:  "fingerprint",
+		action:  "Trust",
+		dismiss: func() { dismissed++ },
+	}
+	tt.Frame()
+	tt.Frame() // still open across frames: no dismissal yet
+	if dismissed != 0 || a.confirm == nil {
+		t.Fatalf("open question: dismissed %d, confirm %v", dismissed, a.confirm)
+	}
+	tt.Key(0, ui.KeyEscape)
+	if dismissed != 1 || a.confirm != nil {
+		t.Fatalf("escaped question: dismissed %d, confirm %v", dismissed, a.confirm)
+	}
+}
+
 // A space of the query is no letter of the item's: it takes none, which
 // it did, so a query with a space of its own found nothing.
 func TestFuzzySkipsQuerySpaces(t *testing.T) {

@@ -431,7 +431,17 @@ func (a *App) askHostKey(info remote.HostKeyInfo, inSettings bool) bool {
 			a.setWin.Invalidate()
 		}
 	})
-	return <-answer
+	// The dial's context cannot interrupt the SSH handshake while it sits
+	// in this callback, so bound the wait here as well: a window closed
+	// before anyone answers must not strand this goroutine forever. The
+	// answer channel is buffered, so a late click after the timeout still
+	// sends without blocking the UI.
+	select {
+	case ok := <-answer:
+		return ok
+	case <-time.After(90 * time.Second):
+		return false
+	}
 }
 
 // appClientName says what the app is, for kero clients on a host.
