@@ -102,6 +102,10 @@ type hostAddDraft struct {
 	testOK     bool
 	testResult string
 
+	// showPassword keeps the eye toggle: Password() hides the field only
+	// in frames that call it, so leaving it off shows the typed password.
+	showPassword bool
+
 	err string
 
 	// shown holds what each kind's last lookup found, and cands is the
@@ -179,6 +183,7 @@ func (a *App) openHostAddOn(inSettings bool) {
 	d.refocus = true
 	d.editing, d.kero, d.scheme = "", "", ""
 	d.testing, d.testOK, d.testResult, d.testGen = false, false, "", 0
+	d.showPassword = false
 	d.fieldsOf(d.kind)
 	a.hostAddPull()
 }
@@ -440,11 +445,24 @@ func (a *App) hostAddForm(c *ui.Context, d *hostAddDraft, pal *palette) {
 			// SSH alone authenticates with a user and an optional password.
 			if d.kind == kindSSH {
 				hostAddFieldRow(c, pal, locales.HostAddFieldUser(), func() {
-					ui.Row(c).Gap(8).Children(func() {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 						user := textField(c, "host-add-user", &d.user, locales.HostAddUserPlaceholder(), 0, pal)
 						user.OnSubmit(func() { a.hostAddSubmit(d) })
-						password := textField(c, "host-add-password", &d.password, locales.HostAddPasswordPlaceholder(), 0, pal).Password()
+						password := textField(c, "host-add-password", &d.password, locales.HostAddPasswordPlaceholder(), 0, pal)
+						if !d.showPassword {
+							password.Password()
+						}
 						password.OnSubmit(func() { a.hostAddSubmit(d) })
+						// The eye reveals what the field holds; Password() hides
+						// the text only in the frames that call it.
+						tip := locales.HostShowPassword()
+						eye := eyeIcon
+						if d.showPassword {
+							tip, eye = locales.HostHidePassword(), eyeOffIcon
+						}
+						iconButton(c, "host-add-show-password", eye, tip, pal, func() {
+							d.showPassword = !d.showPassword
+						})
 					})
 				})
 			}
@@ -1002,6 +1020,7 @@ func (a *App) hostAddSubmit(d *hostAddDraft) bool {
 	d.addr, d.name, d.user, d.port, d.password, d.err = "", "", "", "", "", ""
 	d.editing, d.kero, d.scheme = "", "", ""
 	d.testing, d.testOK, d.testResult, d.testGen = false, false, "", 0
+	d.showPassword = false
 	a.focusTerminal()
 	return true
 }

@@ -69,6 +69,8 @@ var (
 	deviceIcon       = glyph("f7-desktopcomputer")
 	serverIcon       = glyph("f7-server-rack")
 	keepAwakeOnIcon  = icon(`<path d="M3 6h8v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6M11 7h1.5a1.5 1.5 0 0 1 0 3H11M5 4c-1-1 1-1 0-2M8 4c-1-1 1-1 0-2"/>`)
+	eyeIcon          = icon(`<path d="M1.5 8s2.6-4.2 6.5-4.2S14.5 8 14.5 8 11.9 12.2 8 12.2 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>`)
+	eyeOffIcon       = icon(`<path d="M1.9 8s2.2-3.6 5.6-4.1M14.1 8s-2.2 3.6-5.6 4.1M2.2 2.2l11.6 11.6"/>`)
 )
 
 // programIcons are the logos of programs a pane may run, by the name kerod

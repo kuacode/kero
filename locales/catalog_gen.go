@@ -6550,6 +6550,26 @@ func (msgs Messages) HostAddPasswordPlaceholder() string {
 	return Catalog.Format(msgs.locale, "hostAddPasswordPlaceholder", nil)
 }
 
+// HostShowPassword says "Show password"
+// in the language the app shows.
+func HostShowPassword() string { return In(i18n.Locale()).HostShowPassword() }
+
+// HostShowPassword says "Show password"
+// in the language of msgs.
+func (msgs Messages) HostShowPassword() string {
+	return Catalog.Format(msgs.locale, "hostShowPassword", nil)
+}
+
+// HostHidePassword says "Hide password"
+// in the language the app shows.
+func HostHidePassword() string { return In(i18n.Locale()).HostHidePassword() }
+
+// HostHidePassword says "Hide password"
+// in the language of msgs.
+func (msgs Messages) HostHidePassword() string {
+	return Catalog.Format(msgs.locale, "hostHidePassword", nil)
+}
+
 // HostAddDetailSSH says "Give the host, port, user and password below. Names and keys from your ~/.ssh/config are used automatically."
 // in the language the app shows.
 func HostAddDetailSSH() string { return In(i18n.Locale()).HostAddDetailSSH() }
@@ -6620,11 +6640,11 @@ func (msgs Messages) HostAddWSLPlaceholder() string {
 	return Catalog.Format(msgs.locale, "hostAddWSLPlaceholder", nil)
 }
 
-// SetHostAddressPlaceholder says "devbox"
+// SetHostAddressPlaceholder says "192.168.1.10"
 // in the language the app shows.
 func SetHostAddressPlaceholder() string { return In(i18n.Locale()).SetHostAddressPlaceholder() }
 
-// SetHostAddressPlaceholder says "devbox"
+// SetHostAddressPlaceholder says "192.168.1.10"
 // in the language of msgs.
 func (msgs Messages) SetHostAddressPlaceholder() string {
 	return Catalog.Format(msgs.locale, "setHostAddressPlaceholder", nil)
