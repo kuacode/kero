@@ -319,9 +319,9 @@ func (a *App) hostAddPanel(c *ui.Context, d *hostAddDraft, pal *palette, panel u
 	}
 	ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 
-	body := ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch)
+	body := ui.Column(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch)
 	body.Children(func() {
-		a.hostAddRail(c, d, pal)
+		a.hostAddKind(c, d, pal)
 		a.hostAddForm(c, d, pal)
 	})
 }
@@ -363,52 +363,34 @@ func dialogClose(c *ui.Context, pal *palette, mode string, open *bool) {
 	}
 }
 
-// hostAddRail is the kind picker. A RadioGroup makes the choice explicit
-// and keyboard-accessible. Switching kinds keeps what was written under
-// each kind.
-func (a *App) hostAddRail(c *ui.Context, d *hostAddDraft, pal *palette) {
-	rail := ui.Column(c.Key("host-add-kind")).Width(150).Shrink(0).Gap(6).Padding(10, 10, 12, 10)
-	rail.Children(func() {
+// hostAddKind is the kind picker: a segmented control, the app's own look
+// for a choice among a few, across the dialog's width. Switching kinds
+// keeps what was written under each kind.
+func (a *App) hostAddKind(c *ui.Context, d *hostAddDraft, pal *palette) {
+	kinds := kindsShown()
+	labels := make([]string, len(kinds))
+	sel := 0
+	for n, k := range kinds {
+		labels[n] = hostAddKind(k)
+		if k == d.kind {
+			sel = n
+		}
+	}
+	row := ui.Row(c).Shrink(0).Padding(14, 20, 2, 20).Gap(10).AlignItems(ui.Center)
+	row.Children(func() {
 		ui.Text(c, locales.HostAddKindLabel()).FontSize(12).FontWeight(600).TextColor(pal.textMuted).SingleLine()
-		// A local proxy lets the switch run before d.kind changes, so the
-		// kind being left keeps its fields. Radio writes the proxy; Changed
-		// then moves the draft over.
-		selected := d.kind
-		ui.RadioGroup(c, func() {
-			for _, k := range kindsShown() {
-				r := ui.Radio(c, &selected, k, hostAddKind(k))
-				if r.Changed() {
-					d.store()
-					d.kind = k
-					d.fieldsOf(k)
-					d.err, d.armed = "", ""
-					d.hi, d.reveal, d.refocus = 0, false, true
-					a.hostAddPull()
-				}
+		segmentedTrack(c, "host-add-kind", sel, labels, false, func(n int) {
+			k := kinds[n]
+			if k == d.kind {
+				return
 			}
-		}).Label(locales.HostAddKindLabel())
-	})
-}
-
-// hostAddBadge is the count of what a kind can offer, once that is known.
-func hostAddBadge(c *ui.Context, d *hostAddDraft, pal *palette, k hostKind) {
-	n := 0
-	switch k {
-	case kindSSH:
-		if !d.looking[k] {
-			n = d.sshN
-		}
-	case kindWSL:
-		if !d.looking[k] {
-			n = d.wslN
-		}
-	}
-	if n <= 0 {
-		return
-	}
-	ui.Row(c).Height(18).Padding(0, 5).Radius(4).Background(pal.kbd).Shrink(0).
-		AlignItems(ui.Center).Children(func() {
-		ui.Text(c, itoa(n)).FontSize(10.5).FontWeight(600).TextColor(pal.textMuted).SingleLine()
+			d.store()
+			d.kind = k
+			d.fieldsOf(k)
+			d.err, d.armed = "", ""
+			d.hi, d.reveal, d.refocus = 0, false, true
+			a.hostAddPull()
+		})
 	})
 }
 

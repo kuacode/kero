@@ -512,8 +512,17 @@ func segmented(c *ui.Context, key string, value *string, ids, labels []string) {
 // segmentedIn is segmented, across the width it has when fill is set,
 // its segments sharing it.
 func segmentedIn(c *ui.Context, key string, value *string, ids, labels []string, fill bool) {
-	pal := paletteFor(c)
 	i := max(slices.Index(ids, *value), 0)
+	segmentedTrack(c, key, i, labels, fill, func(n int) { *value = ids[n] })
+}
+
+// segmentedTrack is the macOS-style track segmentedIn draws, selecting
+// segment selected and calling onPick with the chosen index once a click
+// lands. It stands on its own so other pickers, such as the device dialog's
+// kind, wear the same look.
+func segmentedTrack(c *ui.Context, key string, selected int, labels []string, fill bool, onPick func(int)) {
+	pal := paletteFor(c)
+	i := selected
 	track, thumb := ui.RGBA(0, 0, 0, 0.06), ui.Hex("#ffffff")
 	if pal.dark {
 		track, thumb = ui.RGBA(255, 255, 255, 0.07), ui.RGBA(255, 255, 255, 0.2)
@@ -550,7 +559,7 @@ func segmentedIn(c *ui.Context, key string, value *string, ids, labels []string,
 		}
 	})
 	// The choice lands after this runs: take it then.
-	seg.Track.OnChange(func() { *value = ids[i] })
+	seg.Track.OnChange(func() { onPick(i) })
 }
 
 func (a *App) generalPage(c *ui.Context, pal *palette) {
