@@ -164,7 +164,6 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			if a.set.SidebarCount && count > 0 {
 				countChip(c, pal, count, treeGap-hdrGap)
 			}
-			a.hostState(c, pal, h)
 			chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Margin(0, 0, 0, treeGap-hdrGap)
 			turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 			chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
@@ -173,14 +172,21 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			// even when the second line is folded away from view. A spring
 			// pushes it against the sidebar edge, past the fold arrow.
 			ui.Box(c).Grow(1)
+			if h.remote() {
+				a.hostQuickButton(c, pal, "reconnect", locales.HostReconnect(), reloadIcon, func() { a.reconnectHost(h) })
+				a.hostQuickButton(c, pal, "edit", locales.HostEdit(), editIcon, func() { a.editHost(h) })
+			}
 			if h.conn == connReady {
 				a.hostQuickButton(c, pal, "add", locales.ActionOpenProject(), plusIcon, func() { a.openProjectOn(h) })
 			}
 		})
-		// What it is, and what the user can do with it, without a right
-		// click: the address and system read first, then the round trip and
-		// load, then reconnect and edit at the row's far end.
+		// What it is, and how it is doing, without a right click: the state
+		// reads first, then the address and system, then the round trip and
+		// load. Reconnect and edit live on the identity line above.
 		ui.Row(c).Height(16).Gap(hdrGap).AlignItems(ui.Center).Children(func() {
+			// 状态放在第二行起始：连接中/失败/已连接用简短文字，更新或
+			// 重启仍是可点的小按钮。本机通常无需状态，占位即可。
+			a.hostState(c, pal, h)
 			// The address reads only on a host: this machine's name is already
 			// on the identity line, so a second "This Computer" would repeat it.
 			if h.remote() {
@@ -195,10 +201,6 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 			}
 			if a.set.ShowSystemLoad {
 				a.hostLoad(c, pal, h)
-			}
-			if h.remote() {
-				a.hostQuickButton(c, pal, "reconnect", locales.HostReconnect(), reloadIcon, func() { a.reconnectHost(h) })
-				a.hostQuickButton(c, pal, "edit", locales.HostEdit(), editIcon, func() { a.editHost(h) })
 			}
 		})
 	})
@@ -363,53 +365,49 @@ func (a *App) hostTag(c *ui.Context, pal *palette, h *host) {
 	})
 }
 
-// hostState says how the app stands with a host, at the end of its row,
-// or of its first group's header: a dot while it connects or failed to,
-// a chip when Kero there wants updating or kerod restarting.
+// hostState says how the app stands with a host, at the start of the second
+// line: a short word instead of the dot the identity line used to carry.
+// Connecting, failed and ready read as text; update and restart stay as
+// small buttons because they ask for a choice first.
 func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
+	stateWord := func(col ui.Color, label string) {
+		ui.Text(c, label).FontSize(10.5).FontWeight(500).TextColor(col).SingleLine().Shrink(0).Tooltip(label)
+	}
 	switch {
 	case h.conn == connConnecting && h.loaded:
-		a.hostDot(c, pal, pal.attention, locales.HostReconnecting())
+		stateWord(pal.attention, locales.HostReconnecting())
 	case h.conn == connConnecting:
-		a.hostDot(c, pal, pal.textFaint, locales.StatusConnecting())
+		stateWord(pal.attention, locales.StatusConnecting())
 	case h.conn == connFailed:
-		a.hostDot(c, pal, pal.danger, a.hostProblem(h))
+		stateWord(pal.danger, locales.StatusDisconnected())
 	case h.conn == connVersion || h.behind():
-		b := ui.ButtonBase(c.Key("update")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
+		b := ui.ButtonBase(c.Key("update")).Height(18).Padding(0, 6).Gap(5).Radius(9).AlignItems(ui.Center).
 			Label(locales.HostUpdateAction(h.name)).Tooltip(a.hostVersionDetail(h))
 		if b.Hovered() {
 			b.Background(pal.rowHover)
 		}
 		b.Children(func() {
-			ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention)
-			ui.Text(c, locales.CommonUpdate()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
+			ui.Text(c, locales.CommonUpdate()).FontSize(11).FontWeight(500).TextColor(pal.attention).SingleLine()
 		})
 		if b.Clicked() {
 			a.offerHostUpdate(h)
 		}
 	case h.stale():
-		b := ui.ButtonBase(c.Key("restart")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
+		b := ui.ButtonBase(c.Key("restart")).Height(18).Padding(0, 6).Gap(5).Radius(9).AlignItems(ui.Center).
 			Label(locales.HostRestartAction(h.name)).Tooltip(locales.HostStaleTip(h.name, h.daemonApp, h.info.Kero))
 		if b.Hovered() {
 			b.Background(pal.rowHover)
 		}
 		b.Children(func() {
-			ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention)
-			ui.Text(c, locales.CommonRestartService()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
+			ui.Text(c, locales.CommonRestartService()).FontSize(11).FontWeight(500).TextColor(pal.attention).SingleLine()
 		})
 		if b.Clicked() {
 			a.offerHostRestart(h)
 		}
 	case h.conn == connReady:
-		// 已连接且无需更新：用一个绿点注明在线状态，悬停显示 Connected。
-		a.hostDot(c, pal, pal.good, locales.HostStateOnline())
+		// 已连接且无需更新：第二行起始用简短文字注明在线状态。
+		stateWord(pal.good, locales.HostStateOnline())
 	}
-}
-
-// hostDot says how the app stands with a host: a dot, and its words as
-// the tooltip.
-func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
-	ui.Box(c).Size(7, 7).Radius(3.5).Background(col).Shrink(0).Margin(0, 4, 0, 0).Label(label).Tooltip(label)
 }
 
 // hostTip tells what a host is: its address, and Kero there.

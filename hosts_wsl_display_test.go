@@ -12,7 +12,7 @@ import (
 )
 
 // WSL 的远程地址完整显示为 wsl://<发行版>，选择器副标题也一样；已连接的
-// 远程在侧栏有一个注明状态的点（tooltip 为 HostStateOnline）。
+// 远程在第二行行首用简洁文字注明状态（HostStateOnline）。
 func TestWslFullAddressAndConnectedState(t *testing.T) {
 	a := testApp(t)
 	addr, err := remote.ParseAddr("wsl://Ubuntu")
@@ -33,7 +33,7 @@ func TestWslFullAddressAndConnectedState(t *testing.T) {
 		t.Errorf("deviceSubtitle = %q, want the full wsl:// address", got)
 	}
 
-	// hostState draws a dot labeled with the connected state.
+	// hostState writes the connected state as a short word on the line.
 	tt := ui.NewTester(func(c *ui.Context) { a.hostState(c, paletteFor(c), h) }, 120, 40)
 	tt.Frame()
 	if !tt.HasText(locales.HostStateOnline()) {
