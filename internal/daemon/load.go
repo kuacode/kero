@@ -1,46 +1,61 @@
 package daemon
 
 import (
+	"sync/atomic"
+	"time"
+
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 
 	"kero/internal/proto"
 )
 
-// LocalLoad reads this machine's load now: the CPU busy percent over a
-// short interval and memory used of total, both through gopsutil.
+// cpuBusy is the last CPU busy percent sampled by sampleCPU. Keeping it
+// cached is what makes the reading steady: the 2-second broadcast and the
+// system.load RPC both read it, so neither takes its own sample that would
+// reset gopsutil's process-wide baseline and shorten the other's window.
+var cpuBusy atomic.Int64
+
+// LocalLoad reads this machine's cached CPU busy percent and its memory now.
 func LocalLoad() proto.SystemLoad {
 	used, total := memLoad()
-	return proto.SystemLoad{CPU: cpuPercentNow(), MemUsed: used, MemTotal: total}
+	return proto.SystemLoad{CPU: int(cpuBusy.Load()), MemUsed: used, MemTotal: total}
 }
 
-// cpuPercentNow samples the CPU busy percent since the last call. A short
-// fixed window (say 120ms) reads 0 on an idle machine: in two ticks of the
-// clock it often sees no CPU time at all. Percent(0) instead averages from
-// gopsutil's previous sample, so the window is the caller's interval (the
-// daemon broadcasts every couple of seconds), which tracks load without
-// flickering to 0. It returns an error on the very first sample; a host
-// connecting then just shows 0 until the next push.
-func cpuPercentNow() int {
-	pcts, err := cpu.Percent(0, false)
+// sampleCPU refreshes cpuBusy every interval until quit closes. A positive
+// interval makes gopsutil take both readings itself, so the window is the
+// interval — a second, as the OS task managers show — rather than the time
+// since some other caller happened to touch its global baseline. One sample
+// a second also keeps the cost off the panes' tick and the RPC path.
+func sampleCPU(interval time.Duration, quit <-chan struct{}) {
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+		}
+		if pct, ok := readCPUPercent(interval); ok {
+			cpuBusy.Store(int64(pct))
+		}
+	}
+}
+
+// readCPUPercent takes one gopsutil reading over interval and clamps it to
+// 0..100. It reports false when no reading came back, leaving the last
+// cached value in place.
+func readCPUPercent(interval time.Duration) (int, bool) {
+	pcts, err := cpu.Percent(interval, false)
 	if err != nil || len(pcts) == 0 {
-		return 0
+		return 0, false
 	}
 	p := pcts[0]
 	if p < 0 {
-		return 0
+		p = 0
 	}
 	if p > 100 {
-		return 100
+		p = 100
 	}
-	return int(p)
-}
-
-// seedLoadBaseline primes gopsutil's from-last-call CPU sample. Without it
-// the first reading has no sample to subtract and shows 0% until the next
-// push; seeding at startup makes the first request read the time since.
-func seedLoadBaseline() {
-	_, _ = cpu.Percent(0, false)
+	return int(p), true
 }
 
 // memLoad reads memory used and total in bytes through gopsutil.

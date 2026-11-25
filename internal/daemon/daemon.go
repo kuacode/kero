@@ -63,7 +63,7 @@ type Daemon struct {
 	conns    int
 	idleAt   time.Time
 	lastLoad time.Time
-	ending                    bool
+	ending   bool
 	// restarting: kerod stops to start again, as a remote client asked
 	// (proto.KindRestart).
 	restarting bool
@@ -230,9 +230,10 @@ func Run(opts Options) error {
 
 	go d.broadcastLoop()
 	go d.saveLoop()
-	// Seed the CPU baseline so the app's first load request reads an
-	// average over the time to connect, not an empty window that shows 0%.
-	seedLoadBaseline()
+	// Sample the CPU once a second on its own goroutine. Reading it is then
+	// free for both the broadcast and the system.load RPC, and no reader
+	// resets the sampling window.
+	go sampleCPU(time.Second, d.quit)
 	go d.tickLoop()
 	go d.git.loop()
 	uid := os.Getuid()
