@@ -80,6 +80,7 @@
   "toastPasteImageDiskFull": "Couldn’t paste the image: the disk is full. Free some space and try again.",
   "toastPasteClipboardUnreadable": "Couldn’t read the clipboard. Copy it again and paste.",
   "toastPasteImageUnsupported": "Couldn’t paste the image: {format} isn’t supported. Copy it as PNG or JPEG, or drop the image file on the pane.",
+  "toastPasteReadFailed": "Couldn’t paste {name}: {error}",
   "toastConfigProblems": "{count, plural, one {Your config has # problem: see Settings › Advanced} other {Your config has # problems: see Settings › Advanced}}",
   "@toastConfigProblems": {
     "placeholders": {
@@ -89,6 +90,7 @@
     }
   },
   "toastNothingNeedsYou": "Nothing needs you",
+  "toastBackupFailed": "Couldn’t back up your unsaved edits: {error}",
   "cliInstallFailed": "Couldn’t install the command line tool",
   "cliInstalledIn": "Installed the kero command in {dir}",
   "cliAddedToPath": "Added the kero command to your PATH: new terminals have it",

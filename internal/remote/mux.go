@@ -136,8 +136,10 @@ func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 func handshake(ctx context.Context, tr io.ReadWriteCloser, a Addr, o Options) (*Conn, error) {
 	fail := func(err error) (*Conn, error) {
 		// The program's end, rather than what a host that answered said,
-		// says why.
-		if f, ok := tr.(interface{ failure() error }); ok && ctx.Err() == nil && (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, os.ErrClosed)) {
+		// says why — a broken pipe of a write to it is its end, read
+		// early, as the ended stream of a read is. Both transports (the
+		// ssh session and WSL's command) say it through failure().
+		if f, ok := tr.(interface{ failure() error }); ok && ctx.Err() == nil && (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, os.ErrClosed) || brokenPipe(err)) {
 			err = f.failure()
 		}
 		tr.Close()

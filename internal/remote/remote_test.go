@@ -253,14 +253,19 @@ func TestDialWindows(t *testing.T) {
 		{"", ErrNotInstalled}, // sh ran: the host has no Kero
 	} {
 		a := Addr{Scheme: "ssh", Host: fmt.Sprintf("devbox%d", i)}
-		t.Cleanup(func() { shells.Delete(a.String()) })
+		// The remembered shell is the process's own: a second run of the
+		// tests in one process (go test -count=2) would find it and start
+		// with the shell's bridge, so the first of the two dials would
+		// probe nothing. Each host starts clean.
+		shells.Delete(a.String())
 		var bridges []*eofTransport
 		transportFn = func(_ context.Context, got Addr, _, _ string) (io.ReadWriteCloser, error) {
 			if got != a {
 				t.Errorf("dialed %s, want %s", got, a)
 			}
 			// A Windows shell fails to run sh; the retry, in that
-			// shell, finds no Kero.
+			// shell, finds no Kero. On the second dial the shell is
+			// remembered, so no fresh probe is made.
 			fail := ErrNotInstalled
 			if len(bridges) == 0 {
 				fail = tt.first
@@ -269,15 +274,17 @@ func TestDialWindows(t *testing.T) {
 			bridges = append(bridges, b)
 			return b, nil
 		}
-		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-		_, err := Dial(ctx, a, Options{})
-		cancel()
-		if !errors.Is(err, ErrNotInstalled) {
-			t.Fatalf("%q: %v", tt.shell, err)
+		for range 2 {
+			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+			_, err := Dial(ctx, a, Options{})
+			cancel()
+			if !errors.Is(err, ErrNotInstalled) {
+				t.Fatalf("%s: %v", tt.shell, err)
+			}
 		}
-		want := 1 // a sh host needs no retry
+		want := 2 // sh: a probe on each of the two dials
 		if tt.shell != "" {
-			want = 2
+			want = 3 // probe + shell retry, then the remembered shell
 		}
 		if len(bridges) != want {
 			t.Errorf("%q: opened %d bridges, want %d", tt.shell, len(bridges), want)
@@ -694,5 +701,37 @@ func TestInstallOfAWslHostIsOfWindows(t *testing.T) {
 	_, err := InstallCommand(Addr{Scheme: "wsl", Host: "Ubuntu"}, "", true, "")
 	if err == nil || !strings.Contains(err.Error(), "Windows") {
 		t.Fatalf("the install command: %v", err)
+	}
+}
+
+// A host that has answered and ended takes the hello nowhere: the write
+// to its closed pipe fails with a broken pipe. That is the program's
+// end read early — what the program said last (here: no kero there) is
+// the why, not the write's "broken pipe". The Windows shell probe dials
+// twice, and the second bridge can end before the hello reaches it.
+func TestHandshakeReadsAWriteToAnEndedBridgeAsItsEnd(t *testing.T) {
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("no sh")
+	}
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Close() // no reader: a write fails with a broken pipe
+	cmd := exec.Command("sh", "-c", "echo 'kero is not installed on devbox' >&2; exit 127")
+	c := &cmdConn{cmd: cmd, ssh: true, stdin: w, eof: make(chan struct{}), done: make(chan struct{})}
+	cmd.Stderr = &c.stderr
+	runErr := cmd.Run()
+	if runErr == nil {
+		t.Fatal("the program was to end 127")
+	}
+	// The program is done and its end is known, as the bridge's goroutine
+	// records it once the pipes close.
+	c.err = runErr
+	close(c.done)
+
+	_, err = handshake(context.Background(), c, Addr{Scheme: "ssh", Host: "devbox"}, Options{})
+	if !errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("%v, want ErrNotInstalled", err)
 	}
 }
