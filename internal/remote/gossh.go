@@ -33,12 +33,52 @@ import (
 var sshDialFn = sshDial
 var sshExecFn = sshExec
 
+// HostKeyInfo is what the app needs to ask its user about a host key it has
+// not seen before: which host, a fingerprint to check against one the host's
+// owner publishes, and the known_hosts entry trusting it writes.
+type HostKeyInfo struct {
+	Host        string // the address the key belongs to, as "[host]:port" (a bare host on port 22)
+	Fingerprint string // SHA-256 fingerprint of the key
+	KnownLine   string // the exact line to append to known_hosts should the user trust it
+}
+
+// HostKeyAsk is how the app answers a first-seen host key: it asks its user,
+// and reports whether they chose to trust the host. It runs on the main
+// thread's terms — the transport calls it from a dial, which may be on a
+// goroutine — and it returns only once the user has answered.
+type HostKeyAsk func(HostKeyInfo) bool
+
+// trustHost appends a trusted host-key line to the user's known_hosts,
+// creating ~/.ssh as OpenSSH would. It returns the file it wrote to.
+func trustHost(line string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(home, ".ssh")
+	// A private directory, as ssh-keygen makes it: the keys and the hosts
+	// trusted are the user's alone.
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "known_hosts")
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	if _, err := f.WriteString(line + "\n"); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 // sshClientConfig builds what a Go SSH dial needs for a: the login, the
 // keys or password to offer, and the known_hosts check. Password, when
 // given, is the only method tried, once, as an app's stored credential;
 // without one the client offers the agent and the identity files, and
 // never prompts.
-func sshClientConfig(a Addr, password string) (*ssh.ClientConfig, error) {
+func sshClientConfig(a Addr, password string, ask HostKeyAsk) (*ssh.ClientConfig, error) {
 	cfg, err := configFor(a.Host)
 	if err != nil {
 		return nil, err
@@ -70,7 +110,7 @@ func sshClientConfig(a Addr, password string) (*ssh.ClientConfig, error) {
 	}
 	// Dial is given the address the user wrote, but the host key is checked
 	// against the real one an alias resolves to.
-	known, err := sshHostKeyCallback(host, port)
+	known, err := sshHostKeyCallback(host, ask)
 	if err != nil {
 		return nil, err
 	}
@@ -125,27 +165,65 @@ func sshAddr(a Addr) (string, error) {
 }
 
 // sshHostKeyCallback checks a host's key against the user's known_hosts.
-// An unknown key is an error: the app never adds a key on trust, and
-// BatchMode's old behavior was the same. With no known_hosts at all, the
-// error says what the user must do once in a terminal.
-func sshHostKeyCallback(host, port string) (ssh.HostKeyCallback, error) {
+// A key never seen before is not an error the app fails on: it is shown to
+// the user through ask, who trusts it or not, and trusting writes it to
+// known_hosts as OpenSSH's first-connection prompt would. A key that is
+// known but different is refused outright — that is the sign of a host
+// that changed its key, or of one in the middle — and is never asked about.
+// The host the key is checked against, host, is what the refusals name.
+func sshHostKeyCallback(host string, ask HostKeyAsk) (ssh.HostKeyCallback, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
+	dir := filepath.Join(home, ".ssh")
 	var files []string
 	for _, name := range []string{"known_hosts", "known_hosts2"} {
-		path := filepath.Join(home, ".ssh", name)
+		path := filepath.Join(dir, name)
 		if _, err := os.Stat(path); err == nil {
 			files = append(files, path)
 		}
 	}
-	if len(files) == 0 {
-		return func(string, net.Addr, ssh.PublicKey) error {
-			return fmt.Errorf("host key verification failed: %s is not trusted; run ssh %s once in a terminal to trust it", host, net.JoinHostPort(host, port))
-		}, nil
+	base, err := knownhosts.New(files...)
+	if err != nil {
+		return nil, err
 	}
-	return knownhosts.New(files...)
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		err := base(hostname, remote, key)
+		if err == nil {
+			return nil
+		}
+		var keyErr *knownhosts.KeyError
+		if !errors.As(err, &keyErr) {
+			return err // not a key question: a malformed line or such
+		}
+		// A key that is on record and different: possibly a man in the
+		// middle. Say so and refuse; the app never adds a key over it.
+		if len(keyErr.Want) > 0 {
+			return fmt.Errorf("%w: %v", ErrHostKeyMismatch, err)
+		}
+		// A key never seen: this is the first-connection question, asked
+		// only when there is someone to ask and something to check.
+		fingerprint := ssh.FingerprintSHA256(key)
+		// The hostname the handshake checked is already "host:port" (a
+		// bare host on port 22); that is how known_hosts names the key.
+		name := knownhosts.Normalize(hostname)
+		entry := knownhosts.Line([]string{name}, key)
+		if ask == nil {
+			// No one to ask — a non-interactive dial, or a host key the
+			// app has no window over yet: refuse as OpenSSH in batch
+			// mode would, rather than trust unheard.
+			return fmt.Errorf("%w: %s is not trusted yet", ErrAuth, host)
+		}
+		if !ask(HostKeyInfo{Host: name, Fingerprint: fingerprint, KnownLine: entry}) {
+			return fmt.Errorf("%w: %s is not trusted", ErrAuth, host)
+		}
+		// Trusted: remember it, then let this and later connections in.
+		if _, err := trustHost(entry); err != nil {
+			return fmt.Errorf("could not add %s to known_hosts: %w", host, err)
+		}
+		return nil
+	}, nil
 }
 
 // sshIdentityFiles are the keys a Go client tries, in order: those of an
@@ -215,8 +293,8 @@ func sshAgentSigners() func() ([]ssh.Signer, error) {
 // sshDial opens a Go SSH connection to a, in ctx. The TCP dial and the
 // protocol handshake are goph's; the config it is given is ours, keeping
 // this app's alias, known_hosts and authentication policy in one place.
-func sshDial(ctx context.Context, a Addr, password string) (*ssh.Client, error) {
-	conf, err := sshClientConfig(a, password)
+func sshDial(ctx context.Context, a Addr, password string, ask HostKeyAsk) (*ssh.Client, error) {
+	conf, err := sshClientConfig(a, password, ask)
 	if err != nil {
 		return nil, err
 	}
@@ -334,8 +412,8 @@ func errText(err error) string {
 // goSSHTransport runs the bridge on a host over Go's SSH, returning its
 // stdio as the mux's transport. It replaces exec.Command(ssh, ...) so no
 // external ssh program, askpass helper, or Windows OpenSSH is needed.
-func goSSHTransport(ctx context.Context, a Addr, password string) (io.ReadWriteCloser, error) {
-	client, err := sshDialFn(ctx, a, password)
+func goSSHTransport(ctx context.Context, a Addr, password string, ask HostKeyAsk) (io.ReadWriteCloser, error) {
+	client, err := sshDialFn(ctx, a, password, ask)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +453,7 @@ func goSSHTransport(ctx context.Context, a Addr, password string) (io.ReadWriteC
 // bytes too when the caller wants them nil. Errors are mapped to the app's
 // ErrNotInstalled / ErrAuth / shellError, as a dial's are.
 func sshExec(ctx context.Context, a Addr, password, command string, stdin io.Reader, stdout, stderr io.Writer) ([]byte, []byte, error) {
-	client, err := sshDialFn(ctx, a, password)
+	client, err := sshDialFn(ctx, a, password, nil)
 	if err != nil {
 		return nil, nil, err
 	}

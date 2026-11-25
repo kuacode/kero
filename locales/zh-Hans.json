@@ -755,5 +755,14 @@
   "hostTesting": "正在测试…",
   "hostTestOK": "连接成功 · {system} · Kero {version} · {rtt}",
   "hostTestFailed": "连接失败：{error}",
+  "hostKeyTrustTitle": "信任此主机？",
+  "hostKeyTrustDetail": "无法确认主机 {host} 的真实性。其密钥指纹为：\n{fingerprint}\n\n如果与该主机公布的指纹一致，请信任以连接。Kero 会记住它，除非它发生变化，否则不再询问。",
+  "@hostKeyTrustDetail": {
+    "placeholders": {
+      "host": {"type": "String"},
+      "fingerprint": {"type": "String"}
+    }
+  },
+  "hostKeyTrustAction": "信任并连接",
   "devicePickerMoreTip": "更多操作：删除、复制地址、颜色"
 }

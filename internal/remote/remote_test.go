@@ -146,7 +146,7 @@ func TestSSHClientConfig(t *testing.T) {
 	}
 
 	a := Addr{Scheme: "ssh", Host: "devbox"}
-	cfg, err := sshClientConfig(a, "p@ss")
+	cfg, err := sshClientConfig(a, "p@ss", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func TestSSHClientConfig(t *testing.T) {
 
 	// What the user wrote wins over the config's defaults.
 	explicit := Addr{Scheme: "ssh", Host: "devbox", User: "me", Port: "2022"}
-	cfg, err = sshClientConfig(explicit, "p@ss")
+	cfg, err = sshClientConfig(explicit, "p@ss", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestSSHClientConfig(t *testing.T) {
 
 	// Without a password the client offers keys or the agent, never a
 	// password method that would prompt.
-	cfg, err = sshClientConfig(a, "")
+	cfg, err = sshClientConfig(a, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestDialWindows(t *testing.T) {
 		// probe nothing. Each host starts clean.
 		shells.Delete(a.String())
 		var bridges []*eofTransport
-		transportFn = func(_ context.Context, got Addr, _, _ string) (io.ReadWriteCloser, error) {
+		transportFn = func(_ context.Context, got Addr, _, _ string, _ HostKeyAsk) (io.ReadWriteCloser, error) {
 			if got != a {
 				t.Errorf("dialed %s, want %s", got, a)
 			}

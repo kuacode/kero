@@ -915,13 +915,21 @@ func (a *App) hostAddTest(d *hostAddDraft) {
 	d.testing, d.testResult = true, ""
 	d.testGen++
 	gen := d.testGen
+	inSettings := d.settings
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		// The dial may pause on a first-seen host key for as long as the
+		// user takes to answer, so this is not a network timeout: it is
+		// the outer bound of reading a question and answering it.
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 		defer cancel()
 		start := time.Now()
+		// A first-seen host key is asked about mid-dial: the answer comes
+		// from the user, so the dial blocks on it, and trusting the host
+		// dials on at once rather than this test being run again.
 		conn, err := remote.Dial(ctx, addr, remote.Options{
 			App: mygo.App.Version(), Client: appClientName(),
 			Password: strings.TrimSpace(d.password),
+			HostKey:  func(info remote.HostKeyInfo) bool { return a.askHostKey(info, inSettings) },
 		})
 		rtt := time.Since(start)
 		var ok bool

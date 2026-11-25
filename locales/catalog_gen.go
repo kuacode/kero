@@ -7420,6 +7420,38 @@ func (msgs Messages) HostTestFailed(error string) string {
 	return Catalog.Format(msgs.locale, "hostTestFailed", map[string]any{"error": error})
 }
 
+// HostKeyTrustTitle says "Trust this host?"
+// in the language the app shows.
+func HostKeyTrustTitle() string { return In(i18n.Locale()).HostKeyTrustTitle() }
+
+// HostKeyTrustTitle says "Trust this host?"
+// in the language of msgs.
+func (msgs Messages) HostKeyTrustTitle() string {
+	return Catalog.Format(msgs.locale, "hostKeyTrustTitle", nil)
+}
+
+// HostKeyTrustDetail says "The authenticity of host {host} can't be established. Its key fingerprint is:\n{fingerprint}\n\nIf this matches the host…"
+// in the language the app shows.
+func HostKeyTrustDetail(host string, fingerprint string) string {
+	return In(i18n.Locale()).HostKeyTrustDetail(host, fingerprint)
+}
+
+// HostKeyTrustDetail says "The authenticity of host {host} can't be established. Its key fingerprint is:\n{fingerprint}\n\nIf this matches the host…"
+// in the language of msgs.
+func (msgs Messages) HostKeyTrustDetail(host string, fingerprint string) string {
+	return Catalog.Format(msgs.locale, "hostKeyTrustDetail", map[string]any{"host": host, "fingerprint": fingerprint})
+}
+
+// HostKeyTrustAction says "Trust and connect"
+// in the language the app shows.
+func HostKeyTrustAction() string { return In(i18n.Locale()).HostKeyTrustAction() }
+
+// HostKeyTrustAction says "Trust and connect"
+// in the language of msgs.
+func (msgs Messages) HostKeyTrustAction() string {
+	return Catalog.Format(msgs.locale, "hostKeyTrustAction", nil)
+}
+
 // DevicePickerMoreTip says "More actions: remove, copy address, color"
 // in the language the app shows.
 func DevicePickerMoreTip() string { return In(i18n.Locale()).DevicePickerMoreTip() }

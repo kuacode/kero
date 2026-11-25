@@ -205,6 +205,10 @@ type confirmation struct {
 	alt        string
 	altRun     func()
 	altDestroy bool
+	// dismiss, when set, runs when the question is answered without the
+	// action or its alt — cancelled, escaped, or sent away — for a caller
+	// that waits on the answer to know it got none.
+	dismiss func()
 }
 
 func newApp() *App {

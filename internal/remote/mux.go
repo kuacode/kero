@@ -86,6 +86,10 @@ type Options struct {
 	App      string // the version of Kero
 	Client   string // "Kero 2.1.0 on laptop"
 	Password string // the SSH password, when the host uses one
+	// HostKey, when set, is asked about a host key never seen before; it
+	// may trust the host, which writes the key to known_hosts. Without it
+	// an unknown key is refused as it always was.
+	HostKey HostKeyAsk
 }
 
 // Conn is a remote connection: streams to kerod on a host.
@@ -102,7 +106,7 @@ func Dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 	c, err := dial(ctx, a, o)
 	// A shell remembered may have changed, as the SSH server's default:
 	// it is found again.
-	if err != nil && cached && ctx.Err() == nil && !errors.Is(err, ErrNotInstalled) && !errors.Is(err, ErrAuth) {
+	if err != nil && cached && ctx.Err() == nil && !errors.Is(err, ErrNotInstalled) && !errors.Is(err, ErrAuth) && !errors.Is(err, ErrHostKeyMismatch) {
 		shells.Delete(a.String())
 		return dial(ctx, a, o)
 	}
@@ -110,7 +114,7 @@ func Dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 }
 
 func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
-	tr, err := transportFn(ctx, a, o.Client, o.Password)
+	tr, err := transportFn(ctx, a, o.Client, o.Password, o.HostKey)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +126,7 @@ func dial(ctx context.Context, a Addr, o Options) (*Conn, error) {
 		return c, err
 	}
 	shells.Store(a.String(), se.shell)
-	if tr, err = transportFn(ctx, a, o.Client, o.Password); err == nil {
+	if tr, err = transportFn(ctx, a, o.Client, o.Password, o.HostKey); err == nil {
 		c, err = handshake(ctx, tr, a, o)
 	}
 	if err != nil && !errors.Is(err, ErrNotInstalled) {

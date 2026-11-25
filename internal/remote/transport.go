@@ -30,6 +30,11 @@ var (
 	ErrNotInstalled = errors.New("Kero is not installed on the host")
 	// ErrAuth: the host refused us, or its key is not one ssh trusts yet.
 	ErrAuth = errors.New("the host refused the connection")
+	// ErrHostKeyMismatch: the host's key is on record in known_hosts and
+	// different from the one it offered. That is what a host that changed
+	// its key looks like, and so is a man in the middle; it is refused,
+	// never asked about, and never added over.
+	ErrHostKeyMismatch = errors.New("the host key does not match the one already known")
 )
 
 // MuxPath is where kerod's network listeners take remote connections, as
@@ -202,10 +207,10 @@ var transportFn = transport
 // transport opens the byte stream to a host that a remote connection runs
 // over. SSH is spoken in-process (see gossh.go); only WSL still starts a
 // program, as it is Windows' own subsystem.
-func transport(ctx context.Context, a Addr, client, password string) (io.ReadWriteCloser, error) {
+func transport(ctx context.Context, a Addr, client, password string, ask HostKeyAsk) (io.ReadWriteCloser, error) {
 	switch a.Scheme {
 	case "ssh":
-		return goSSHTransport(ctx, a, password)
+		return goSSHTransport(ctx, a, password, ask)
 	case "wsl":
 		if runtime.GOOS != "windows" {
 			return nil, errors.New("wsl:// addresses are of Windows")

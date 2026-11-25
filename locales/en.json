@@ -1411,5 +1411,14 @@
       "error": {"type": "String"}
     }
   },
+  "hostKeyTrustTitle": "Trust this host?",
+  "hostKeyTrustDetail": "The authenticity of host {host} can't be established. Its key fingerprint is:\n{fingerprint}\n\nIf this matches the host's published fingerprint, trust it to connect. Kero remembers it, and asks no more unless it changes.",
+  "@hostKeyTrustDetail": {
+    "placeholders": {
+      "host": {"type": "String"},
+      "fingerprint": {"type": "String"}
+    }
+  },
+  "hostKeyTrustAction": "Trust and connect",
   "devicePickerMoreTip": "More actions: remove, copy address, color"
 }

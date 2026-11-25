@@ -755,5 +755,14 @@
   "hostTesting": "テスト中…",
   "hostTestOK": "接続成功 · {system} · Kero {version} · {rtt}",
   "hostTestFailed": "接続失敗: {error}",
+  "hostKeyTrustTitle": "このホストを信頼しますか？",
+  "hostKeyTrustDetail": "ホスト {host} の真正性を確認できません。その鍵のフィンガープリントは：\n{fingerprint}\n\nこのフィンガープリントがそのホストが公開しているものと一致すれば、信頼して接続してください。Kero はそれを記憶し、変わらない限り再度尋ねません。",
+  "@hostKeyTrustDetail": {
+    "placeholders": {
+      "host": {"type": "String"},
+      "fingerprint": {"type": "String"}
+    }
+  },
+  "hostKeyTrustAction": "信頼して接続",
   "devicePickerMoreTip": "その他の操作: 削除、アドレスをコピー、色"
 }

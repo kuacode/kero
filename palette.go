@@ -504,6 +504,10 @@ func confirmDialog(c *ui.Context, pal *palette, pending **confirmation) bool {
 	} else if alt {
 		cf.open = false
 		cf.altRun()
+	} else if cf.dismiss != nil {
+		// Sent away without the action or its alt: tell whoever waits on
+		// the answer, before the question is cleared.
+		cf.dismiss()
 	}
 	if cf.open {
 		return false

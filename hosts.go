@@ -380,9 +380,16 @@ func (a *App) connectHost(h *host) {
 			cl, err = client.Connect(false)
 		} else {
 			if rc == nil {
-				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				rc, err = remote.Dial(ctx, h.addr, remote.Options{App: mygo.App.Version(), Client: appClientName(), Password: h.cfg.Password})
-				cancel()
+				// The dial asks about a first-seen host key, and waits
+				// on the user's answer: give it the better part of a
+				// minute, not a network timeout, so an unanswered
+				// question ends it rather than one still being read.
+				ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+				defer cancel()
+				rc, err = remote.Dial(ctx, h.addr, remote.Options{
+					App: mygo.App.Version(), Client: appClientName(), Password: h.cfg.Password,
+					HostKey: func(info remote.HostKeyInfo) bool { return a.askHostKey(info, false) },
+				})
 			}
 			if err == nil {
 				cl, err = client.ConnectVia(rc)
@@ -390,6 +397,41 @@ func (a *App) connectHost(h *host) {
 		}
 		a.update(func() { a.connected(h, gen, rc, cl, err) })
 	}()
+}
+
+// askHostKey asks its user about a host key never seen before: which host,
+// a fingerprint to check against one its owner publishes. It runs on a dial
+// goroutine and blocks until the user answers, then says whether they chose
+// to trust the host. The question is drawn in whichever window is showing
+// it — the main one, or Settings, while a host is being added there.
+func (a *App) askHostKey(info remote.HostKeyInfo, inSettings bool) bool {
+	// No window to ask in: there is no one to answer, and a dial waiting
+	// on an answer would hang, so refuse at once.
+	if a.win == nil {
+		return false
+	}
+	answer := make(chan bool, 1)
+	trust := func() { answer <- true }
+	refuse := func() { answer <- false }
+	confirm := &confirmation{
+		open:    true,
+		title:   locales.HostKeyTrustTitle(),
+		detail:  locales.HostKeyTrustDetail(info.Host, info.Fingerprint),
+		action:  locales.HostKeyTrustAction(),
+		run:     trust,
+		dismiss: refuse,
+	}
+	a.update(func() {
+		if inSettings {
+			a.ss.confirm = confirm
+		} else {
+			a.confirm = confirm
+		}
+		if inSettings && a.setWin != nil {
+			a.setWin.Invalidate()
+		}
+	})
+	return <-answer
 }
 
 // appClientName says what the app is, for kero clients on a host.
@@ -441,7 +483,7 @@ func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, er
 			return
 		}
 		h.conn, h.err, h.errKind = connFailed, err.Error(), nil
-		for _, k := range []error{remote.ErrNotInstalled, remote.ErrAuth} {
+		for _, k := range []error{remote.ErrNotInstalled, remote.ErrAuth, remote.ErrHostKeyMismatch} {
 			if errors.Is(err, k) {
 				h.errKind = k
 				h.err = strings.TrimPrefix(strings.TrimPrefix(err.Error(), k.Error()), ": ")
