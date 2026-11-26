@@ -186,12 +186,13 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32, coun
 		})
 		// The second line keeps the connection state word, the round trip
 		// and load. Update/restart read on the identity line; the address
-		// and system live in the state word's hover.
+		// and system live in the state word's hover. The whole line is one
+		// muted gray: it reads as a line of facts, not colored signals.
 		ui.Row(c).Height(16).Gap(hdrGap).AlignItems(ui.Center).Children(func() {
 			a.hostState(c, pal, h)
 			ui.Box(c).Grow(1)
 			if h.hasRTT() {
-				ui.Text(c, "RTT:"+rttText(h.rtt)).FontSize(10.5).TextColor(a.rttColor(pal, h)).FontFeatures("tnum").SingleLine().Shrink(0).
+				ui.Text(c, "RTT:"+rttText(h.rtt)).FontSize(10.5).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine().Shrink(0).
 					Tooltip(a.statsTip(h))
 			}
 			if a.set.ShowSystemLoad {
@@ -215,10 +216,10 @@ func (a *App) hostQuickButton(c *ui.Context, pal *palette, key, tip string, svg 
 }
 
 // hostLoad draws a host's CPU and memory load, as its daemon pushes, as
-// two compact gauges in the header: a thin vertical gauge of the used
-// part, and its percent, as the reference (sheprd) reads them. The gauge
-// and its percent take the host's color, or a warning one when the load
-// is high. Nothing while the setting is off or no load came.
+// two compact figures in the second line, as the reference (sheprd) reads
+// them. The figures take the line's muted gray like its other facts:
+// nothing changes color as the load rises. Nothing while the setting is
+// off or no load came.
 func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	// A host that never sent its load, an earlier kerod, shows no gauge:
 	// nothing, rather than a load of zero that reads as idle.
@@ -232,34 +233,11 @@ func (a *App) hostLoad(c *ui.Context, pal *palette, h *host) {
 	}
 	row := ui.Row(c.Key("load-" + h.name)).Shrink(0).Gap(4).AlignItems(ui.Center).Tooltip(a.statsTip(h))
 	row.Children(func() {
-		cpu := float64(load.CPU)
-		cpuCol := a.loadColor(pal, pal.good, cpu, cpuWarn)
-		ui.Text(c, fmt.Sprintf("CPU:%d%%", load.CPU)).FontSize(10.5).TextColor(cpuCol).FontFeatures("tnum").SingleLine().Shrink(0)
+		ui.Text(c, fmt.Sprintf("CPU:%d%%", load.CPU)).FontSize(10.5).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine().Shrink(0)
 		if mem >= 0 {
-			memCol := a.loadColor(pal, pal.good, mem*100, memWarn)
-			ui.Text(c, fmt.Sprintf("MEM:%d%%", int(mem*100))).FontSize(10.5).TextColor(memCol).FontFeatures("tnum").SingleLine().Shrink(0)
+			ui.Text(c, fmt.Sprintf("MEM:%d%%", int(mem*100))).FontSize(10.5).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
 	})
-}
-
-// The load past which a gauge's color warns, then turns critical, as
-// sheprd's CPU and memory do.
-const (
-	cpuWarn = 75.0
-	memWarn = 80.0
-	loadMax = 90.0
-)
-
-// loadColor grades a share of a resource: the given color while it is
-// low, the palette's warning past warn, its danger past loadMax.
-func (a *App) loadColor(pal *palette, normal ui.Color, value, warn float64) ui.Color {
-	switch {
-	case value >= loadMax:
-		return pal.danger
-	case value >= warn:
-		return pal.attention
-	}
-	return normal
 }
 
 // statsTip is the one hint for the figures on the row: it adds what they
@@ -371,19 +349,21 @@ func (a *App) hostStateAction(c *ui.Context, pal *palette, h *host) {
 // hostState says how the app stands with a host, as a short word at the
 // start of the second line. The full address, system and latency live in
 // its hover (hostTip), so the line itself stays free of a wsl:// address.
+// The word is one muted gray whatever the state: the line reads as facts,
+// not as colored signals.
 func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
-	stateWord := func(col ui.Color, label string) {
-		ui.Text(c, label).FontSize(10.5).FontWeight(500).TextColor(col).SingleLine().Shrink(0).Tooltip(a.hostTip(h))
+	stateWord := func(label string) {
+		ui.Text(c, label).FontSize(10.5).FontWeight(500).TextColor(pal.textMuted).SingleLine().Shrink(0).Tooltip(a.hostTip(h))
 	}
 	switch {
 	case h.conn == connConnecting && h.loaded:
-		stateWord(pal.attention, locales.HostReconnecting())
+		stateWord(locales.HostReconnecting())
 	case h.conn == connConnecting:
-		stateWord(pal.attention, locales.StatusConnecting())
+		stateWord(locales.StatusConnecting())
 	case h.conn == connFailed:
-		stateWord(pal.danger, locales.StatusDisconnected())
+		stateWord(locales.StatusDisconnected())
 	case h.conn == connReady:
-		stateWord(pal.good, locales.HostStateOnline())
+		stateWord(locales.HostStateOnline())
 	}
 }
 

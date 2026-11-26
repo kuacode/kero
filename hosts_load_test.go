@@ -66,22 +66,6 @@ func TestStatsTip(t *testing.T) {
 	}
 }
 
-// A load's color grades with its size: the host's own while low, the
-// palette's warning past the warn mark, its danger past the critical one.
-func TestLoadColor(t *testing.T) {
-	a := testApp(t)
-	p := &lightPalette
-	if got := a.loadColor(p, p.textMuted, 10, cpuWarn); got != p.textMuted {
-		t.Error("a low load is colored")
-	}
-	if got := a.loadColor(p, p.textMuted, cpuWarn+1, cpuWarn); got != p.attention {
-		t.Error("a warning load is not the warning color")
-	}
-	if got := a.loadColor(p, p.textMuted, loadMax+1, memWarn); got != p.danger {
-		t.Error("a critical load is not the danger color")
-	}
-}
-
 // The load the header shows is on by default, so a host's CPU and memory
 // are read without the user's asking, and off from the settings.
 func TestShowSystemLoadDefault(t *testing.T) {
