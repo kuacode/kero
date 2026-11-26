@@ -317,10 +317,11 @@ func Path() string { return ConfigPath() }
 func legacyPath() string { return filepath.Join(proto.Dir(), "settings.json") }
 
 var (
-	mu       sync.Mutex
-	cache    *Settings
-	mtime    int64
-	problems []string
+	mu            sync.Mutex
+	cache         *Settings
+	cacheProblems []string
+	mtime         int64
+	problems      []string
 )
 
 // Load returns the settings, the defaults where the file says nothing.
@@ -335,44 +336,56 @@ func Load() Settings {
 		// No configuration is no news; one that is there but cannot be
 		// told of is said, as a file that cannot be read is below.
 		if os.IsNotExist(err) {
-			cache, problems = nil, nil
+			cache, cacheProblems, problems = nil, nil, nil
 		} else {
-			cache = nil
 			problems = []string{fmt.Sprintf("the configuration could not be read: %v", err)}
 		}
-		return Default()
+		return lastRead()
 	}
 	if cache != nil && st.ModTime().UnixNano() == mtime {
+		// The problems of the read the cache holds, not the ones a look
+		// that failed on the way here left: the trouble they named is
+		// over, though the file did not change under it.
+		problems = cacheProblems
 		return clone(*cache)
 	}
 	b, err := os.ReadFile(Path())
 	if err != nil {
-		// The file is there but cannot be read: the defaults stand in,
-		// and the failure is said, as the parse's problems are.
+		// The file is there but cannot be read: the settings as they
+		// were last read stand, and the failure is said, as the parse's
+		// problems are.
 		problems = []string{fmt.Sprintf("the configuration could not be read: %v", err)}
-		return Default()
+		return lastRead()
 	}
 	if !looksJSONC(b) {
 		// The older `key = value` format: read it, then write it as JSONC
 		// so the next read is the new one.
 		s, probs := parse(string(b))
-		if err := write(s); err == nil {
-			if st, err := os.Stat(Path()); err == nil {
-				return jsoncLoad(&s, probs, st.ModTime().UnixNano())
+		mod := st.ModTime().UnixNano()
+		if write(s) == nil {
+			// The file's own time, after the rewrite: a stat that finds
+			// the old one would read the file again on the next Load.
+			if after, err := os.Stat(Path()); err == nil {
+				mod = after.ModTime().UnixNano()
 			}
 		}
-		return jsoncLoad(&s, probs, st.ModTime().UnixNano())
+		cache, cacheProblems, mtime, problems = &s, probs, mod, probs
+		return clone(s)
 	}
 	s, probs := parseJSONC(b)
-	cache, mtime, problems = &s, st.ModTime().UnixNano(), probs
+	cache, cacheProblems, mtime, problems = &s, probs, st.ModTime().UnixNano(), probs
 	return clone(s)
 }
 
-// jsoncLoad caches settings read from the older format after they were
-// rewritten, so that the next stat finds the new file's time.
-func jsoncLoad(s *Settings, probs []string, mod int64) Settings {
-	cache, mtime, problems = s, mod, probs
-	return clone(*s)
+// lastRead returns the settings as they were last read, or the defaults
+// when there are none: a configuration that cannot be read is not a
+// configuration that says nothing, and a reader that could not read it
+// keeps what the user set.
+func lastRead() Settings {
+	if cache != nil {
+		return clone(*cache)
+	}
+	return Default()
 }
 
 // Problems returns what the file got wrong, as of the last Load: keys
@@ -430,11 +443,11 @@ func Save(s Settings) error {
 	if err := write(s); err != nil {
 		return err
 	}
-	// What the file holds now, not what was asked of it: format keeps
-	// the lines kero does not know, and one it still gets wrong is
-	// still a problem — saying none here would leave the file wrong
-	// with nothing to show for it, and the next Load takes the cache
-	// and would not look again.
+	// What the file holds now, not what was asked of it: the writer keeps
+	// the members and comments kero does not know, and one it still gets
+	// wrong is still a problem — saying none here would leave the file
+	// wrong with nothing to show for it, and the next Load takes the
+	// cache and would not look again.
 	if b, err := os.ReadFile(Path()); err == nil {
 		var c Settings
 		var probs []string
@@ -443,10 +456,10 @@ func Save(s Settings) error {
 		} else {
 			c, probs = parse(string(b))
 		}
-		cache, problems = &c, probs
+		cache, cacheProblems, problems = &c, probs, probs
 	} else {
 		c := clone(s)
-		cache, problems = &c, nil
+		cache, cacheProblems, problems = &c, nil, nil
 	}
 	if st, err := os.Stat(Path()); err == nil {
 		mtime = st.ModTime().UnixNano()
@@ -463,6 +476,12 @@ func write(s Settings) error {
 	if err != nil && !os.IsNotExist(err) {
 		// A configuration that cannot be read is not replaced with what
 		// it never held: the user's own lines would be lost.
+		return err
+	}
+	// A value with a line break in it is said, and nothing is written: a
+	// setting is one value, and a line break in one is a mistake the file
+	// would keep, whichever format it is in.
+	if err := checkWritable(s); err != nil {
 		return err
 	}
 	data := []byte(nil)
