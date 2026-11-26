@@ -441,10 +441,17 @@ func goSSHTransport(ctx context.Context, a Addr, password string, ask HostKeyAsk
 		c.Close()
 		return nil, err
 	}
-	go func() { c.waited <- sess.Wait() }()
+	ended := make(chan struct{})
+	go func() {
+		err := sess.Wait()
+		close(ended)
+		c.waited <- err
+	}()
 	// Keep the connection alive when sessions are quiet, as ssh's
 	// ServerAliveInterval did. The mux's own pings handle a dead peer.
-	go sshKeepAlive(ctx, client, c.waited)
+	// It ends with the session, not with ctx: ctx bounds the dial, and is
+	// done as soon as the dial is, long before the connection it made.
+	go sshKeepAlive(client, ended)
 	return c, nil
 }
 
@@ -505,17 +512,16 @@ func sshRun(ctx context.Context, a Addr, password, command string, stdin io.Read
 }
 
 // sshKeepAlive sends a keepalive every ten seconds and closes the
-// connection after three unanswered ones. It ends with ctx or the session.
-func sshKeepAlive(ctx context.Context, client *ssh.Client, done <-chan error) {
+// connection after three unanswered ones. It ends with the session: a
+// dial's context says when to stop dialing, not when the connection it
+// made is over.
+func sshKeepAlive(client *ssh.Client, ended <-chan struct{}) {
 	t := time.NewTicker(10 * time.Second)
 	defer t.Stop()
 	missed := 0
 	for {
 		select {
-		case <-ctx.Done():
-			client.Close()
-			return
-		case <-done:
+		case <-ended:
 			return
 		case <-t.C:
 			_, _, err := client.SendRequest("keepalive@openssh.com", true, nil)

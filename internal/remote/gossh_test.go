@@ -1,14 +1,17 @@
 package remote
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -177,5 +180,101 @@ func TestHostKeyNonDefaultPortEntry(t *testing.T) {
 	}
 	if err := kh("h:2022", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 2022}, pub); err != nil {
 		t.Errorf("the host just trusted is not known on a reconnect: %v", err)
+	}
+}
+
+// testSSHServer is an SSH server for the transport's tests: it takes a
+// session's command, then holds it open, as the bridge would, until the
+// client ends the connection.
+func testSSHServer(t *testing.T) string {
+	t.Helper()
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("could not make a test key: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := &ssh.ServerConfig{NoClientAuth: true}
+	cfg.AddHostKey(signer)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				sc, chans, reqs, err := ssh.NewServerConn(c, cfg)
+				if err != nil {
+					c.Close()
+					return
+				}
+				defer sc.Close()
+				go func() {
+					for req := range reqs {
+						req.Reply(false, nil)
+					}
+				}()
+				for nc := range chans {
+					if nc.ChannelType() != "session" {
+						nc.Reject(ssh.UnknownChannelType, "a session only")
+						continue
+					}
+					ch, creqs, err := nc.Accept()
+					if err != nil {
+						return
+					}
+					go func() {
+						for req := range creqs {
+							req.Reply(req.Type == "exec", nil)
+						}
+					}()
+					go func() {
+						// Hold the session open, reading what the bridge
+						// would read and answering nothing, as a bridge
+						// that has not yet spoken.
+						io.Copy(io.Discard, ch)
+						ch.Close()
+					}()
+				}
+			}()
+		}
+	}()
+	return ln.Addr().String()
+}
+
+// TestTransportOutlivesItsDialContext is a host that connects and stays
+// connected: the app dials with a context it cancels as soon as the dial
+// is done, and the connection the dial made must outlive it. A keepalive
+// that ended with the dial's context closed the SSH client at once, so
+// every host that connected dropped, reconnected, and showed "connecting"
+// for good.
+func TestTransportOutlivesItsDialContext(t *testing.T) {
+	addr := testSSHServer(t)
+	old := sshDialFn
+	t.Cleanup(func() { sshDialFn = old })
+	var client *ssh.Client
+	sshDialFn = func(context.Context, Addr, string, HostKeyAsk) (*ssh.Client, error) {
+		c, err := ssh.Dial("tcp", addr, &ssh.ClientConfig{User: "test", HostKeyCallback: ssh.InsecureIgnoreHostKey()})
+		client = c
+		return c, err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	tr, err := goSSHTransport(ctx, Addr{}, "", nil)
+	if err != nil {
+		t.Fatalf("could not start the transport: %v", err)
+	}
+	defer tr.Close()
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+	if _, _, err := client.SendRequest("keepalive@openssh.com", true, nil); err != nil {
+		t.Fatalf("the connection ended with the dial's context: %v", err)
 	}
 }
