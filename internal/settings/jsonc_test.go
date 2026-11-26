@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -159,8 +160,11 @@ func TestJSONCRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), `"password": "p@ss"`) {
-		t.Errorf("password not stored:\n%s", b)
+	if strings.Contains(string(b), "p@ss") {
+		t.Errorf("plaintext password on disk:\n%s", b)
+	}
+	if !strings.Contains(string(b), `"password": "enc:v1:`) {
+		t.Errorf("encrypted password not stored:\n%s", b)
 	}
 	if st, _ := os.Stat(path); st.Mode().Perm() != 0o600 {
 		t.Errorf("mode %v", st.Mode().Perm())
@@ -171,6 +175,61 @@ func TestJSONCRoundTrip(t *testing.T) {
 	back := Load()
 	if back.FontSize != 17 || len(back.Hosts) != 1 || back.Hosts[0].Password != "p@ss" {
 		t.Errorf("round trip %+v", back)
+	}
+}
+
+func TestPasswordEncrypted(t *testing.T) {
+	enc, err := encryptPassword("hunter2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(enc, passwordPrefix) {
+		t.Errorf("no prefix: %q", enc)
+	}
+	if strings.Contains(enc, "hunter2") {
+		t.Errorf("ciphertext holds the password: %q", enc)
+	}
+	// The salt is fixed, so one password always reads the same: the file
+	// does not change when nothing about it did.
+	again, err := encryptPassword("hunter2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if enc != again {
+		t.Errorf("not deterministic: %q vs %q", enc, again)
+	}
+	plain, err := decryptPassword(enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain != "hunter2" {
+		t.Errorf("round trip %q", plain)
+	}
+	// A password an older configuration kept plain is still read.
+	if p, err := decryptPassword("old-plain"); err != nil || p != "old-plain" {
+		t.Errorf("plain passthrough %q, %v", p, err)
+	}
+	// Garbage does not open.
+	if _, err := decryptPassword(passwordPrefix + "AAAA"); err == nil {
+		t.Error("garbage opened")
+	}
+}
+
+func TestHostJSONRoundTrip(t *testing.T) {
+	h := Host{Name: "devbox", Addr: "me@devbox", Password: "p@ss"}
+	b, err := json.Marshal(h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), "p@ss") {
+		t.Errorf("plaintext in JSON: %s", b)
+	}
+	var back Host
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back != h {
+		t.Errorf("round trip %+v, want %+v", back, h)
 	}
 }
 
