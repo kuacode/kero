@@ -1100,21 +1100,21 @@ func (msgs Messages) ConfirmClosePaneDetail(process string) string {
 	return Catalog.Format(msgs.locale, "confirmClosePaneDetail", map[string]any{"process": process})
 }
 
-// ConfirmQuitAllTitle says "Quit and end all sessions?"
+// ConfirmQuitAllTitle says "Quit Kero?"
 // in the language the app shows.
 func ConfirmQuitAllTitle() string { return In(i18n.Locale()).ConfirmQuitAllTitle() }
 
-// ConfirmQuitAllTitle says "Quit and end all sessions?"
+// ConfirmQuitAllTitle says "Quit Kero?"
 // in the language of msgs.
 func (msgs Messages) ConfirmQuitAllTitle() string {
 	return Catalog.Format(msgs.locale, "confirmQuitAllTitle", nil)
 }
 
-// ConfirmQuitAllDetail says "{count, plural, one {Kero keeps sessions running when it quits. This ends the # session, with what runs in it.} other…"
+// ConfirmQuitAllDetail says "{count, plural, one {A program is still running in # session.} other {Programs are still running in # sessions.}} Qui…"
 // in the language the app shows.
 func ConfirmQuitAllDetail(count int) string { return In(i18n.Locale()).ConfirmQuitAllDetail(count) }
 
-// ConfirmQuitAllDetail says "{count, plural, one {Kero keeps sessions running when it quits. This ends the # session, with what runs in it.} other…"
+// ConfirmQuitAllDetail says "{count, plural, one {A program is still running in # session.} other {Programs are still running in # sessions.}} Qui…"
 // in the language of msgs.
 func (msgs Messages) ConfirmQuitAllDetail(count int) string {
 	return Catalog.Format(msgs.locale, "confirmQuitAllDetail", map[string]any{"count": count})
@@ -1128,6 +1128,16 @@ func ConfirmQuitAllAction() string { return In(i18n.Locale()).ConfirmQuitAllActi
 // in the language of msgs.
 func (msgs Messages) ConfirmQuitAllAction() string {
 	return Catalog.Format(msgs.locale, "confirmQuitAllAction", nil)
+}
+
+// ConfirmQuitAllKeepAction says "Quit Without Clearing"
+// in the language the app shows.
+func ConfirmQuitAllKeepAction() string { return In(i18n.Locale()).ConfirmQuitAllKeepAction() }
+
+// ConfirmQuitAllKeepAction says "Quit Without Clearing"
+// in the language of msgs.
+func (msgs Messages) ConfirmQuitAllKeepAction() string {
+	return Catalog.Format(msgs.locale, "confirmQuitAllKeepAction", nil)
 }
 
 // ConfirmEndFailedTitle says "Couldn’t end the sessions"
@@ -2496,11 +2506,11 @@ func (msgs Messages) SetDownloadMirror() string {
 	return Catalog.Format(msgs.locale, "setDownloadMirror", nil)
 }
 
-// SetDownloadMirrorDetail says "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL."
+// SetDownloadMirrorDetail says "Fetch releases and the latest version through a proxy of the GitHub releases (as gh-proxy.com): fill in the proxy's a…"
 // in the language the app shows.
 func SetDownloadMirrorDetail() string { return In(i18n.Locale()).SetDownloadMirrorDetail() }
 
-// SetDownloadMirrorDetail says "Fetch releases through a proxy of the GitHub releases, as gh-proxy.com, with the proxy's URL."
+// SetDownloadMirrorDetail says "Fetch releases and the latest version through a proxy of the GitHub releases (as gh-proxy.com): fill in the proxy's a…"
 // in the language of msgs.
 func (msgs Messages) SetDownloadMirrorDetail() string {
 	return Catalog.Format(msgs.locale, "setDownloadMirrorDetail", nil)
@@ -2576,11 +2586,11 @@ func (msgs Messages) SetQuitEndsSessions() string {
 	return Catalog.Format(msgs.locale, "setQuitEndsSessions", nil)
 }
 
-// SetQuitEndsSessionsDetail says "Closing the window or quitting from the menu also ends this machine's sessions and stops kerod. It asks first while a…"
+// SetQuitEndsSessionsDetail says "On: quitting with nothing running ends this machine's sessions and stops kerod. With a program running, the prompt re…"
 // in the language the app shows.
 func SetQuitEndsSessionsDetail() string { return In(i18n.Locale()).SetQuitEndsSessionsDetail() }
 
-// SetQuitEndsSessionsDetail says "Closing the window or quitting from the menu also ends this machine's sessions and stops kerod. It asks first while a…"
+// SetQuitEndsSessionsDetail says "On: quitting with nothing running ends this machine's sessions and stops kerod. With a program running, the prompt re…"
 // in the language of msgs.
 func (msgs Messages) SetQuitEndsSessionsDetail() string {
 	return Catalog.Format(msgs.locale, "setQuitEndsSessionsDetail", nil)

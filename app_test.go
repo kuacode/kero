@@ -409,7 +409,8 @@ func TestQuitEndsSessions(t *testing.T) {
 			t.Fatal("quit before the answer")
 		default:
 		}
-		a.confirm.run()
+		// Keeping is the recommended answer, so ending is the alt.
+		a.confirm.altRun()
 		waitQuit(t)
 		select {
 		case <-shutdowns:
@@ -428,6 +429,96 @@ func TestQuitEndsSessions(t *testing.T) {
 		case <-shutdowns:
 			t.Error("shut kerod down twice")
 		default:
+		}
+	})
+}
+
+// Quitting with a program running offers both answers: keep this
+// machine's sessions, or end them. Keeping is always recommended.
+func TestQuitOffersToKeepSessions(t *testing.T) {
+	oldQuit := quitApp
+	defer func() { quitApp = oldQuit }()
+	busyApp := func(t *testing.T) (*App, chan struct{}, chan struct{}) {
+		t.Helper()
+		quits, shutdowns := make(chan struct{}, 4), make(chan struct{}, 4)
+		quitApp = func() { quits <- struct{}{} }
+		a := testApp(t)
+		a.winOpen = false // the harness has no window to show the ask in
+		a.st.Sessions[0].Process = "claude"
+		cl, _ := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+			if method == "shutdown" {
+				shutdowns <- struct{}{}
+			}
+			return nil, nil
+		})
+		a.local().cl = cl
+		return a, quits, shutdowns
+	}
+	waitQuit := func(t *testing.T, quits chan struct{}) {
+		t.Helper()
+		select {
+		case <-quits:
+		case <-time.After(2 * time.Second):
+			t.Fatal("the app did not quit")
+		}
+	}
+
+	t.Run("off keeps by default", func(t *testing.T) {
+		a, quits, shutdowns := busyApp(t)
+		a.quit()
+		if a.confirm == nil || !a.confirm.open || a.confirm.altRun == nil {
+			t.Fatalf("a program runs: quit asked nothing: %+v", a.confirm)
+		}
+		if a.confirm.action == a.confirm.alt {
+			t.Error("both answers to the quit ask are the same")
+		}
+		a.confirm.run() // "keep sessions and quit"
+		waitQuit(t, quits)
+		select {
+		case <-shutdowns:
+			t.Error("keep-and-quit ended the sessions")
+		default:
+		}
+	})
+
+	t.Run("off still offers to end", func(t *testing.T) {
+		a, quits, shutdowns := busyApp(t)
+		a.quit()
+		a.confirm.altRun()
+		waitQuit(t, quits)
+		select {
+		case <-shutdowns:
+		default:
+			t.Error("end-and-quit did not end the sessions")
+		}
+	})
+
+	t.Run("on still recommends keeping", func(t *testing.T) {
+		a, quits, shutdowns := busyApp(t)
+		a.set.QuitEndsSessions = true
+		a.quit()
+		if a.confirm == nil || !a.confirm.open || a.confirm.altRun == nil {
+			t.Fatalf("a program runs: quit asked nothing: %+v", a.confirm)
+		}
+		a.confirm.run()
+		waitQuit(t, quits)
+		select {
+		case <-shutdowns:
+			t.Error("the recommended answer ended the sessions")
+		default:
+		}
+	})
+
+	t.Run("on still offers to end", func(t *testing.T) {
+		a, quits, shutdowns := busyApp(t)
+		a.set.QuitEndsSessions = true
+		a.quit()
+		a.confirm.altRun()
+		waitQuit(t, quits)
+		select {
+		case <-shutdowns:
+		default:
+			t.Error("end-and-quit did not end the sessions")
 		}
 	})
 }

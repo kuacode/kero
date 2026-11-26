@@ -107,9 +107,10 @@ func (a *App) trayMenu() *mygo.Menu {
 		// QuitEndsSessions setting, which keeps the sessions and kerod
 		// running (and restores them next start) unless the user asked
 		// for the opposite. The tray must not end the sessions
-		// unconditionally, as endSessionsAndQuit does: that makes the
-		// daemon's "shutdown" drop every session and write an empty
-		// state, and the next start restores none.
+		// unconditionally: that would make the daemon's "shutdown" drop
+		// every session and write an empty state, and the next start
+		// would restore none. With a program running, quit asks whether
+		// to keep the sessions or end them.
 		{Label: locales.MenuQuitApp(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { a.quit() }},
 	})
 }

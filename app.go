@@ -1752,26 +1752,32 @@ func (a *App) toggleHost(h *host) {
 // quitApp quits the app; tests set it.
 var quitApp = func() { mygo.App.Quit() }
 
-// quit quits the app. As it always did when quit-ends-sessions is off;
-// with it on, it ends this machine's sessions and its kerod first, as
-// endSessionsAndQuit does, asking once while a program runs, as
-// confirm-close does.
+// quit quits the app. A program still running in this machine's sessions
+// is asked about first: the question recommends quitting without clearing
+// them, and offers to end them as the alternative.
 func (a *App) quit() {
 	if a.ending {
 		return // the teardown of endSessionsAndQuit runs: its quit is coming
 	}
-	if !a.set.QuitEndsSessions {
-		quitApp()
+	if a.busyCount(a.local()) > 0 {
+		a.askQuitChoice()
+		// The last window's close is what quits, and it is closed: ask in
+		// one made anew, as the tray's Open does.
+		if !a.winOpen {
+			a.showWindow()
+		}
 		return
 	}
-	a.endSessionsAndQuit()
+	if a.set.QuitEndsSessions {
+		a.endAndQuit()
+		return
+	}
+	quitApp()
 }
 
 // endSessionsAndQuit ends this machine's sessions and its kerod, then
-// quits, asking first while a program runs. The tray's Quit takes this
-// path whatever quit-ends-sessions says: leaving by the icon means
-// leaving Kero, its service and all. The setting governs closing the
-// window, not the icon's explicit Quit.
+// quits, asking first while a program runs. It is the explicit Quit and
+// End All Sessions path; the tray and the menu use quit instead.
 func (a *App) endSessionsAndQuit() {
 	if a.ending {
 		return
@@ -1785,6 +1791,25 @@ func (a *App) endSessionsAndQuit() {
 	// one made anew, as the tray's Open does.
 	if !a.winOpen {
 		a.showWindow()
+	}
+}
+
+// askQuitChoice asks whether quitting should keep this machine's sessions
+// running or end them. Keeping is always the recommended answer: ending
+// sessions is destructive, and the setting never silently drops them.
+func (a *App) askQuitChoice() {
+	n := len(a.sessionsOf(a.local()))
+	keep := locales.ConfirmQuitAllKeepAction()
+	end := locales.ConfirmQuitAllAction()
+	a.confirm = &confirmation{
+		open:    true,
+		title:   locales.ConfirmQuitAllTitle(),
+		detail:  quitAllDetail(n, len(a.hosts) > 1),
+		action:  keep,
+		destroy: true,
+		run:     quitApp,
+		alt:     end,
+		altRun:  a.endAndQuit,
 	}
 }
 
@@ -1818,7 +1843,6 @@ func (a *App) endAndQuit() {
 	}()
 }
 
-
 // endSessions asks kerod to end this machine's sessions and to stop, and
 // returns what it could not do.
 func endSessions(cl *client.Client) error {
@@ -1847,8 +1871,6 @@ func (a *App) endFailed(err error) {
 		a.showWindow()
 	}
 }
-
-
 
 // offerRestart restarts kerod into this version of Kero, asking first
 // while programs run in sessions, as the restart ends them.

@@ -125,8 +125,8 @@
   },
   "confirmClosePaneTitle": "Close this pane?",
   "confirmClosePaneDetail": "{process} is still running in it. Closing the pane ends it.",
-  "confirmQuitAllTitle": "Quit and end all sessions?",
-  "confirmQuitAllDetail": "{count, plural, one {Kero keeps sessions running when it quits. This ends the # session, with what runs in it.} other {Kero keeps sessions running when it quits. This ends all # of them, with what runs in them.}}",
+  "confirmQuitAllTitle": "Quit Kero?",
+  "confirmQuitAllDetail": "{count, plural, one {A program is still running in # session.} other {Programs are still running in # sessions.}} Quitting recommends keeping this machine's sessions; you can end them instead.",
   "@confirmQuitAllDetail": {
     "placeholders": {
       "count": {
@@ -135,6 +135,7 @@
     }
   },
   "confirmQuitAllAction": "End Sessions and Quit",
+  "confirmQuitAllKeepAction": "Quit Without Clearing",
   "confirmEndFailedTitle": "Couldn’t end the sessions",
   "confirmEndFailedDetail": "Kero could not end this machine’s sessions, so they keep running: {error}",
   "confirmRestartServiceTitle": "Restart the background service?",
@@ -439,7 +440,7 @@
   "setAskBeforeClosing": "Ask before closing a running program",
   "setAskBeforeClosingDetail": "When a pane or session you close has a program other than the shell running.",
   "setQuitEndsSessions": "End sessions when Kero quits",
-  "setQuitEndsSessionsDetail": "Closing the window or quitting from the menu also ends this machine's sessions and stops kerod. It asks first while a program still runs. Leaving from the tray icon always quits altogether.",
+  "setQuitEndsSessionsDetail": "On: quitting with nothing running ends this machine's sessions and stops kerod. With a program running, the prompt recommends keeping them and offers to end them. Off: quitting keeps them, with the same prompt.",
   "setRestoreSessions": "Restore sessions after a restart",
   "setRestoreSessionsDetail": "If the background service stops, as when the Mac restarts, sessions start again in their folders, under their history.",
   "setResumeAgents": "Resume agents",
