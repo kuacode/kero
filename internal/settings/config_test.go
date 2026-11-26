@@ -907,3 +907,22 @@ func TestSaveRefusesAValueWithALineBreak(t *testing.T) {
 		t.Errorf("the environment = %q, want none", back.Env)
 	}
 }
+
+// Download acceleration is on by default, and the configuration can turn
+// it off while leaving the address for a later turn-on in place.
+func TestDownloadAccelKey(t *testing.T) {
+	if !Default().DownloadAccel {
+		t.Fatal("download acceleration is off by default, want on")
+	}
+	s, _ := parse("")
+	if !s.DownloadAccel {
+		t.Error("a configuration without the setting turns acceleration off")
+	}
+	s, _ = parse("download-accel = false\ndownload-mirror = https://custom/\n")
+	if s.DownloadAccel {
+		t.Error("download-accel = false did not turn acceleration off")
+	}
+	if s.DownloadMirror != "https://custom/" {
+		t.Errorf("the address = %q, want it kept", s.DownloadMirror)
+	}
+}

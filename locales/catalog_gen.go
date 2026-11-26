@@ -2496,21 +2496,41 @@ func (msgs Messages) SetShowSystemLoadDetail() string {
 	return Catalog.Format(msgs.locale, "setShowSystemLoadDetail", nil)
 }
 
-// SetDownloadMirror says "Download mirror"
+// SetDownloadAccel says "Accelerate downloads"
+// in the language the app shows.
+func SetDownloadAccel() string { return In(i18n.Locale()).SetDownloadAccel() }
+
+// SetDownloadAccel says "Accelerate downloads"
+// in the language of msgs.
+func (msgs Messages) SetDownloadAccel() string {
+	return Catalog.Format(msgs.locale, "setDownloadAccel", nil)
+}
+
+// SetDownloadAccelDetail says "Fetch release archives and the latest version through a proxy; off fetches directly from GitHub."
+// in the language the app shows.
+func SetDownloadAccelDetail() string { return In(i18n.Locale()).SetDownloadAccelDetail() }
+
+// SetDownloadAccelDetail says "Fetch release archives and the latest version through a proxy; off fetches directly from GitHub."
+// in the language of msgs.
+func (msgs Messages) SetDownloadAccelDetail() string {
+	return Catalog.Format(msgs.locale, "setDownloadAccelDetail", nil)
+}
+
+// SetDownloadMirror says "Acceleration address"
 // in the language the app shows.
 func SetDownloadMirror() string { return In(i18n.Locale()).SetDownloadMirror() }
 
-// SetDownloadMirror says "Download mirror"
+// SetDownloadMirror says "Acceleration address"
 // in the language of msgs.
 func (msgs Messages) SetDownloadMirror() string {
 	return Catalog.Format(msgs.locale, "setDownloadMirror", nil)
 }
 
-// SetDownloadMirrorDetail says "Fetch releases and the latest version through a proxy of the GitHub releases (as gh-proxy.com): fill in the proxy's a…"
+// SetDownloadMirrorDetail says "Used when acceleration is on: the address you fill in, or https://gh-proxy.com when it is empty. Off ignores it."
 // in the language the app shows.
 func SetDownloadMirrorDetail() string { return In(i18n.Locale()).SetDownloadMirrorDetail() }
 
-// SetDownloadMirrorDetail says "Fetch releases and the latest version through a proxy of the GitHub releases (as gh-proxy.com): fill in the proxy's a…"
+// SetDownloadMirrorDetail says "Used when acceleration is on: the address you fill in, or https://gh-proxy.com when it is empty. Off ignores it."
 // in the language of msgs.
 func (msgs Messages) SetDownloadMirrorDetail() string {
 	return Catalog.Format(msgs.locale, "setDownloadMirrorDetail", nil)

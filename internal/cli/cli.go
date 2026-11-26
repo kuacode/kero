@@ -1185,7 +1185,8 @@ func daemonCmd(args []string, host string) error {
 			return nil
 		}
 		// A version named is the user's to go back to.
-		update.SetMirror(settings.Load().DownloadMirror)
+		s := settings.Load()
+		update.SetMirror(update.MirrorFor(s.DownloadAccel, s.DownloadMirror))
 		if err := update.Install(ctx, version, update.InstallDir(), build.Version(), len(args) > 1); err != nil {
 			return err
 		}

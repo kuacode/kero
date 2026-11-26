@@ -29,6 +29,26 @@ func TestMirrored(t *testing.T) {
 	}
 }
 
+// MirrorFor reads the acceleration setting: off fetches directly, on
+// uses the address filled in or the default proxy when it is empty.
+func TestMirrorFor(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		accel   bool
+		address string
+		want    string
+	}{
+		{"off ignores an address", false, "https://custom", ""},
+		{"on uses the address", true, "https://custom/", "https://custom"},
+		{"on falls back when empty", true, "", DefaultDownloadMirror},
+		{"on falls back when blank", true, "  ", DefaultDownloadMirror},
+	} {
+		if got := MirrorFor(tc.accel, tc.address); got != tc.want {
+			t.Errorf("%s: MirrorFor(%v, %q) = %q, want %q", tc.name, tc.accel, tc.address, got, tc.want)
+		}
+	}
+}
+
 // contentRange reads the length of the file a partial answer covers, as
 // "bytes first-last/total", and none it cannot.
 func TestContentRange(t *testing.T) {

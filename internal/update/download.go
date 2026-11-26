@@ -13,12 +13,29 @@ import (
 	"time"
 )
 
+// DefaultDownloadMirror is the release proxy used when download
+// acceleration is on but no address is filled in.
+const DefaultDownloadMirror = "https://gh-proxy.com"
+
 // Mirror prefixes the URLs a download of a release fetches from, as a
 // proxy of the releases (gh-proxy.com and the like): its value is the
 // proxy's, with or without a trailing slash, else nothing. The app sets
-// it from its settings before it downloads. The releases' latest version
-// (api.github.com) is never mirrored.
+// it from its settings before it downloads.
 var Mirror string
+
+// MirrorFor turns the download-acceleration settings into a mirror:
+// acceleration off fetches from GitHub directly, acceleration on uses
+// the address the user filled in or, when it is empty, the default
+// proxy. The version lookup goes through the same proxy as the archives.
+func MirrorFor(accelerated bool, address string) string {
+	if !accelerated {
+		return ""
+	}
+	if address = strings.TrimRight(strings.TrimSpace(address), "/"); address != "" {
+		return address
+	}
+	return DefaultDownloadMirror
+}
 
 // SetMirror takes a proxy of the releases (gh-proxy.com and the like) as
 // the user's settings name one, trimming any trailing slash. An empty

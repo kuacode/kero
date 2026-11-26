@@ -484,7 +484,8 @@ func bridge(args []string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
 			// Never back to an older Kero: the app asks for its own version.
-			update.SetMirror(settings.Load().DownloadMirror)
+			s := settings.Load()
+			update.SetMirror(update.MirrorFor(s.DownloadAccel, s.DownloadMirror))
 			return update.Install(ctx, app, dir, build.Version(), false)
 		}
 	}

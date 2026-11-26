@@ -31,7 +31,8 @@ type Settings struct {
 	SidebarCount      bool   `json:"sidebarCount"`      // a project's header shows how many sessions it holds
 	HideEmptyHosts    bool   `json:"hideEmptyHosts"`    // the sidebar leaves out remote hosts with no sessions
 	ShowSystemLoad    bool   `json:"showSystemLoad"`    // a host's header shows its CPU and memory load
-	DownloadMirror    string `json:"downloadMirror"`    // a proxy the downloads of releases go through, as gh-proxy's
+	DownloadMirror    string `json:"downloadMirror"`    // a proxy the downloads of releases go through, as gh-proxy's; empty uses the default when DownloadAccel is on
+	DownloadAccel     bool   `json:"downloadAccel"`     // releases go through a proxy, the address named or a default one
 	LocalDownload     bool   `json:"localDownload"`     // the app fetches a host's archive and uploads it, instead of the host fetching it itself
 	FocusFollowsMouse bool   `json:"focusFollowsMouse"` // a pane the pointer enters takes the focus
 	ConfirmClose      bool   `json:"confirmClose"`      // before closing a pane a program runs in
@@ -191,6 +192,7 @@ func Default() Settings {
 		SidebarRows:     "detailed",
 		SidebarCount:    true,
 		ShowSystemLoad:  true,
+		DownloadAccel:   true,
 		LocalDownload:   true,
 		ConfirmClose:    true,
 		RestoreSessions: true,

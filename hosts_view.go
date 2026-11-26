@@ -695,7 +695,7 @@ func (a *App) install(h *host) {
 		}
 	}
 	if a.set.LocalDownload && platform != "" && slices.Contains(update.Platforms, platform) && version != "" {
-		update.SetMirror(a.set.DownloadMirror)
+		update.SetMirror(update.MirrorFor(a.set.DownloadAccel, a.set.DownloadMirror))
 		update.SetCacheDir(filepath.Join(proto.Dir(), "update-cache"))
 		h.busy = "install"
 		h.busyVersion = version
@@ -864,12 +864,12 @@ func (a *App) hostRequest(h *host, what string) {
 		if what == "update" {
 			// Two ways to update, and the setting picks which:
 			//  - local download, then upload: the app fetches the archive
-			//    through the mirror, where the host could not, and sends
+			//    through the acceleration setting, where the host could not, and sends
 			//    the whole thing to the host's kerod, which installs it.
 			//  - remote download: the host's kerod fetches it itself.
 			platform := h.info.OS + "/" + h.info.Arch
 			if a.set.LocalDownload && platform != "" && slices.Contains(update.Platforms, platform) {
-				update.SetMirror(a.set.DownloadMirror)
+				update.SetMirror(update.MirrorFor(a.set.DownloadAccel, a.set.DownloadMirror))
 				a.setStage(h, "download", update.ArchiveURL(version, h.info.OS, h.info.Arch))
 				download := func(got, total int64) { a.setProgress(h, got, total) }
 				archive, sig, ferr := update.FetchWithSig(ctx, version, h.info.OS, h.info.Arch, download)

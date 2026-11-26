@@ -30,6 +30,7 @@ import (
 	"kero/internal/proto"
 	"kero/internal/settings"
 	"kero/internal/shell"
+	"kero/internal/update"
 
 	"kero/locales"
 )
@@ -778,8 +779,11 @@ func (a *App) updatesGroup(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetAutoInstall(), locales.SetAutoInstallDetail(), func() {
 			toggle(c.Key("auto-download"), &u.download, pal).OnChange(func() { updater.SetAutomaticDownloads(u.download) })
 		})
+		settingRow(c, pal, locales.SetDownloadAccel(), locales.SetDownloadAccelDetail(), func() {
+			toggle(c.Key("download-accel"), &s.DownloadAccel, pal)
+		})
 		settingRow(c, pal, locales.SetDownloadMirror(), locales.SetDownloadMirrorDetail(), func() {
-			textField(c, "download-mirror", &s.DownloadMirror, "https://gh-proxy.com", 0, pal).Font("monospace")
+			textField(c, "download-mirror", &s.DownloadMirror, update.DefaultDownloadMirror, 0, pal).Font("monospace")
 		})
 		settingRow(c, pal, locales.SetLocalDownload(), locales.SetLocalDownloadDetail(), func() {
 			toggle(c.Key("local-download"), &s.LocalDownload, pal)

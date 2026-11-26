@@ -409,7 +409,8 @@ func (d *Daemon) remoteServer(id identity) *remote.Server {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
 			d.log.Printf("updating to Kero %s, as %s asked", app, id.peer)
-			update.SetMirror(settings.Load().DownloadMirror)
+			s := settings.Load()
+			update.SetMirror(update.MirrorFor(s.DownloadAccel, s.DownloadMirror))
 			if err := update.Install(ctx, app, filepath.Dir(d.exe), build.Version(), false); err != nil {
 				d.log.Printf("update: %v", err)
 				return err

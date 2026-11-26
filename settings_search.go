@@ -43,7 +43,8 @@ func settingsIndex() []searchEntry {
 		{"general", locales.SetVersion(), "updates check for updates software update about"},
 		{"general", locales.SetAutoCheck(), "updates automatic background daily"},
 		{"general", locales.SetAutoInstall(), "updates automatic install download"},
-		{"general", locales.SetDownloadMirror(), "updates mirror proxy download mirror gh-proxy release fetch resume"},
+		{"general", locales.SetDownloadAccel(), "updates acceleration proxy download mirror gh-proxy release fetch resume"},
+		{"general", locales.SetDownloadMirror(), "updates acceleration address proxy download mirror gh-proxy release fetch resume"},
 		{"general", locales.SetLocalDownload(), "updates host remote install upload fetch locally mirror"},
 
 		{"appearance", locales.SetAppearance(), "window-theme dark light mode system"},

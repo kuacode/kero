@@ -9,7 +9,8 @@ import (
 )
 
 // A mirror named in the settings is what the downloads of releases go
-// through, and it is saved with the configuration.
+// through, and it is saved with the configuration. Acceleration is on by
+// default and an empty address then names the default mirror.
 func TestDownloadMirrorSetting(t *testing.T) {
 	a := testApp(t)
 	a.ss.page = "general"
@@ -17,6 +18,9 @@ func TestDownloadMirrorSetting(t *testing.T) {
 	tt := ui.NewTester(a.settingsView, 820, 3000)
 	tt.Frame()
 
+	if !settings.Default().DownloadAccel || !a.set.DownloadAccel {
+		t.Fatalf("download acceleration = %v (default %v), want on", a.set.DownloadAccel, settings.Default().DownloadAccel)
+	}
 	mirror := "https://gh-proxy.com/"
 	if err := tt.Click("https://gh-proxy.com"); err != nil {
 		t.Fatal(err)
@@ -37,17 +41,22 @@ func TestDownloadMirrorSetting(t *testing.T) {
 	}
 }
 
-// The mirror named takes effect on a download: the fetch goes through the
-// proxy, whose URL prefixes the release's.
+// Acceleration decides whether a fetch goes through any proxy at all: off
+// fetches GitHub directly, on takes the named address or the default one.
 func TestMirrorAppliesToFetch(t *testing.T) {
 	defer func() { update.SetMirror("") }()
-	update.SetMirror(settings.Load().DownloadMirror)
+	update.SetMirror(update.MirrorFor(false, "https://gh-proxy.com/"))
 	if update.Mirror != "" {
-		t.Skipf("this run has a mirror set in its config (%q); the no-mirror case is covered by the archive-URL assertions in TestMirrorAppliesToLatest", update.Mirror)
+		t.Fatalf("mirror %q with acceleration off, want none", update.Mirror)
 	}
-	update.SetMirror("https://gh-proxy.com/")
+	update.SetMirror(update.MirrorFor(true, "https://gh-proxy.com/"))
 	if update.Mirror != "https://gh-proxy.com" {
 		t.Fatalf("mirror %q, want the trailing slash trimmed", update.Mirror)
+	}
+	s := settings.Default()
+	update.SetMirror(update.MirrorFor(s.DownloadAccel, s.DownloadMirror))
+	if update.Mirror != update.DefaultDownloadMirror {
+		t.Fatalf("default mirror %q, want %q", update.Mirror, update.DefaultDownloadMirror)
 	}
 }
 
