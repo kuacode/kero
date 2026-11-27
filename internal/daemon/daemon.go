@@ -637,7 +637,7 @@ func expandHome(p string) string {
 var agents = []string{
 	"claude", "codex", "gemini", "opencode", "amp", "aider", "cursor-agent", "droid",
 	"qwen", "goose", "crush", "copilot", "kiro-cli", "cline", "auggie", "kimi", "pi", "omp",
-	"codebuddy", "pig",
+	"codebuddy", "pig", "phi",
 }
 
 func detectAgent(name string, args []string) string {

@@ -306,6 +306,8 @@ func resumeCommandWithReason(a *proto.AgentSession) ([]string, string) {
 		return []string{"codex", "resume", a.ID}, ""
 	case "pi", "omp", "opencode", "pig":
 		return []string{a.Agent, "--session", a.ID}, ""
+	case "phi":
+		return []string{"phi", "run", "--session", a.ID, "-p", "Continue the conversation."}, ""
 	}
 	return nil, "unsupported agent"
 }

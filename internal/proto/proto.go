@@ -252,7 +252,7 @@ type Turn struct {
 // AgentSession is a coding agent's session: Claude Code's or Codex's,
 // by its id.
 type AgentSession struct {
-	Agent string `json:"agent"` // "claude", "codex", "pi" or "opencode"
+	Agent string `json:"agent"` // "claude", "codex", "pi", "opencode" or "phi"
 	ID    string `json:"id"`
 }
 
@@ -294,7 +294,7 @@ func (c *Conversation) Label() string {
 }
 
 // AgentNames are the coding agents' names as they show them.
-var AgentNames = map[string]string{"claude": "Claude Code", "codex": "Codex", "codebuddy": "CodeBuddy Code", "pi": "Pi", "pig": "PiG", "opencode": "OpenCode"}
+var AgentNames = map[string]string{"claude": "Claude Code", "codex": "Codex", "codebuddy": "CodeBuddy Code", "pi": "Pi", "pig": "PiG", "opencode": "OpenCode", "phi": "Phi"}
 
 // Session is a row of the sidebar: one task, with its terminals, its
 // panes, side by side. Its Pane fields are those of its lead pane, the

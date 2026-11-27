@@ -206,6 +206,7 @@ func TestResumeCommand(t *testing.T) {
 		{"pig", "02b2b2dd-e43e", "pig --session 02b2b2dd-e43e"},
 		{"pi", "0f3c2a1b.8e9d", "pi --session 0f3c2a1b.8e9d"},
 		{"opencode", "ses_ea7b9b964ffemfrVYxK9yw55Gz", "opencode --session ses_ea7b9b964ffemfrVYxK9yw55Gz"},
+		{"phi", "sess_abcdef12", "phi run --session sess_abcdef12 -p Continue the conversation."},
 		{"claude", "x; rm -rf ~", ""},
 		{"claude", "", ""},
 		{"vim", "abc", ""},

@@ -284,7 +284,7 @@
   "setRestoreSessions": "重启后恢复会话",
   "setRestoreSessionsDetail": "如果后台服务停止（例如 Mac 重启），会话会在各自的文件夹中重新开始，并保留历史记录。",
   "setResumeAgents": "恢复智能体",
-  "setResumeAgentsDetail": "在“智能体”中为 Claude Code、Codex、Pi 和 OpenCode 设置好 Kero 的技能后，它们会从中断处继续对话。",
+  "setResumeAgentsDetail": "在“智能体”中为 Claude Code、Codex、Pi、Phi 和 OpenCode 设置好 Kero 的技能后，它们会从中断处继续对话。",
   "setStartup": "启动",
   "setOpenAtLogin": "登录时打开 Kero",
   "setLoginFailed": "无法更改：{error}",

@@ -1,0 +1,27 @@
+id = "phi"
+version = "2026.11.26.1"
+min_engine_version = 1
+updated_at = "2026-11-26T00:00:00Z"
+
+[[rules]]
+id = "approval_blocked"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(12)"
+visible_blocker = true
+contains = ["Waiting for approval…"]
+
+[[rules]]
+id = "working_activity"
+state = "working"
+priority = 120
+region = "bottom_non_empty_lines(12)"
+visible_working = true
+any = [
+  { contains = ["Sending…"] },
+  { contains = ["Awaiting reply…"] },
+  { contains = ["Generating…"] },
+  { contains = ["Calling tools…"] },
+  { contains = ["Auto-compacting…"] },
+  { contains = ["Retrying after disconnect…"] },
+]

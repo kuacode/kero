@@ -78,6 +78,8 @@ var (
 var programIcons = map[string]*ui.SVG{}
 
 func init() {
+	// Phi has no Simple Icons entry; its mark is drawn locally.
+	programIcons["phi"] = glyph("phi")
 	for name, logo := range map[string]string{
 		"claude": "claude", "codex": "openai", "gemini": "googlegemini", "opencode": "opencode",
 		"amp": "amp", "cursor-agent": "cursor", "copilot": "githubcopilot", "qwen": "qwen",
@@ -122,6 +124,7 @@ var programBrands = map[string][2]ui.Color{
 	"qwen":         {ui.Hex("#6950ef"), ui.Hex("#9b8aff")},
 	"kimi":         {ui.Hex("#1a1a1c"), ui.Hex("#d4d4da")},
 	"cline":        {ui.Hex("#18181b"), ui.Hex("#d4d4da")},
+	"phi":          {ui.Hex("#2e6171"), ui.Hex("#7ed4e6")},
 	// A script's runtime.
 	"node":    {ui.Hex("#5fa04e"), ui.Hex("#7bc06a")},
 	"bun":     {ui.Hex("#1a1a1c"), ui.Hex("#d4d4da")},

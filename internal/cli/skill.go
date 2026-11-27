@@ -309,7 +309,7 @@ var adoptCopies = func() bool { return proto.Name() == "kero" && os.Getenv("KERO
 
 // hooksFor returns the hooks that go with an --agent: Claude Code's and
 // CodeBuddy Code's, and Codex's, Pi's, OMP's, PiG's and OpenCode's with
-// the skill they share.
+// the skill they share.  Phi reads the same skill without a hook.
 func hooksFor(agent string) []integration {
 	switch agent {
 	case "", "claude", "codebuddy", "codex", "pi", "omp", "pig", "opencode", "agents":
@@ -319,7 +319,7 @@ func hooksFor(agent string) []integration {
 }
 
 // skillDirs returns where agents read skills: Claude Code's, CodeBuddy
-// Code's, and the shared one of Codex, OpenCode and others. CodeBuddy
+// Code's, and the shared one of Codex, Phi, OpenCode and others. CodeBuddy
 // Code's is left out when CodeBuddy Code is not installed, so that Kero
 // makes no directory of its own for it.
 func skillDirs(agent string) map[string]string {
@@ -341,7 +341,7 @@ func skillDirs(agent string) map[string]string {
 		if d, ok := all[agent]; ok {
 			return map[string]string{agent: d}
 		}
-		if agent == "codex" || agent == "opencode" || agent == "pi" || agent == "omp" || agent == "pig" {
+		if agent == "codex" || agent == "opencode" || agent == "pi" || agent == "omp" || agent == "pig" || agent == "phi" {
 			return map[string]string{"agents": all["agents"]}
 		}
 	}

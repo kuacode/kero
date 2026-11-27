@@ -50,7 +50,7 @@ func TestHostOriginColor(t *testing.T) {
 // script's runtime's, and the text's for the rest, faint once the pane
 // ended.  Each brand has a light color and one for the dark.
 func TestProgramColor(t *testing.T) {
-	agents := []string{"claude", "gemini", "codex", "opencode", "amp", "cursor-agent", "copilot", "qwen", "kimi", "cline"}
+	agents := []string{"claude", "gemini", "codex", "opencode", "amp", "cursor-agent", "copilot", "qwen", "kimi", "cline", "phi"}
 	runtimes := []string{"node", "bun", "deno", "python", "python3", "vim", "nvim", "git", "docker"}
 	for _, name := range agents {
 		want, ok := programBrands[name]

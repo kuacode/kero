@@ -284,7 +284,7 @@
   "setRestoreSessions": "再起動後にセッションを復元",
   "setRestoreSessionsDetail": "Mac の再起動などでバックグラウンドサービスが停止したとき、セッションは履歴とともに、それぞれのフォルダで再び開始します。",
   "setResumeAgents": "エージェントを再開",
-  "setResumeAgentsDetail": "エージェントの設定で Kero のスキルをセットアップすると、Claude Code、Codex、Pi、OpenCode は会話を中断したところから再開します。",
+  "setResumeAgentsDetail": "エージェントの設定で Kero のスキルをセットアップすると、Claude Code、Codex、Pi、Phi、OpenCode は会話を中断したところから再開します。",
   "setStartup": "起動",
   "setOpenAtLogin": "ログイン時に Kero を開く",
   "setLoginFailed": "変更できませんでした: {error}",
