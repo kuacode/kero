@@ -18,10 +18,15 @@ priority = 120
 region = "bottom_non_empty_lines(12)"
 visible_working = true
 any = [
+  # One of the status label's texts; each holds alone, as `contains`
+  # is an AND within a gate.
   { contains = ["Sending…"] },
   { contains = ["Awaiting reply…"] },
   { contains = ["Generating…"] },
-  { contains = ["Calling tools…"] },
   { contains = ["Auto-compacting…"] },
   { contains = ["Retrying after disconnect…"] },
+  { line_regex = ['Calling (?:tools|\d+ tools)…'] },
+  # A tool or thinking row mid-run turns a braille spinner; finished ones
+  # show a check.  The spinner is what survives a label truncated narrow.
+  { line_regex = ['^\s*[\x{2800}-\x{28FF}]\s+(Thinking|read|write|edit|bash|grep|find|ls)\b'] },
 ]

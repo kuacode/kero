@@ -119,6 +119,29 @@ func TestPiG(t *testing.T) {
 	}
 }
 
+// Phi's screens, as kero reads them: from v0.30.1 at 120 and 44 columns.
+func TestPhi(t *testing.T) {
+	cases := []struct {
+		name   string
+		screen string
+		state  State
+	}{
+		{"at its splash", screen(t, "phi-idle.txt"), Idle},
+		{"awaiting a reply", screen(t, "phi-working.txt"), Working},
+		{"asking to approve", screen(t, "phi-blocked.txt"), Blocked},
+		// The status label turns, and so does a tool row's spinner.
+		{"a tool row spinning", screen(t, "phi-spinner.txt"), Working},
+		// A label truncated at 44 columns still shows, and the spinner
+		// still shows when the label does not survive the width.
+		{"a thinking row spinning", screen(t, "phi-spinner-narrow.txt"), Working},
+	}
+	for _, c := range cases {
+		if got := Detect("phi", Input{Screen: c.screen}); got.State != c.state {
+			t.Errorf("%s: %s (rule %q), want %s", c.name, got.State, got.Rule, c.state)
+		}
+	}
+}
+
 // codebuddyScreen is CodeBuddy Code's permission prompt, as it draws it:
 // a box of its own, with the question and the choices under it.
 const codebuddyScreen = `╭──────────────────────────────────────────────────────────╮
